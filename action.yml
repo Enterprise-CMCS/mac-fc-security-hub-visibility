@@ -35,5 +35,5 @@ inputs:
     default: 'CRITICAL,HIGH,MEDIUM'
 
 runs:
-  using: 'node18'
+  using: 'node16'
   main: 'dist/index.js'
