@@ -33,6 +33,12 @@ inputs:
     description: 'Comma-separated list of Security Hub finding severities to sync'
     required: false
     default: 'CRITICAL,HIGH,MEDIUM'
+  auto-close:
+    description: 'a boolean to support auto closing for issue'
+    default: "true"
+  assign-jira-ticket-to:
+    description: 'the assignee accountId to assign the Jira ticket to}'
+    required: false
 
 runs:
   using: 'node16'
