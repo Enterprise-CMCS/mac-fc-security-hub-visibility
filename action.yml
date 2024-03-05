@@ -39,6 +39,9 @@ inputs:
   assign-jira-ticket-to:
     description: 'the assignee accountId to assign the Jira ticket to}'
     required: false
+  dry-run:
+    description: 'a boolean to support dry run'
+    default: "false"
 
 runs:
   using: 'node20'
