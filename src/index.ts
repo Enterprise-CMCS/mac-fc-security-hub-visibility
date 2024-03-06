@@ -1,5 +1,5 @@
 import * as core from '@actions/core';
-import { SecurityHubJiraSync } from './macpro-security-hub-sync';
+import { SecurityHubJiraSync } from './macfc-security-hub-sync';
 
 // Utility function to get input with fallback to environment variable
 function getInputOrEnv(inputName: string, envName: string) {

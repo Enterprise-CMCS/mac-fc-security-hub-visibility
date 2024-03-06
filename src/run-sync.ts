@@ -1,4 +1,4 @@
-import { SecurityHubJiraSync } from "./macpro-security-hub-sync";
+import { SecurityHubJiraSync } from "./macfc-security-hub-sync";
 
 new SecurityHubJiraSync({
   region: "us-east-1",

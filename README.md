@@ -13,5 +13,5 @@
 
 Please see `action.yml` for required and optional inputs, and `test.yml` for an example of how to use this action.
 
-This action is backed by the `macpro-security-hub-sync` NPM package.  See https://github.com/Enterprise-CMCS/macpro-security-hub-sync for details.
+This action is based on code forked from `macpro-security-hub-sync` NPM package.  See https://github.com/Enterprise-CMCS/macpro-security-hub-sync for details.
 
