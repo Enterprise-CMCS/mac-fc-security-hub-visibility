@@ -82170,7 +82170,7 @@ class Jira {
             }
             catch (error) {
                 //throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
-                throw new Error(`Error getting Security Hub issues from Jira: ${error instanceof Error ? error.message : error}`);
+                throw new Error(`Error getting Security Hub issues from Jira: ${error instanceof AggregateError ? error.message : error}`);
             }
         } while (totalIssuesReceived < total);
         return allIssues;
