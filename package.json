@@ -6,7 +6,7 @@
   "typings": "./dist/index.js",
   "scripts": {
     "bp": "rm -rf ./dist && rm -rf ./node_modules && npm i --save && tsc && npm publish",
-    "build": "tsc",
+    "build": "ncc build src/index.ts --out dist",
     "test": "vitest --config ./src/tests/vitest.config.ts",
     "test-ci": "vitest run --config ./src/tests/vitest.config.ts",
     "test-gui": "vitest --ui",

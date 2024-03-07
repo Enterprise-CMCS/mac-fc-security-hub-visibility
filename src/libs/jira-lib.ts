@@ -156,7 +156,8 @@ export class Jira {
         startAt = totalIssuesReceived;
         total = results.total;
       } catch (error) {
-        throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
+        //throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
+        throw new Error(`Error getting Security Hub issues from Jira: ${error instanceof Error ? error.message : error}`);
       }
     } while (totalIssuesReceived < total);
   
