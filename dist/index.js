@@ -81971,28 +81971,9 @@ async function run() {
             epicKey: process.env.JIRA_EPIC_KEY,
             customJiraFields
         }).sync();
-        //} catch (e: unknown) {
-        //  core.setFailed(`Sync failed: ${e}`);
-        //}
     }
-    catch (error) {
-        // Create a function to extract error message(s)
-        const extractErrorMessage = (err) => {
-            if (err instanceof AggregateError) {
-                // Map each error in the AggregateError to its message and join them
-                return err.errors.map(extractErrorMessage).join("; ");
-            }
-            else if (err instanceof Error) {
-                return err.message;
-            }
-            else {
-                // Fallback for anything that's not an Error or AggregateError
-                return String(err);
-            }
-        };
-        // Use the function to extract the message from the caught error
-        const errorMessage = extractErrorMessage(error);
-        throw new Error(`Sync failed: ${errorMessage}`);
+    catch (e) {
+        core.setFailed(`Sync failed: ${e.message}`);
     }
 }
 run();
@@ -82174,22 +82155,23 @@ class Jira {
         let startAt = 0;
         let total = 0;
         do {
-            //try {
-            const response = await this.axiosInstance.post('/rest/api/2/search', {
-                jql: fullQuery,
-                startAt: startAt,
-                maxResults: 50,
-                fields: ["*all"]
-            });
-            const results = response.data;
-            allIssues = allIssues.concat(results.issues);
-            totalIssuesReceived += results.issues.length;
-            startAt = totalIssuesReceived;
-            total = results.total;
-            //} catch (error) {
-            //throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
-            //throw new Error(`Error getting Security Hub issues from Jira: ${error instanceof AggregateError ? error.message : error}`);
-            //}
+            try {
+                const response = await this.axiosInstance.post('/rest/api/2/search', {
+                    jql: fullQuery,
+                    startAt: startAt,
+                    maxResults: 50,
+                    fields: ["*all"]
+                });
+                const results = response.data;
+                allIssues = allIssues.concat(results.issues);
+                totalIssuesReceived += results.issues.length;
+                startAt = totalIssuesReceived;
+                total = results.total;
+            }
+            catch (error) {
+                throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
+                //throw new Error(`Error getting Security Hub issues from Jira: ${error instanceof AggregateError ? error.message : error}`);
+            }
         } while (totalIssuesReceived < total);
         return allIssues;
     }
