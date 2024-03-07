@@ -82169,7 +82169,7 @@ class Jira {
                 if (error instanceof axios_1.AxiosError) {
                     if (error.cause instanceof AggregateError) {
                         let errMsg = error.cause.errors ? error.cause.errors.map((err) => err.toString()).join(', ') : error.toString();
-                        console.error(errMsg);
+                        throw new Error(`Errors getting Security Hub issues from Jira: ${errMsg}`);
                     }
                 }
                 else {
