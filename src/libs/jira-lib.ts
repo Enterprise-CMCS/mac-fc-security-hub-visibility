@@ -143,7 +143,7 @@ export class Jira {
     let total = 0;
   
     do {
-      //try {
+      try {
         const response = await this.axiosInstance.post('/rest/api/2/search', {
           jql: fullQuery,
           startAt: startAt,
@@ -155,10 +155,9 @@ export class Jira {
         totalIssuesReceived += results.issues.length;
         startAt = totalIssuesReceived;
         total = results.total;
-      //} catch (error) {
-      //  throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
-        //throw new Error(`Error getting Security Hub issues from Jira: ${error instanceof AggregateError ? error.message : error}`);
-      //}
+      } catch (error: any) {
+        throw new Error(`Error getting Security Hub issues from Jira: ${error.message}`);
+      }
     } while (totalIssuesReceived < total);
   
     return allIssues;
