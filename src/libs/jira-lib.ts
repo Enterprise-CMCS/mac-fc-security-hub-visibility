@@ -156,6 +156,7 @@ export class Jira {
         startAt = totalIssuesReceived;
         total = results.total;
       } catch (error: unknown) {
+        console.log(typeof error);
         if (error instanceof AggregateError) {
           console.error("we got an aggregate error");
           const errors = error.errors;
