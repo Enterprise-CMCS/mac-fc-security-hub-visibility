@@ -82035,13 +82035,10 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Jira = void 0;
 const dotenv = __importStar(__nccwpck_require__(3496));
-const axios_1 = __importDefault(__nccwpck_require__(83503));
+const axios_1 = __importStar(__nccwpck_require__(83503));
 dotenv.config();
 class Jira {
     isDryRun;
@@ -82169,7 +82166,9 @@ class Jira {
                 total = results.total;
             }
             catch (error) {
-                console.log(error.cause.toString());
+                if (error instanceof axios_1.AxiosError) {
+                    console.log("We have an AxiosError");
+                }
                 console.log(error.constructor.name);
                 let errMsg = error.errors ? error.errors.map((err) => err.toString()).join(', ') : error.toString();
                 console.error(errMsg);

@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosError, AxiosInstance } from "axios";
 
 dotenv.config();
 
@@ -156,8 +156,10 @@ export class Jira {
         startAt = totalIssuesReceived;
         total = results.total;
       } catch (error: any) {
-        console.log(error.cause.toString())
-        console.log(error.constructor.name); 
+        if (error instanceof AxiosError) {
+          console.log("We have an AxiosError")
+        }
+        console.log(error.constructor.name);
         let errMsg = error.errors ? error.errors.map((err: any) => err.toString()).join(', ') : error.toString();
         console.error(errMsg);
         if (error instanceof AggregateError) {
