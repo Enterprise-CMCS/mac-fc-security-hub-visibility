@@ -91,7 +91,7 @@ export class Jira {
 
   private static checkEnvVars(): void {
     const requiredEnvVars = [
-      "JIRA_HOST",
+      "JIRA_BASE_URI",
       "JIRA_USERNAME",
       "JIRA_TOKEN",
       "JIRA_PROJECT",
