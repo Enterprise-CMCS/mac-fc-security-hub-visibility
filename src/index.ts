@@ -5,21 +5,20 @@ import { SecurityHubJiraSync } from './macfc-security-hub-sync';
 function getInputOrEnv(inputName: string, envName: string) {
   const inputValue = core.getInput(inputName);
   if (inputValue !== '') {
-    return inputValue;
+    process.env[envName] = inputValue;
+    return
   }
-  const envValue = process.env[envName];
-  if (envValue !== undefined && envValue !== '') {
-    return envValue;
-  }
-  return undefined; // Neither GHA input nor env variable is set
 }
 
-function validateAndFilterSeverities(inputSeverities: string): string[] {
+function validateAndFilterSeverities(inputSeverities: string | undefined): string[] | undefined{
+  if (!inputSeverities) {
+    return undefined; // Potentially update with default severities
+  }
   const allowedSeverities = ["INFORMATIONAL", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
   const inputSeveritiesArray = inputSeverities.split(',')
     .map(severity => severity.trim().toUpperCase())
-    .filter(severity => severity); 
+    .filter(severity => severity);
 
   // Check each severity in the array against the allowed severities
   inputSeveritiesArray.forEach(severity => {
@@ -33,37 +32,38 @@ function validateAndFilterSeverities(inputSeverities: string): string[] {
 
 async function run(): Promise<void> {
   try {
-    const jiraBaseUri = getInputOrEnv('jira-base-uri', 'JIRA_BASE_URI');
-    const jiraHost = getInputOrEnv('jira-host', 'JIRA_HOST');
-    const jiraUsername = getInputOrEnv('jira-username', 'JIRA_USERNAME');
-    const jiraToken = getInputOrEnv('jira-token', 'JIRA_TOKEN');
-    const jiraProject = getInputOrEnv('jira-project-key', 'JIRA_PROJECT');
-    const jiraClosedStatuses = getInputOrEnv('jira-ignore-statuses', 'JIRA_CLOSED_STATUSES');
-    const autoClose = getInputOrEnv('auto-close', 'AUTO_CLOSE');
-    const assignee = getInputOrEnv('assign-jira-ticket-to', 'ASSIGNEE');
-    const awsRegion = getInputOrEnv('aws-region', 'AWS_REGION');
+    getInputOrEnv('jira-base-uri', 'JIRA_BASE_URI');
+    getInputOrEnv('jira-host', 'JIRA_HOST');
+    getInputOrEnv('jira-username', 'JIRA_USERNAME');
+    getInputOrEnv('jira-token', 'JIRA_TOKEN');
+    getInputOrEnv('jira-project-key', 'JIRA_PROJECT');
+    getInputOrEnv('jira-ignore-statuses', 'JIRA_CLOSED_STATUSES');
+    getInputOrEnv('auto-close', 'AUTO_CLOSE');
+    getInputOrEnv('assign-jira-ticket-to', 'ASSIGNEE');
+    getInputOrEnv('aws-region', 'AWS_REGION');
+    getInputOrEnv('aws-severities', 'AWS_SEVERITIES')
 
     let customJiraFields;
-    const customJiraFieldsInput = getInputOrEnv('jira-custom-fields', 'JIRA_CUSTOM_FIELDS');
-    if (customJiraFieldsInput) {
+    getInputOrEnv('jira-custom-fields', 'JIRA_CUSTOM_FIELDS');
+    if (process.env.JIRA_CUSTOM_FIELDS) {
       try {
-        customJiraFields = JSON.parse(customJiraFieldsInput);
-      } catch (e: any) {
+        customJiraFields = JSON.parse(process.env.JIRA_CUSTOM_FIELDS);
+      } catch (e: unknown) {
         throw new Error(
-          `Error parsing JSON string for jira-custom-fields input: ${e.message}`
+          `Error parsing JSON string for jira-custom-fields input: ${e}`
         );
       }
     }
 
     core.info('Syncing Security Hub and Jira');
     await new SecurityHubJiraSync({
-      region: awsRegion,
-      severities:  validateAndFilterSeverities(getInputOrEnv('aws-severities', 'AWS_SEVERITIES') || ''),
-      epicKey: getInputOrEnv('jira-epic-key', 'JIRA_EPIC_KEY'),
+      region: process.env.AWS_REGION,
+      severities:  validateAndFilterSeverities(process.env.AWS_SEVERITIES),
+      epicKey: process.env.JIRA_EPIC_KEY,
       customJiraFields
     }).sync();
-  } catch (e: any) {
-    core.setFailed(`Sync failed: ${e.message}`);
+  } catch (e: unknown) {
+    core.setFailed(`Sync failed: ${e}`);
   }
 }
 

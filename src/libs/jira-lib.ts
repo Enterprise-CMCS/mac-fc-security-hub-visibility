@@ -55,7 +55,7 @@ export class Jira {
     }
 
     try {
-      const response = await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/transitions`, transitionData);
+      await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/transitions`, transitionData);
       console.log(`Issue ${issueId} transitioned successfully.`);
     } catch (error) {
       throw new Error(`Error transitioning issue ${issueId}: ${error}`);
@@ -67,14 +67,6 @@ export class Jira {
       return response.data;
     } catch (error) {
       throw new Error(`Error fetching priorities: ${error}`);
-    }
-  }
-  async getIssue(issueId: string) {
-    try {
-      const response = await this.axiosInstance.get(`/rest/api/2/issue/${issueId}`);
-      return response.data;
-    } catch (error) {
-      throw new Error(`Error transitioning issue ${issueId}: ${error}`);
     }
   }
   async removeCurrentUserAsWatcher(issueId: string) {
@@ -239,7 +231,7 @@ export class Jira {
     }
 
     try {
-      const response = await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/comment`, { body: comment });
+      await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/comment`, { body: comment });
       await this.removeCurrentUserAsWatcher(issueId); // Commenting on the issue adds the user as a watcher, so we remove them
 
   
@@ -285,7 +277,6 @@ export class Jira {
   async completeWorkflow(issueId: string) {
     const opposedStatuses = ["canceled", "backout", "rejected"];
     try {
-      const issue = await this.getIssue(issueId);
       do {
         const availableTransitions = await this.getIssueTransitions(issueId);
         const processedTransitions: string[] = [];
