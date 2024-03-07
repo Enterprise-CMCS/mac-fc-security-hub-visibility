@@ -62,9 +62,27 @@ async function run(): Promise<void> {
       epicKey: process.env.JIRA_EPIC_KEY,
       customJiraFields
     }).sync();
-  } catch (e: unknown) {
-    core.setFailed(`Sync failed: ${e}`);
-  }
+  //} catch (e: unknown) {
+  //  core.setFailed(`Sync failed: ${e}`);
+  //}
+} catch (error: unknown) {
+  // Create a function to extract error message(s)
+  const extractErrorMessage = (err: unknown): string => {
+    if (err instanceof AggregateError) {
+      // Map each error in the AggregateError to its message and join them
+      return err.errors.map(extractErrorMessage).join("; ");
+    } else if (err instanceof Error) {
+      return err.message;
+    } else {
+      // Fallback for anything that's not an Error or AggregateError
+      return String(err);
+    }
+  };
+
+  // Use the function to extract the message from the caught error
+  const errorMessage = extractErrorMessage(error);
+  throw new Error(`Sync failed: ${errorMessage}`);
+}
 }
 
 run();
