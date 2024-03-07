@@ -82169,6 +82169,7 @@ class Jira {
                 total = results.total;
             }
             catch (error) {
+                console.log(error.cause.toString());
                 console.log(error.constructor.name);
                 let errMsg = error.errors ? error.errors.map((err) => err.toString()).join(', ') : error.toString();
                 console.error(errMsg);

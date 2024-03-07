@@ -156,6 +156,7 @@ export class Jira {
         startAt = totalIssuesReceived;
         total = results.total;
       } catch (error: any) {
+        console.log(error.cause.toString())
         console.log(error.constructor.name); 
         let errMsg = error.errors ? error.errors.map((err: any) => err.toString()).join(', ') : error.toString();
         console.error(errMsg);
