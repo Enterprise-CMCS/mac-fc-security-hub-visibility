@@ -82155,23 +82155,22 @@ class Jira {
         let startAt = 0;
         let total = 0;
         do {
-            try {
-                const response = await this.axiosInstance.post('/rest/api/2/search', {
-                    jql: fullQuery,
-                    startAt: startAt,
-                    maxResults: 50,
-                    fields: ["*all"]
-                });
-                const results = response.data;
-                allIssues = allIssues.concat(results.issues);
-                totalIssuesReceived += results.issues.length;
-                startAt = totalIssuesReceived;
-                total = results.total;
-            }
-            catch (error) {
-                throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
-                //throw new Error(`Error getting Security Hub issues from Jira: ${error instanceof AggregateError ? error.message : error}`);
-            }
+            //try {
+            const response = await this.axiosInstance.post('/rest/api/2/search', {
+                jql: fullQuery,
+                startAt: startAt,
+                maxResults: 50,
+                fields: ["*all"]
+            });
+            const results = response.data;
+            allIssues = allIssues.concat(results.issues);
+            totalIssuesReceived += results.issues.length;
+            startAt = totalIssuesReceived;
+            total = results.total;
+            //} catch (error) {
+            //  throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
+            //throw new Error(`Error getting Security Hub issues from Jira: ${error instanceof AggregateError ? error.message : error}`);
+            //}
         } while (totalIssuesReceived < total);
         return allIssues;
     }
