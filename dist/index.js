@@ -82169,7 +82169,7 @@ class Jira {
                 total = results.total;
             }
             catch (error) {
-                console.log(typeof error);
+                console.log(error.constructor.name);
                 if (error instanceof AggregateError) {
                     console.error("we got an aggregate error");
                     const errors = error.errors;
