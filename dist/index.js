@@ -82169,7 +82169,16 @@ class Jira {
                 total = results.total;
             }
             catch (error) {
-                throw new Error(`Error getting Security Hub issues from Jira: ${error.message}`);
+                if (error instanceof AggregateError) {
+                    console.error("we got an aggregate error");
+                    const errors = error.errors;
+                    for (const error of errors) {
+                        console.log(error.message);
+                    }
+                }
+                else {
+                    throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
+                }
             }
         } while (totalIssuesReceived < total);
         return allIssues;
