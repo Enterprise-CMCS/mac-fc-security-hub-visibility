@@ -15,3 +15,4 @@ Please see `action.yml` for required and optional inputs, and `test.yml` for an 
 
 This action is based on code forked from `macpro-security-hub-sync` NPM package.  See https://github.com/Enterprise-CMCS/macpro-security-hub-sync for details.
 
+See test-infrastructure/jira-container/README.md for instructions on how to run against local jira container
