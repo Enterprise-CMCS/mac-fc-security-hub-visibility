@@ -155,24 +155,15 @@ export class Jira {
         totalIssuesReceived += results.issues.length;
         startAt = totalIssuesReceived;
         total = results.total;
-      } catch (error: any) {
+      } catch (error: unknown) {
         if (error instanceof AxiosError) {
-          console.log("We have an AxiosError")
-        }
-        console.log(error.constructor.name);
-        let errMsg = error.errors ? error.errors.map((err: any) => err.toString()).join(', ') : error.toString();
-        console.error(errMsg);
-        if (error instanceof AggregateError) {
-          console.error("we got an aggregate error");
-
-          const errors = error.errors;
-
-          for (const error of errors) {
-            console.log(error.message);
+          if (error.cause instanceof AggregateError) {
+            let errMsg = error.cause.errors ? error.cause.errors.map((err: any) => err.toString()).join(', ') : error.toString();
+            console.error(errMsg);
           }
         }
         else {
-          throw new Error(`Error getting Security Hub issues from Jira test: ${error} test`);
+          throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
         }
       }
     } while (totalIssuesReceived < total);
