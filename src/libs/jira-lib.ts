@@ -165,7 +165,7 @@ export class Jira {
           }
         }
         else {
-          throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
+          throw new Error(`Error getting Security Hub issues from Jira test: ${error} test`);
         }
       }
     } while (totalIssuesReceived < total);
