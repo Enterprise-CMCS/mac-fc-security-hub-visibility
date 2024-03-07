@@ -82155,42 +82155,22 @@ class Jira {
         let startAt = 0;
         let total = 0;
         do {
-            try {
-                const response = await this.axiosInstance.post('/rest/api/2/search', {
-                    jql: fullQuery,
-                    startAt: startAt,
-                    maxResults: 50,
-                    fields: ["*all"]
-                });
-                const results = response.data;
-                allIssues = allIssues.concat(results.issues);
-                totalIssuesReceived += results.issues.length;
-                startAt = totalIssuesReceived;
-                total = results.total;
-                //} catch (error) {
-                //throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
-                //  throw new Error(`Error getting Security Hub issues from Jira: ${error instanceof AggregateError ? error.message : error}`);
-                //}
-            }
-            catch (error) {
-                if (error instanceof AggregateError) {
-                    // Log each error in the AggregateError
-                    error.errors.forEach((err, index) => {
-                        console.error(`Error ${index + 1}:`, err);
-                    });
-                    // Optionally, you can throw a new error with combined messages or handle it differently
-                    const combinedMessage = error.errors.map((err, index) => `Error ${index + 1}: ${err.message || err}`).join('\n');
-                    throw new Error(`Error getting Security Hub issues from Jira: ${combinedMessage}`);
-                }
-                else if (error instanceof Error) {
-                    // Handle regular Error objects
-                    throw new Error(`Error getting Security Hub issues from Jira: ${error.message}`);
-                }
-                else {
-                    // Handle cases where the caught value is not an Error object
-                    throw new Error(`An unexpected error occurred: ${String(error)}`);
-                }
-            }
+            //try {
+            const response = await this.axiosInstance.post('/rest/api/2/search', {
+                jql: fullQuery,
+                startAt: startAt,
+                maxResults: 50,
+                fields: ["*all"]
+            });
+            const results = response.data;
+            allIssues = allIssues.concat(results.issues);
+            totalIssuesReceived += results.issues.length;
+            startAt = totalIssuesReceived;
+            total = results.total;
+            //} catch (error) {
+            //throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
+            //throw new Error(`Error getting Security Hub issues from Jira: ${error instanceof AggregateError ? error.message : error}`);
+            //}
         } while (totalIssuesReceived < total);
         return allIssues;
     }
