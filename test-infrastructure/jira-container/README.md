@@ -1,6 +1,6 @@
 # Jira SDK Container
 
-This code is intended to be use with testing the alerter code, in the future it could be augmented to take command line arguments to load different configs scripts to seed the Jira state for each application we are trying to test.
+This code is intended to be used with testing the alerter code, in the future it could be augmented to take command line arguments to load different configs scripts to seed the Jira state for each application we are trying to test.
 
 The Jira instance will have a license to allow you to test for 3 days from starting the container. After 3 days you will have to launch a new instance with a fresh state. 
 
@@ -8,7 +8,9 @@ Currently we install the jira software app and mirror much of prod Jira, however
 
 ## Build and Run
 
-`docker build -t jira-atlassian-sdk .`
+`--platform linux/amd64` may be required if running outside of X86 Linux
+
+`docker build -t [--platform linux/amd64] jira-atlassian-sdk .` 
 
 `docker run --ulimit nofile=16384:16384 --rm -it -p 2990:2990 jira-atlassian-sdk`
 
