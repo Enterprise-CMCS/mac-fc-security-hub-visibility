@@ -81954,6 +81954,7 @@ async function run() {
         getInputOrEnv('assign-jira-ticket-to', 'ASSIGNEE');
         getInputOrEnv('aws-region', 'AWS_REGION');
         getInputOrEnv('aws-severities', 'AWS_SEVERITIES');
+        getInputOrEnv('dry-run', 'DRY_RUN');
         let customJiraFields;
         getInputOrEnv('jira-custom-fields', 'JIRA_CUSTOM_FIELDS');
         if (process.env.JIRA_CUSTOM_FIELDS) {
