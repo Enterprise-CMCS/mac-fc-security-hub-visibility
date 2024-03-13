@@ -82357,9 +82357,7 @@ class SecurityHub {
             const securityHubClient = new client_securityhub_1.SecurityHubClient({ region: this.region });
             const currentTime = new Date();
             // delay for filtering out ephemeral issues
-            const delayForNewIssues = typeof process.env.SECURITY_HUB_NEW_ISSUE_DELAY !== "undefined"
-                ? +process.env.SECURITY_HUB_NEW_ISSUE_DELAY
-                : 24 * 60 * 60 * 1000; // 1 day
+            const delayForNewIssues = +(process.env.SECURITY_HUB_NEW_ISSUE_DELAY ?? "86400000"); // 24 * 60 * 60 * 1000
             const maxDatetime = new Date(currentTime.getTime() - delayForNewIssues);
             const filters = {
                 RecordState: [{ Comparison: "EQUALS", Value: "ACTIVE" }],
