@@ -27,6 +27,6 @@ jobs:
         run: |
           git diff;
           if git diff --no-patch --exit-code dist; then
-            echo "Detected uncommitted changes after building. Please run 'npm run build' and commit the changes."
+            echo "Detected uncommitted changes after building. Please run 'pnpm run build' and commit the changes."
             exit 1
           fi
