@@ -18,10 +18,10 @@ jobs:
           node-version: 18
 
       - name: Install dependencies
-        run: npm ci
+        run: pnpm install
 
       - name: Build the dist/ directory
-        run: npm run build
+        run: pnpm build
 
       - name: Check for diff
         run: |
