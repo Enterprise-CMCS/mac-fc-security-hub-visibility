@@ -25,10 +25,7 @@ jobs:
 
       - name: Check for diff
         run: |
-          git status;
-          ls dist;
-          git diff dist;
-          if git diff --no-patch --exit-code dist; then
+          if git diff --exit-code dist; then
             echo "Detected uncommitted changes after building. Please run 'pnpm run build' and commit the changes."
             exit 1
           fi
