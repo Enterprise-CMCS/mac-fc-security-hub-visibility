@@ -25,7 +25,7 @@ jobs:
 
       - name: Check for diff
         run: |
-          ls;
+          git status;
           ls dist;
           git diff dist;
           if git diff --no-patch --exit-code dist; then
