@@ -1,12 +1,18 @@
 {
+  "include": ["src/*"],
   "compilerOptions": {
-    "target": "es6",
+    "target": "ESNEXT",
+    "lib": ["ES2021"],
     "module": "commonjs",
-    "outDir": "./lib",
+    "declaration": true,
+    "outDir": "./dist",
     "rootDir": "./src",
     "strict": true,
-    "noImplicitAny": true,
-    "esModuleInterop": true
-  },
-  "exclude": ["node_modules"]
+    "baseUrl": "src",
+    "paths": {
+      "test-setup": ["test-setup"]
+    },
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  }
 }
