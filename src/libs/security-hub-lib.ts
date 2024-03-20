@@ -6,6 +6,8 @@ import {
   Remediation,
   AwsSecurityFinding,
 } from "@aws-sdk/client-securityhub";
+import {SecurityHubJiraSyncConfig} from "../macfc-security-hub-sync"
+import { extractErrorMessage } from "../index";
 
 export interface SecurityHubFinding {
   title?: string;
@@ -21,17 +23,16 @@ export interface SecurityHubFinding {
 export class SecurityHub {
   private readonly region: string;
   private readonly severityLabels: { Comparison: string; Value: string }[];
+  private readonly newIssueDelay: string;
   private accountAlias = "";
 
-  constructor({
-    region = "us-east-1",
-    severities = ["HIGH", "CRITICAL"],
-  } = {}) {
-    this.region = region;
-    this.severityLabels = severities.map((severity) => ({
+  constructor(securityHubJiraSyncConfig: SecurityHubJiraSyncConfig) {
+    this.region = securityHubJiraSyncConfig.region
+    this.severityLabels = securityHubJiraSyncConfig.severities.map((severity) => ({
       Comparison: "EQUALS",
       Value: severity,
     }));
+    this.newIssueDelay = securityHubJiraSyncConfig.newIssueDelay
     this.getAccountAlias().catch((error) => console.error(error));
   }
 
@@ -48,7 +49,7 @@ export class SecurityHub {
       const currentTime = new Date();
 
       // delay for filtering out ephemeral issues
-      const delayForNewIssues = +(process.env.SECURITY_HUB_NEW_ISSUE_DELAY ?? "86400000"); // 24 * 60 * 60 * 1000
+      const delayForNewIssues = +(this.newIssueDelay);
       const maxDatetime = new Date(currentTime.getTime() - delayForNewIssues);
 
       const filters = {
@@ -99,8 +100,8 @@ export class SecurityHub {
           ...finding,
         };
       });
-    } catch (e: any) {
-      throw new Error(`Error getting Security Hub findings: ${e.message}`);
+    } catch (error: unknown) {
+      throw new Error(`Error getting Security Hub findings: ${extractErrorMessage(error)}`);
     }
   }
 

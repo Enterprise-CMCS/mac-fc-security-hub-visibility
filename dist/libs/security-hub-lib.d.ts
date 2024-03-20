@@ -1,4 +1,5 @@
 import { Remediation, AwsSecurityFinding } from "@aws-sdk/client-securityhub";
+import { SecurityHubJiraSyncConfig } from "../macfc-security-hub-sync";
 export interface SecurityHubFinding {
     title?: string;
     region?: string;
@@ -12,11 +13,9 @@ export interface SecurityHubFinding {
 export declare class SecurityHub {
     private readonly region;
     private readonly severityLabels;
+    private readonly newIssueDelay;
     private accountAlias;
-    constructor({ region, severities, }?: {
-        region?: string | undefined;
-        severities?: string[] | undefined;
-    });
+    constructor(securityHubJiraSyncConfig: SecurityHubJiraSyncConfig);
     private getAccountAlias;
     getAllActiveFindings(): Promise<{
         title?: string | undefined;
