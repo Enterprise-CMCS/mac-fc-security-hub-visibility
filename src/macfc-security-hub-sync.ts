@@ -1,18 +1,19 @@
+import { extractErrorMessage } from "index";
 import { Jira, SecurityHub, SecurityHubFinding } from "./libs";
-import { Issue } from "./libs/jira-lib";
+import { Issue, NewIssueData, CustomFields, JiraConfig } from "./libs/jira-lib";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
-
-interface SecurityHubJiraSyncOptions {
-  region?: string;
-  severities?: string[];
-  customJiraFields?: { [id: string]: any };
-  epicKey?: string;
-}
 
 interface UpdateForReturn {
   action: string;
   webUrl: string;
   summary: string;
+}
+
+export interface SecurityHubJiraSyncConfig {
+  region: string;
+  severities: string[];
+  customJiraFields?: CustomFields;
+  newIssueDelay: string
 }
 
 export class SecurityHubJiraSync {
@@ -21,19 +22,16 @@ export class SecurityHubJiraSync {
   private readonly customJiraFields;
   private readonly region;
   private readonly severities;
-  private readonly epicKey;
-  constructor(options: SecurityHubJiraSyncOptions = {}) {
-    const {
-      region = "us-east-1",
-      severities = ["MEDIUM", "HIGH", "CRITICAL"],
-      customJiraFields = {},
-    } = options;
-    this.securityHub = new SecurityHub({ region, severities });
-    this.region = region;
-    this.severities = severities;
-    this.jira = new Jira();
-    this.customJiraFields = customJiraFields;
-    this.epicKey = options.epicKey;
+  private readonly autoClose: boolean;
+  private readonly jiraBaseURI: string;
+  constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean) {
+    this.securityHub = new SecurityHub(securityHubConfig);
+    this.region = securityHubConfig.region;
+    this.severities = securityHubConfig.severities;
+    this.jira = new Jira(jiraConfig);
+    this.jiraBaseURI = jiraConfig.jiraBaseURI;
+    this.customJiraFields = securityHubConfig.customJiraFields;
+    this.autoClose = autoClose;
   }
 
   async sync() {
@@ -77,10 +75,10 @@ export class SecurityHubJiraSync {
     let response;
     try {
       response = await client.send(command);
-    } catch (e: any) {
-      throw new Error(`Error getting AWS Account ID: ${e.message}`);
+    } catch (e: unknown) {
+      throw new Error(`Error getting AWS Account ID: ${extractErrorMessage(e)}`);
     }
-    let accountID: string = response.Account || "";
+    const accountID: string = response.Account || "";
     if (!accountID.match("[0-9]{12}")) {
       throw new Error(
         "ERROR:  An issue was encountered when looking up your AWS Account ID.  Refusing to continue."
@@ -104,16 +102,16 @@ export class SecurityHubJiraSync {
           Date.now()
         ).toDateString()}, this Security Hub finding has been marked resolved`;
       // close all security-hub labeled Jira issues that do not have an active finding
-      if (process.env.AUTO_CLOSE !== "false") {
-        for (var i = 0; i < jiraIssues.length; i++) {
+      if (this.autoClose) {
+        for (let i = 0; i < jiraIssues.length; i++) {
           if (!expectedJiraIssueTitles.includes(jiraIssues[i].fields.summary)) {
             await this.jira.closeIssue(jiraIssues[i].key);
             updatesForReturn.push({
               action: "closed",
-              webUrl: `https://${process.env.JIRA_HOST}/browse/${jiraIssues[i].key}`,
+              webUrl: `${this.jiraBaseURI}/browse/${jiraIssues[i].key}`,
               summary: jiraIssues[i].fields.summary,
             });
-            const comment = await this.jira.addCommentToIssueById(
+            await this.jira.addCommentToIssueById(
               jiraIssues[i].id,
               makeComment()
             );
@@ -121,13 +119,13 @@ export class SecurityHubJiraSync {
         }
       } else {
         console.log("Skipping auto closing...");
-        for (var i = 0; i < jiraIssues.length; i++) {
+        for (let i = 0; i < jiraIssues.length; i++) {
           if (
             !expectedJiraIssueTitles.includes(jiraIssues[i].fields.summary) &&
             !jiraIssues[i].fields.summary.includes("Resolved") // skip already resolved issues
           ) {
             try {
-              const res = await this.jira.updateIssueTitleById(
+              await this.jira.updateIssueTitleById(
                 jiraIssues[i].id,
                 {
                   fields: {
@@ -135,7 +133,7 @@ export class SecurityHubJiraSync {
                   },
                 }
               );
-              const comment = await this.jira.addCommentToIssueById(
+              await this.jira.addCommentToIssueById(
                 jiraIssues[i].id,
                 makeComment()
               );
@@ -149,9 +147,9 @@ export class SecurityHubJiraSync {
           }
         }
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       throw new Error(
-        `Error closing Jira issue for resolved finding: ${e.message}`
+        `Error closing Jira issue for resolved finding: ${extractErrorMessage(e)}`
       );
     }
     return updatesForReturn;
@@ -231,59 +229,27 @@ export class SecurityHubJiraSync {
     ] = standardsControlArn.split(/[/:]+/);
     return `https://${region}.console.${partition}.amazon.com/securityhub/home?region=${region}#/standards/${securityStandards}-${securityStandardsVersion}/${controlId}`;
   }
-  getSeverityMapping = (severity: string) => {
+  getSeverityMappingToJiraPriority = (severity: string) => {
     switch (severity) {
       case "INFORMATIONAL":
-        return "5";
+        return "Lowest";
       case "LOW":
-        return "4";
+        return "Low";
       case "MEDIUM":
-        return "3";
+        return "Medium";
       case "HIGH":
-        return "2";
+        return "High";
       case "CRITICAL":
-        return "1";
+        return "Critical";
       default:
         throw new Error(`Invalid severity: ${severity}`);
     }
   };
-  getPriorityId = (severity: string, priorities: any[]) => {
-    const severityLevel = parseInt(this.getSeverityMapping(severity));
-    if (severityLevel >= priorities.length) {
-      return priorities[priorities.length - 1];
+  async createJiraIssueFromFinding(finding: SecurityHubFinding, identifyingLabels: string[]) {
+    if (!finding.severity) {
+      throw new Error(`Severity must be defined in Security Hub finding: ${finding.title}`);
     }
-    return priorities[severityLevel - 1];
-  };
-  getPriorityNumber = (
-    severity: string,
-    isEnterprise: boolean = false
-  ): string => {
-    if (isEnterprise) {
-      return severity.charAt(0).toUpperCase() + severity.slice(1).toLowerCase();
-    }
-    switch (severity) {
-      case "INFORMATIONAL":
-        return "5";
-      case "LOW":
-        return "4";
-      case "MEDIUM":
-        return "3";
-      case "HIGH":
-        return "2";
-      case "CRITICAL":
-        return "1";
-      default:
-        throw new Error(`Invalid severity: ${severity}`);
-    }
-  };
-
-  async createJiraIssueFromFinding(
-    finding: SecurityHubFinding,
-    identifyingLabels: string[]
-  ) {
-    const priorities = await this.jira.getPriorityIdsInDescendingOrder();
-    console.log(priorities);
-    const newIssueData: Issue = {
+    const newIssueData: NewIssueData = {
       fields: {
         summary: `SecurityHub Finding - ${finding.title}`,
         description: this.createIssueBody(finding),
@@ -295,26 +261,16 @@ export class SecurityHubJiraSync {
           ...identifyingLabels,
         ],
         priority: {
-          id: finding.severity
-            ? this.getPriorityId(finding.severity, priorities)
-            : "3", // if severity is not specified, set 3 which is the middle of the default options.
+          name: this.getSeverityMappingToJiraPriority(finding.severity),
         },
         ...this.customJiraFields,
       },
     };
-    if (finding.severity && process.env.JIRA_HOST?.includes("jiraent")) {
-      newIssueData.fields.priority = {
-        name: this.getPriorityNumber(finding.severity, true),
-      };
-    }
-    if (this.epicKey) {
-      newIssueData.fields.parent = { key: this.epicKey };
-    }
     let newIssueInfo;
     try {
       newIssueInfo = await this.jira.createNewIssue(newIssueData);
-    } catch (e: any) {
-      throw new Error(`Error creating Jira issue from finding: ${e.message}`);
+    } catch (e: unknown) {
+      throw new Error(`Error creating Jira issue from finding: ${extractErrorMessage(e)}`);
     }
     return {
       action: "created",
