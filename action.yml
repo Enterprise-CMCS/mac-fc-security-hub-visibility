@@ -6,7 +6,7 @@ inputs:
   jira-base-uri:
     description: 'URI of the target Jira API endpoint'
     required: false
-    # Default: TODO
+    # Default - https://jiraent.cms.gov
   jira-username:
     description: 'Jira username that will be the reporter of issues created when syncing'
     required: true
@@ -19,14 +19,14 @@ inputs:
   jira-ignored-statuses:
     description: 'Comma-separated list of Jira issue statuses that will be ignored when syncing'
     required: false
-    # Default: TODO
+    # Default - "Done, Closed, Resolved"
   jira-assignee:
-    description: 'the assignee accountId to assign the Jira ticket to}'
+    description: 'the assignee accountId to assign the Jira ticket to'
     required: false
   jira-transition-map:
-    description: 'JSON string of Jira statuses and transition pairs to traverse when closing an issue e.g { "To Do:Start Progress, In Progress:Done" }'
+    description: 'JSON string of Jira statuses and transition pairs to traverse when closing an issue e.g 'To Do:Start Progress, In Progress:Done'
     required: false
-    # Default: TODO
+    # Default - '*: DONE'
   jira-epic-key:
     description: 'Jira epic key where issues will be created'
     required: false
@@ -40,13 +40,15 @@ inputs:
   aws-severities:
     description: 'Comma-separated list of Security Hub finding severities to sync'
     required: false
-    # Default: TODO
+    # Default - 'Done, Closed, Resolved'
   auto-close:
     description: 'a boolean to support auto closing for issue'
-    # Default: true
+    required: false
+    # Default - true
   dry-run:
     description: 'a boolean to support dry run'
-    # Default: false
+    required: false
+    # Default - false
 
 runs:
   using: 'node20'

@@ -81994,23 +81994,23 @@ async function run() {
         }
         const transitionMap = parseAndValidateTransitionMap(transitionMapStr);
         const jiraConfig = {
-            jiraBaseURI: getDefaultInputOrEnv('jira-base-uri', 'JIRA_BASE_URI', 'https://jiraent.cms.gov'), // will test when run as GHA
-            jiraUsername: getRequiredInputOrEnv('jira-username', 'JIRA_USERNAME'), // 
-            jiraToken: getRequiredInputOrEnv('jira-token', 'JIRA_TOKEN'), // 
-            jiraProjectKey: getRequiredInputOrEnv('jira-project-key', 'JIRA_PROJECT'), // 
-            jiraIgnoredStatuses: getDefaultInputOrEnv('jira-ignored-statuses', 'JIRA_IGNORED_STATUSES', "Done, Closed, Resolved"), // undefined
-            jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'), //
-            transitionMap: transitionMap, // tested
-            dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false) // tested
+            jiraBaseURI: getDefaultInputOrEnv('jira-base-uri', 'JIRA_BASE_URI', 'https://jiraent.cms.gov'),
+            jiraUsername: getRequiredInputOrEnv('jira-username', 'JIRA_USERNAME'),
+            jiraToken: getRequiredInputOrEnv('jira-token', 'JIRA_TOKEN'),
+            jiraProjectKey: getRequiredInputOrEnv('jira-project-key', 'JIRA_PROJECT'),
+            jiraIgnoredStatuses: getDefaultInputOrEnv('jira-ignored-statuses', 'JIRA_IGNORED_STATUSES', 'Done, Closed, Resolved'),
+            jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
+            transitionMap: transitionMap,
+            dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false)
         };
-        const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', "CRITICAL,HIGH,MEDIUM"); //
+        const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
         const securityHubConfig = {
             region: getDefaultInputOrEnv('aws-region', 'AWS_REGION', 'us-east-1'),
-            severities: validateAndFilterSeverities(severitiesStr), // 
+            severities: validateAndFilterSeverities(severitiesStr),
             newIssueDelay: getDefaultInputOrEnv('security-hub-new-issue-delay', 'SECURITY_HUB_NEW_ISSUE_DELAY', '86400000'), //
-            customJiraFields: customJiraFields, // tested
+            customJiraFields: customJiraFields
         };
-        const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true); // tested
+        const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true);
         core.info('Syncing Security Hub and Jira');
         await new macfc_security_hub_sync_1.SecurityHubJiraSync(jiraConfig, securityHubConfig, autoClose).sync();
     }
@@ -82251,7 +82251,6 @@ class Jira {
         let response;
         try {
             if (this.jiraAssignee) {
-                console.log("Assigning issue to:", this.jiraAssignee);
                 issue.fields.assignee = { name: this.jiraAssignee };
             }
             issue.fields.project = { key: this.jiraProject };
@@ -82319,7 +82318,6 @@ class Jira {
         return nextTransition;
     }
     async applyWildcardTransition(issueId) {
-        console.log(this.transitionMap);
         const wildcardTransition = this.transitionMap.find(rule => rule.status === '*')?.transition;
         if (wildcardTransition) {
             console.log(`Applying wildcard transition '${wildcardTransition}' to issue ${issueId}`);

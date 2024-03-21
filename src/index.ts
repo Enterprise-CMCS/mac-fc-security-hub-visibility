@@ -100,13 +100,13 @@ async function run(): Promise<void> {
       jiraUsername: getRequiredInputOrEnv('jira-username', 'JIRA_USERNAME'),
       jiraToken: getRequiredInputOrEnv('jira-token', 'JIRA_TOKEN'),
       jiraProjectKey: getRequiredInputOrEnv('jira-project-key', 'JIRA_PROJECT'),
-      jiraIgnoredStatuses: getDefaultInputOrEnv('jira-ignored-statuses', 'JIRA_IGNORED_STATUSES', "Done, Closed, Resolved"),
+      jiraIgnoredStatuses: getDefaultInputOrEnv('jira-ignored-statuses', 'JIRA_IGNORED_STATUSES', 'Done, Closed, Resolved'),
       jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
       transitionMap: transitionMap,
       dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false) 
     }
 
-    const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', "CRITICAL,HIGH,MEDIUM"); //
+    const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
 
     const securityHubConfig: SecurityHubJiraSyncConfig = {
       region: getDefaultInputOrEnv('aws-region', 'AWS_REGION', 'us-east-1'),
