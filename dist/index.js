@@ -81916,20 +81916,39 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.extractErrorMessage = void 0;
 const core = __importStar(__nccwpck_require__(19093));
 const macfc_security_hub_sync_1 = __nccwpck_require__(33922);
-// Utility function to get input with fallback to environment variable
-function getInputOrEnv(inputName, envName) {
-    const inputValue = core.getInput(inputName);
-    if (inputValue !== '') {
-        process.env[envName] = inputValue;
-        return;
+function extractErrorMessage(error) {
+    if (error instanceof Error) {
+        return error.message;
     }
+    return "An unknown error occurred";
+}
+exports.extractErrorMessage = extractErrorMessage;
+// Utility function to get input with fallback to environment variable, can return undefined
+function getInputOrEnv(inputName, envName) {
+    const inputValue = core.getInput(inputName) || process.env[envName];
+    return inputValue;
+}
+// Utility function to get input with fallback to environment variable and default value
+function getDefaultInputOrEnv(inputName, envName, defaultValue) {
+    return getInputOrEnv(inputName, envName) || defaultValue;
+}
+// Utility function to get input with fallback to environment variable and throws an error if it is not set
+function getRequiredInputOrEnv(inputName, envName) {
+    const inputValue = core.getInput(inputName) || process.env[envName];
+    if (!inputValue) {
+        throw new Error(`Input for '${inputName}' or environment variable '${envName}' is required but not set.`);
+    }
+    return inputValue;
+}
+// Utility function to get input with fallback to environment variable and converts to boolean
+function getInputOrEnvAndConvertToBool(inputName, envName, defaultValue = false) {
+    const inputValue = core.getInput(inputName) || process.env[envName] || defaultValue.toString();
+    return inputValue.trim().toLowerCase() === 'true';
 }
 function validateAndFilterSeverities(inputSeverities) {
-    if (!inputSeverities) {
-        return undefined; // Potentially update with default severities
-    }
     const allowedSeverities = ["INFORMATIONAL", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
     const inputSeveritiesArray = inputSeverities.split(',')
         .map(severity => severity.trim().toUpperCase())
@@ -81942,39 +81961,61 @@ function validateAndFilterSeverities(inputSeverities) {
     });
     return inputSeveritiesArray;
 }
+function parseAndValidateTransitionMap(transitionMapStr) {
+    if (!transitionMapStr) {
+        return [{ status: '*', transition: 'DONE' }]; // Defaults to wildcard status and transition of 'DONE' if no map is provided
+    }
+    const transitionMap = transitionMapStr.split(';').map(ruleStr => {
+        const [status, transition] = ruleStr.split(':').map(part => part.trim().toUpperCase());
+        if (!status || !transition) {
+            throw new Error(`Invalid transition rule format: '${ruleStr}'. Expected format is 'Status:Transition'.`);
+        }
+        return { status, transition };
+    });
+    // Check for the presence of a wildcard transition and validate its uniqueness
+    const hasWildcard = transitionMap.some(rule => rule.status === '*');
+    if (hasWildcard && transitionMap.length > 1) {
+        throw new Error(`Invalid transition map: When using a wildcard transition ('*'), it must be the only transition in the map.`);
+    }
+    return transitionMap;
+}
 async function run() {
     try {
-        getInputOrEnv('jira-base-uri', 'JIRA_BASE_URI');
-        getInputOrEnv('jira-host', 'JIRA_HOST');
-        getInputOrEnv('jira-username', 'JIRA_USERNAME');
-        getInputOrEnv('jira-token', 'JIRA_TOKEN');
-        getInputOrEnv('jira-project-key', 'JIRA_PROJECT');
-        getInputOrEnv('jira-ignore-statuses', 'JIRA_CLOSED_STATUSES');
-        getInputOrEnv('auto-close', 'AUTO_CLOSE');
-        getInputOrEnv('assign-jira-ticket-to', 'ASSIGNEE');
-        getInputOrEnv('aws-region', 'AWS_REGION');
-        getInputOrEnv('aws-severities', 'AWS_SEVERITIES');
-        getInputOrEnv('dry-run', 'DRY_RUN');
+        const transitionMapStr = getDefaultInputOrEnv('jira-transition-map', 'JIRA_TRANSITION_MAP', '*: DONE');
         let customJiraFields;
-        getInputOrEnv('jira-custom-fields', 'JIRA_CUSTOM_FIELDS');
-        if (process.env.JIRA_CUSTOM_FIELDS) {
+        const customJiraFieldsStr = getInputOrEnv('jira-custom-fields', 'JIRA_CUSTOM_FIELDS');
+        if (customJiraFieldsStr) {
             try {
-                customJiraFields = JSON.parse(process.env.JIRA_CUSTOM_FIELDS);
+                customJiraFields = JSON.parse(customJiraFieldsStr);
             }
             catch (e) {
-                throw new Error(`Error parsing JSON string for jira-custom-fields input: ${e}`);
+                throw new Error(`Error parsing JSON string for jira-custom-fields input: ${extractErrorMessage(e)}`);
             }
         }
+        const transitionMap = parseAndValidateTransitionMap(transitionMapStr);
+        const jiraConfig = {
+            jiraBaseURI: getDefaultInputOrEnv('jira-base-uri', 'JIRA_BASE_URI', 'https://jiraent.cms.gov'),
+            jiraUsername: getRequiredInputOrEnv('jira-username', 'JIRA_USERNAME'),
+            jiraToken: getRequiredInputOrEnv('jira-token', 'JIRA_TOKEN'),
+            jiraProjectKey: getRequiredInputOrEnv('jira-project-key', 'JIRA_PROJECT'),
+            jiraIgnoredStatuses: getDefaultInputOrEnv('jira-ignored-statuses', 'JIRA_IGNORED_STATUSES', 'Done, Closed, Resolved'),
+            jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
+            transitionMap: transitionMap,
+            dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false)
+        };
+        const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
+        const securityHubConfig = {
+            region: getDefaultInputOrEnv('aws-region', 'AWS_REGION', 'us-east-1'),
+            severities: validateAndFilterSeverities(severitiesStr),
+            newIssueDelay: getDefaultInputOrEnv('security-hub-new-issue-delay', 'SECURITY_HUB_NEW_ISSUE_DELAY', '86400000'), //
+            customJiraFields: customJiraFields
+        };
+        const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true);
         core.info('Syncing Security Hub and Jira');
-        await new macfc_security_hub_sync_1.SecurityHubJiraSync({
-            region: process.env.AWS_REGION,
-            severities: validateAndFilterSeverities(process.env.AWS_SEVERITIES),
-            epicKey: process.env.JIRA_EPIC_KEY,
-            customJiraFields
-        }).sync();
+        await new macfc_security_hub_sync_1.SecurityHubJiraSync(jiraConfig, securityHubConfig, autoClose).sync();
     }
-    catch (e) {
-        core.setFailed(`Sync failed: ${e.message}`);
+    catch (error) {
+        core.setFailed(`Sync failed: ${extractErrorMessage(error)}`);
     }
 }
 run();
@@ -82040,26 +82081,50 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Jira = void 0;
 const dotenv = __importStar(__nccwpck_require__(3496));
 const axios_1 = __importStar(__nccwpck_require__(83503));
+const index_1 = __nccwpck_require__(62694);
 dotenv.config();
+function handleAxiosError(error) {
+    // Check if the error is an instance of AxiosError
+    if (error instanceof axios_1.AxiosError) {
+        let errorDetails = JSON.stringify(error.toJSON(), null, 2);
+        // Mask the token in the error details
+        errorDetails = errorDetails.replace(/"Authorization": "Bearer [^"]+"/, `"Authorization": "Bearer <REDACTED_TOKEN>"`);
+        console.log(errorDetails);
+        // Check if the cause of the AxiosError is an AggregateError
+        if (error.cause instanceof AggregateError && error.cause.errors) {
+            // Map each error in the AggregateError to its message and join them
+            const errMsgs = error.cause.errors.map(err => (0, index_1.extractErrorMessage)(err)).join(', ');
+            return `Errors from Axios request: ${errMsgs}`;
+        }
+        // For non-aggregate AxiosError, extract the single error message
+        return `Error from Axios request: ${(0, index_1.extractErrorMessage)(error)}`;
+    }
+    // Fallback for non-Axios errors
+    return `${(0, index_1.extractErrorMessage)(error)}`;
+}
 class Jira {
+    jiraBaseURI;
+    jiraProject;
+    axiosInstance;
+    transitionMap = [];
+    jiraAssignee;
+    jiraIgnoredStatusesList;
     isDryRun;
     dryRunIssueCounter = 0;
-    axiosInstance;
-    jiraClosedStatuses;
-    constructor() {
-        Jira.checkEnvVars();
-        // Interpret DRY_RUN environment variable flexibly
-        this.isDryRun = process.env.DRY_RUN?.trim().toLowerCase() === 'true';
+    constructor(jiraConfig) {
+        this.jiraBaseURI = jiraConfig.jiraBaseURI;
+        this.jiraProject = jiraConfig.jiraProjectKey;
+        this.jiraAssignee = jiraConfig.jiraAssignee;
+        this.transitionMap = jiraConfig.transitionMap;
+        this.jiraIgnoredStatusesList = jiraConfig.jiraIgnoredStatuses.split(",").map((status) => status.trim());
+        this.isDryRun = jiraConfig.dryRun;
         this.axiosInstance = axios_1.default.create({
-            baseURL: process.env.JIRA_BASE_URI,
+            baseURL: jiraConfig.jiraBaseURI,
             headers: {
-                "Authorization": `Bearer ${process.env.JIRA_TOKEN}`,
+                "Authorization": `Bearer ${jiraConfig.jiraToken}`,
                 "Content-Type": "application/json",
             },
         });
-        this.jiraClosedStatuses = process.env.JIRA_CLOSED_STATUSES
-            ? process.env.JIRA_CLOSED_STATUSES.split(",").map((status) => status.trim())
-            : ["Done"];
     }
     async getCurrentUser() {
         try {
@@ -82067,44 +82132,66 @@ class Jira {
             return response.data;
         }
         catch (error) {
-            throw new Error(`Error fetching current user: ${error}`);
+            throw new Error(`Error fetching current user: ${handleAxiosError(error)}`);
+        }
+    }
+    async getIssue(issueId) {
+        try {
+            const response = await this.axiosInstance.get(`/rest/api/2/issue/${issueId}`);
+            return response.data;
+        }
+        catch (error) {
+            throw new Error(`Error fetching issue details for issue ${issueId}: ${handleAxiosError(error)}`);
+        }
+    }
+    async getCurrentStatus(issueId) {
+        try {
+            return (await this.getIssue(issueId)).fields.status.name.toUpperCase();
+        }
+        catch (error) {
+            throw new Error(`Error fetching current status for issue ${issueId}: ${handleAxiosError(error)}`);
         }
     }
     async getIssueTransitions(issueId) {
         try {
             const response = await this.axiosInstance.get(`/rest/api/2/issue/${issueId}/transitions`);
-            return response.data.transitions;
+            const transitions = response.data.transitions;
+            if (!transitions.every(t => 'id' in t && 'name' in t)) {
+                throw new Error('One or more transitions are missing required properties (id, name)');
+            }
+            return transitions;
         }
         catch (error) {
-            throw new Error(`Error fetching issue transitions: ${error}`);
+            throw new Error(`Error fetching issue transitions: ${handleAxiosError(error)}`);
         }
     }
-    async transitionIssue(issueId, transitionData) {
+    async transitionIssueByName(issueId, transitionName) {
         if (this.isDryRun) {
-            console.log(`[Dry Run] Would transition issue ${issueId} with data:`, transitionData);
+            console.log(`[Dry Run] Would transition issue ${issueId} with transition:`, transitionName);
             return;
         }
         try {
-            await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/transitions`, transitionData);
-            console.log(`Issue ${issueId} transitioned successfully.`);
+            // Fetch available transitions for the issue
+            const availableTransitions = await this.getIssueTransitions(issueId);
+            // Find the transition ID corresponding to the provided transition name
+            const transition = availableTransitions.find(t => t.name.toLocaleUpperCase() === transitionName);
+            if (!transition) {
+                throw new Error(`Transition '${transitionName}' not found for issue ${issueId}`);
+            }
+            // Transition the issue using the found transition ID
+            await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/transitions`, {
+                transition: { id: transition.id }
+            });
+            console.log(`Issue ${issueId} transitioned successfully to '${transitionName}'.`);
         }
         catch (error) {
-            throw new Error(`Error transitioning issue ${issueId}: ${error}`);
-        }
-    }
-    async getPriorities() {
-        try {
-            const response = await this.axiosInstance.get('/rest/api/2/priority');
-            return response.data;
-        }
-        catch (error) {
-            throw new Error(`Error fetching priorities: ${error}`);
+            throw new Error(`Error transitioning issue ${issueId} to '${transitionName}': ${handleAxiosError(error)}`);
         }
     }
     async removeCurrentUserAsWatcher(issueId) {
         try {
             const currentUser = await this.getCurrentUser();
-            console.log("Remove watcher: " + currentUser.name);
+            console.log(`Remove watcher ${currentUser.name} from ${issueId}`);
             if (this.isDryRun) {
                 console.log(`[Dry Run] Would remove ${currentUser.name} from ${issueId} as watcher.`);
                 return; // Skip the actual API call
@@ -82116,19 +82203,7 @@ class Jira {
             });
         }
         catch (error) {
-            throw new Error(`Error creating issue or removing watcher: ${error}`);
-        }
-    }
-    static checkEnvVars() {
-        const requiredEnvVars = [
-            "JIRA_BASE_URI",
-            "JIRA_USERNAME",
-            "JIRA_TOKEN",
-            "JIRA_PROJECT",
-        ];
-        const missingEnvVars = requiredEnvVars.filter((envVar) => !process.env[envVar]);
-        if (missingEnvVars.length) {
-            throw new Error(`Missing required environment variables: ${missingEnvVars.join(", ")}`);
+            throw new Error(`Error creating issue or removing watcher: ${handleAxiosError(error)}`);
         }
     }
     static formatLabelQuery(label) {
@@ -82136,8 +82211,8 @@ class Jira {
     }
     async getAllSecurityHubIssuesInJiraProject(identifyingLabels) {
         const labelQueries = [...identifyingLabels, "security-hub"].map((label) => Jira.formatLabelQuery(label));
-        const projectQuery = `project = '${process.env.JIRA_PROJECT}'`;
-        const statusQuery = `status not in ('${this.jiraClosedStatuses.join("','" // wrap each closed status in single quotes
+        const projectQuery = `project = '${this.jiraProject}'`;
+        const statusQuery = `status not in ('${this.jiraIgnoredStatusesList.join("','" // wrap each closed status in single quotes
         )}')`;
         const fullQuery = [...labelQueries, projectQuery, statusQuery].join(" AND ");
         // We  want to do everything possible to prevent matching tickets that we shouldn't
@@ -82167,37 +82242,18 @@ class Jira {
                 total = results.total;
             }
             catch (error) {
-                if (error instanceof axios_1.AxiosError) {
-                    if (error.cause instanceof AggregateError) {
-                        let errMsg = error.cause.errors ? error.cause.errors.map((err) => err.toString()).join(', ') : error.toString();
-                        throw new Error(`Errors getting Security Hub issues from Jira: ${errMsg}`);
-                    }
-                }
-                else {
-                    throw new Error(`Error getting Security Hub issues from Jira: ${error}`);
-                }
+                throw new Error(`Error getting Security Hub issues from Jira: ${handleAxiosError(error)}`);
             }
         } while (totalIssuesReceived < total);
         return allIssues;
     }
-    async getPriorityIdsInDescendingOrder() {
-        try {
-            const priorities = await this.getPriorities();
-            // Get priority IDs in descending order
-            const descendingPriorityIds = priorities.map((priority) => priority.id);
-            return descendingPriorityIds;
-        }
-        catch (error) {
-            throw new Error(`Error fetching priority IDs: ${error}`);
-        }
-    }
     async createNewIssue(issue) {
+        let response;
         try {
-            const assignee = process.env.ASSIGNEE ?? "";
-            if (assignee) {
-                issue.fields.assignee = { name: assignee };
+            if (this.jiraAssignee) {
+                issue.fields.assignee = { name: this.jiraAssignee };
             }
-            issue.fields.project = { key: process.env.JIRA_PROJECT };
+            issue.fields.project = { key: this.jiraProject };
             if (this.isDryRun) {
                 console.log(`[Dry Run] Would create a new issue with the following details:`, issue);
                 // Return a dry run issue object
@@ -82206,21 +82262,24 @@ class Jira {
                     id: `dryrun-id-${this.dryRunIssueCounter}`,
                     key: `DRYRUN-KEY-${this.dryRunIssueCounter}`,
                     fields: {
+                        description: "Dry Run Description",
+                        issuetype: { name: "Dry Run Issue" },
                         summary: issue.fields.summary || `Dry Run Summary ${this.dryRunIssueCounter}`,
+                        labels: []
                     },
-                    webUrl: `${process.env.JIRA_BASE_URI}/browse/DRYRUN-KEY-${this.dryRunIssueCounter}`,
+                    webUrl: `${this.jiraBaseURI}/browse/DRYRUN-KEY-${this.dryRunIssueCounter}`
                 };
                 return dryRunIssue; // Return a dummy issue
             }
-            const response = await this.axiosInstance.post('/rest/api/2/issue', issue);
+            response = await this.axiosInstance.post('/rest/api/2/issue', issue);
             const newIssue = response.data;
             // Construct the webUrl for the new issue
-            newIssue["webUrl"] = `${process.env.JIRA_BASE_URI}/browse/${newIssue.key}`;
+            newIssue["webUrl"] = `${this.jiraBaseURI}/browse/${newIssue.key}`;
             await this.removeCurrentUserAsWatcher(newIssue.key);
             return newIssue;
         }
         catch (error) {
-            throw new Error(`Error creating Jira issue: ${error}`);
+            throw new Error(`Error creating Jira issue: ${handleAxiosError(error)}`);
         }
     }
     async updateIssueTitleById(issueId, updatedIssue) {
@@ -82233,7 +82292,7 @@ class Jira {
             console.log("Issue title updated successfully:", response.data);
         }
         catch (error) {
-            throw new Error(`Error updating issue title: ${error}`);
+            throw new Error(`Error updating issue title: ${handleAxiosError(error)}`);
         }
     }
     async addCommentToIssueById(issueId, comment) {
@@ -82246,78 +82305,54 @@ class Jira {
             await this.removeCurrentUserAsWatcher(issueId); // Commenting on the issue adds the user as a watcher, so we remove them
         }
         catch (error) {
-            throw new Error(`Error adding comment to issue: ${error}`);
+            throw new Error(`Error adding comment to issue: ${handleAxiosError(error)}`);
         }
     }
-    async findPathToClosure(transitions, currentStatus) {
-        const visited = new Set();
-        const queue = [
-            { path: [], status: currentStatus },
-        ];
-        while (queue.length > 0) {
-            const { path, status } = queue.shift();
-            visited.add(status);
-            const possibleTransitions = transitions.filter((transition) => transition.from.name === status);
-            for (const transition of possibleTransitions) {
-                const newPath = [...path, transition.id];
-                const newStatus = transition.to.name;
-                if (newStatus.toLowerCase().includes("close") ||
-                    newStatus.toLowerCase().includes("done")) {
-                    return newPath; // Found a path to closure
-                }
-                if (!visited.has(newStatus)) {
-                    queue.push({ path: newPath, status: newStatus });
-                }
-            }
+    getNextTransition(currentStatus) {
+        // First, try to find a specific transition for the current status
+        let nextTransition = this.transitionMap.find(rule => rule.status === currentStatus)?.transition;
+        // If not found, look for a wildcard transition
+        if (!nextTransition) {
+            nextTransition = this.transitionMap.find(rule => rule.status === '*')?.transition;
         }
-        return []; // No valid path to closure found
+        return nextTransition;
     }
-    async completeWorkflow(issueId) {
-        const opposedStatuses = ["canceled", "backout", "rejected"];
-        try {
-            do {
-                const availableTransitions = await this.getIssueTransitions(issueId);
-                const processedTransitions = [];
-                console.log(availableTransitions);
-                if (availableTransitions.length > 0) {
-                    const targetTransitions = availableTransitions.transitions.filter((transition) => !opposedStatuses.includes(transition.name.toLowerCase()) &&
-                        !processedTransitions.includes(transition.name.toLowerCase()));
-                    const transitionId = targetTransitions[0].id;
-                    processedTransitions.push(targetTransitions[0].name);
-                    await this.transitionIssue(issueId, {
-                        transition: { id: transitionId },
-                    });
-                    console.log(`Transitioned issue ${issueId} to the next step.`);
-                }
-                else {
-                    break;
-                }
-            } while (true);
+    async applyWildcardTransition(issueId) {
+        const wildcardTransition = this.transitionMap.find(rule => rule.status === '*')?.transition;
+        if (wildcardTransition) {
+            console.log(`Applying wildcard transition '${wildcardTransition}' to issue ${issueId}`);
+            await this.transitionIssueByName(issueId, wildcardTransition);
+            return true; // Indicate that a wildcard transition was applied
         }
-        catch (error) {
-            throw new Error(`Error completing the workflow: ${error}`);
-        }
+        return false; // No wildcard transition found
     }
     async closeIssue(issueId) {
         if (this.isDryRun) {
-            console.log(`[Dry Run] Would close issue ${issueId}`);
+            console.log(`[Dry Run] Would apply transition map to issue ${issueId}`);
             return;
         }
-        if (!issueId)
-            return;
+        // Attempt to apply a wildcard transition first
+        const wildcardApplied = await this.applyWildcardTransition(issueId);
+        if (wildcardApplied) {
+            console.log(`Wildcard transition applied to issue ${issueId}. Closing process completed.`);
+            return; // Exit the method as the wildcard transition takes precedence
+        }
+        console.log(`Attempting to close ${issueId}: Applying transition map to issue`);
         try {
-            const transitions = await this.getIssueTransitions(issueId);
-            const doneTransition = transitions.find((t) => t.name === "Done");
-            if (!doneTransition) {
-                this.completeWorkflow(issueId);
-                return;
+            for (let i = 0; i <= this.transitionMap.length; i++) {
+                const currentStatus = await this.getCurrentStatus(issueId);
+                const nextTransition = this.transitionMap.find(rule => rule.status === currentStatus)?.transition;
+                if (!nextTransition) {
+                    console.log(`No further transitions defined for current status: ${currentStatus}. Issue ${issueId} considered at desired state.`);
+                    return; // No mapped transition for current status, considered as terminal state
+                }
+                // Apply the transition directly from the map
+                await this.transitionIssueByName(issueId, nextTransition);
             }
-            await this.transitionIssue(issueId, {
-                transition: { id: doneTransition.id },
-            });
+            throw new Error(`Overran transition map for issue ${issueId}.`);
         }
         catch (error) {
-            throw new Error(`Error closing issue ${issueId}: ${error}`);
+            throw new Error(`Error applying transition map to issue ${issueId}: ${(0, index_1.extractErrorMessage)(error)}`);
         }
     }
 }
@@ -82335,16 +82370,19 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SecurityHub = void 0;
 const client_iam_1 = __nccwpck_require__(5944);
 const client_securityhub_1 = __nccwpck_require__(37982);
+const index_1 = __nccwpck_require__(62694);
 class SecurityHub {
     region;
     severityLabels;
+    newIssueDelay;
     accountAlias = "";
-    constructor({ region = "us-east-1", severities = ["HIGH", "CRITICAL"], } = {}) {
-        this.region = region;
-        this.severityLabels = severities.map((severity) => ({
+    constructor(securityHubJiraSyncConfig) {
+        this.region = securityHubJiraSyncConfig.region;
+        this.severityLabels = securityHubJiraSyncConfig.severities.map((severity) => ({
             Comparison: "EQUALS",
             Value: severity,
         }));
+        this.newIssueDelay = securityHubJiraSyncConfig.newIssueDelay;
         this.getAccountAlias().catch((error) => console.error(error));
     }
     async getAccountAlias() {
@@ -82357,7 +82395,7 @@ class SecurityHub {
             const securityHubClient = new client_securityhub_1.SecurityHubClient({ region: this.region });
             const currentTime = new Date();
             // delay for filtering out ephemeral issues
-            const delayForNewIssues = +(process.env.SECURITY_HUB_NEW_ISSUE_DELAY ?? "86400000"); // 24 * 60 * 60 * 1000
+            const delayForNewIssues = +(this.newIssueDelay);
             const maxDatetime = new Date(currentTime.getTime() - delayForNewIssues);
             const filters = {
                 RecordState: [{ Comparison: "EQUALS", Value: "ACTIVE" }],
@@ -82403,8 +82441,8 @@ class SecurityHub {
                 };
             });
         }
-        catch (e) {
-            throw new Error(`Error getting Security Hub findings: ${e.message}`);
+        catch (error) {
+            throw new Error(`Error getting Security Hub findings: ${(0, index_1.extractErrorMessage)(error)}`);
         }
     }
     awsSecurityFindingToSecurityHubFinding(finding) {
@@ -82438,6 +82476,7 @@ exports.SecurityHub = SecurityHub;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SecurityHubJiraSync = void 0;
+const index_1 = __nccwpck_require__(62694);
 const libs_1 = __nccwpck_require__(40626);
 const client_sts_1 = __nccwpck_require__(8055);
 class SecurityHubJiraSync {
@@ -82446,15 +82485,16 @@ class SecurityHubJiraSync {
     customJiraFields;
     region;
     severities;
-    epicKey;
-    constructor(options = {}) {
-        const { region = "us-east-1", severities = ["MEDIUM", "HIGH", "CRITICAL"], customJiraFields = {}, } = options;
-        this.securityHub = new libs_1.SecurityHub({ region, severities });
-        this.region = region;
-        this.severities = severities;
-        this.jira = new libs_1.Jira();
-        this.customJiraFields = customJiraFields;
-        this.epicKey = options.epicKey;
+    autoClose;
+    jiraBaseURI;
+    constructor(jiraConfig, securityHubConfig, autoClose) {
+        this.securityHub = new libs_1.SecurityHub(securityHubConfig);
+        this.region = securityHubConfig.region;
+        this.severities = securityHubConfig.severities;
+        this.jira = new libs_1.Jira(jiraConfig);
+        this.jiraBaseURI = jiraConfig.jiraBaseURI;
+        this.customJiraFields = securityHubConfig.customJiraFields;
+        this.autoClose = autoClose;
     }
     async sync() {
         const updatesForReturn = [];
@@ -82484,9 +82524,9 @@ class SecurityHubJiraSync {
             response = await client.send(command);
         }
         catch (e) {
-            throw new Error(`Error getting AWS Account ID: ${e.message}`);
+            throw new Error(`Error getting AWS Account ID: ${(0, index_1.extractErrorMessage)(e)}`);
         }
-        let accountID = response.Account || "";
+        const accountID = response.Account || "";
         if (!accountID.match("[0-9]{12}")) {
             throw new Error("ERROR:  An issue was encountered when looking up your AWS Account ID.  Refusing to continue.");
         }
@@ -82498,32 +82538,32 @@ class SecurityHubJiraSync {
         try {
             const makeComment = () => `As of ${new Date(Date.now()).toDateString()}, this Security Hub finding has been marked resolved`;
             // close all security-hub labeled Jira issues that do not have an active finding
-            if (process.env.AUTO_CLOSE !== "false") {
-                for (var i = 0; i < jiraIssues.length; i++) {
+            if (this.autoClose) {
+                for (let i = 0; i < jiraIssues.length; i++) {
                     if (!expectedJiraIssueTitles.includes(jiraIssues[i].fields.summary)) {
                         await this.jira.closeIssue(jiraIssues[i].key);
                         updatesForReturn.push({
                             action: "closed",
-                            webUrl: `https://${process.env.JIRA_HOST}/browse/${jiraIssues[i].key}`,
+                            webUrl: `${this.jiraBaseURI}/browse/${jiraIssues[i].key}`,
                             summary: jiraIssues[i].fields.summary,
                         });
-                        const comment = await this.jira.addCommentToIssueById(jiraIssues[i].id, makeComment());
+                        await this.jira.addCommentToIssueById(jiraIssues[i].id, makeComment());
                     }
                 }
             }
             else {
                 console.log("Skipping auto closing...");
-                for (var i = 0; i < jiraIssues.length; i++) {
+                for (let i = 0; i < jiraIssues.length; i++) {
                     if (!expectedJiraIssueTitles.includes(jiraIssues[i].fields.summary) &&
                         !jiraIssues[i].fields.summary.includes("Resolved") // skip already resolved issues
                     ) {
                         try {
-                            const res = await this.jira.updateIssueTitleById(jiraIssues[i].id, {
+                            await this.jira.updateIssueTitleById(jiraIssues[i].id, {
                                 fields: {
                                     summary: `Resolved ${jiraIssues[i].fields.summary}`,
                                 },
                             });
-                            const comment = await this.jira.addCommentToIssueById(jiraIssues[i].id, makeComment());
+                            await this.jira.addCommentToIssueById(jiraIssues[i].id, makeComment());
                         }
                         catch (e) {
                             console.log(`Title of ISSUE with id ${jiraIssues[i].id} is not changed with error: ${JSON.stringify(e)}`);
@@ -82533,7 +82573,7 @@ class SecurityHubJiraSync {
             }
         }
         catch (e) {
-            throw new Error(`Error closing Jira issue for resolved finding: ${e.message}`);
+            throw new Error(`Error closing Jira issue for resolved finding: ${(0, index_1.extractErrorMessage)(e)}`);
         }
         return updatesForReturn;
     }
@@ -82584,51 +82624,26 @@ class SecurityHubJiraSync {
         const [, partition, , region, , , securityStandards, , securityStandardsVersion, controlId,] = standardsControlArn.split(/[/:]+/);
         return `https://${region}.console.${partition}.amazon.com/securityhub/home?region=${region}#/standards/${securityStandards}-${securityStandardsVersion}/${controlId}`;
     }
-    getSeverityMapping = (severity) => {
+    getSeverityMappingToJiraPriority = (severity) => {
         switch (severity) {
             case "INFORMATIONAL":
-                return "5";
+                return "Lowest";
             case "LOW":
-                return "4";
+                return "Low";
             case "MEDIUM":
-                return "3";
+                return "Medium";
             case "HIGH":
-                return "2";
+                return "High";
             case "CRITICAL":
-                return "1";
-            default:
-                throw new Error(`Invalid severity: ${severity}`);
-        }
-    };
-    getPriorityId = (severity, priorities) => {
-        const severityLevel = parseInt(this.getSeverityMapping(severity));
-        if (severityLevel >= priorities.length) {
-            return priorities[priorities.length - 1];
-        }
-        return priorities[severityLevel - 1];
-    };
-    getPriorityNumber = (severity, isEnterprise = false) => {
-        if (isEnterprise) {
-            return severity.charAt(0).toUpperCase() + severity.slice(1).toLowerCase();
-        }
-        switch (severity) {
-            case "INFORMATIONAL":
-                return "5";
-            case "LOW":
-                return "4";
-            case "MEDIUM":
-                return "3";
-            case "HIGH":
-                return "2";
-            case "CRITICAL":
-                return "1";
+                return "Critical";
             default:
                 throw new Error(`Invalid severity: ${severity}`);
         }
     };
     async createJiraIssueFromFinding(finding, identifyingLabels) {
-        const priorities = await this.jira.getPriorityIdsInDescendingOrder();
-        console.log(priorities);
+        if (!finding.severity) {
+            throw new Error(`Severity must be defined in Security Hub finding: ${finding.title}`);
+        }
         const newIssueData = {
             fields: {
                 summary: `SecurityHub Finding - ${finding.title}`,
@@ -82641,27 +82656,17 @@ class SecurityHubJiraSync {
                     ...identifyingLabels,
                 ],
                 priority: {
-                    id: finding.severity
-                        ? this.getPriorityId(finding.severity, priorities)
-                        : "3", // if severity is not specified, set 3 which is the middle of the default options.
+                    name: this.getSeverityMappingToJiraPriority(finding.severity),
                 },
                 ...this.customJiraFields,
             },
         };
-        if (finding.severity && process.env.JIRA_HOST?.includes("jiraent")) {
-            newIssueData.fields.priority = {
-                name: this.getPriorityNumber(finding.severity, true),
-            };
-        }
-        if (this.epicKey) {
-            newIssueData.fields.parent = { key: this.epicKey };
-        }
         let newIssueInfo;
         try {
             newIssueInfo = await this.jira.createNewIssue(newIssueData);
         }
         catch (e) {
-            throw new Error(`Error creating Jira issue from finding: ${e.message}`);
+            throw new Error(`Error creating Jira issue from finding: ${(0, index_1.extractErrorMessage)(e)}`);
         }
         return {
             action: "created",

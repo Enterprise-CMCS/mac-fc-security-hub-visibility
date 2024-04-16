@@ -2,7 +2,12 @@ name: 'Security Hub Visibility'
 description: 'Syncs AWS Security Hub findings with Jira issues'
 author: 'MAC-FC'
 inputs:
+  # The application has its own built in default values for unset inputs. Double check index.ts for the current default values.
   # Jira
+  jira-base-uri:
+    description: 'URI of the target Jira API endpoint'
+    required: false
+    # Application Default - https://jiraent.cms.gov
   jira-username:
     description: 'Jira username that will be the reporter of issues created when syncing'
     required: true
@@ -12,13 +17,17 @@ inputs:
   jira-project-key:
     description: 'Jira project key where issues will be created'
     required: true
-  jira-base-uri:
-    description: 'URI of the target Jira API endpoint'
-    default: 'https://jira-base-uri'
-  jira-ignore-statuses:
+  jira-ignored-statuses:
     description: 'Comma-separated list of Jira issue statuses that will be ignored when syncing'
     required: false
-    default: 'Done'
+    # Application Default - "Done, Closed, Resolved"
+  jira-assignee:
+    description: 'the assignee accountId to assign the Jira ticket to'
+    required: false
+  jira-transition-map:
+    description: 'JSON string of Jira statuses and transition pairs to traverse when closing an issue e.g 'To Do:Start Progress, In Progress:Done'
+    required: false
+    # Application Default - '*: DONE'
   jira-epic-key:
     description: 'Jira epic key where issues will be created'
     required: false
@@ -28,20 +37,19 @@ inputs:
   aws-region:
     description: 'Target AWS region for Security Hub findings'
     required: false
-    default: 'us-east-1'
+    # Application Default: us-east-1
   aws-severities:
     description: 'Comma-separated list of Security Hub finding severities to sync'
     required: false
-    default: 'CRITICAL,HIGH,MEDIUM'
+    # Application Default - 'Done, Closed, Resolved'
   auto-close:
     description: 'a boolean to support auto closing for issue'
-    default: "true"
-  assign-jira-ticket-to:
-    description: 'the assignee accountId to assign the Jira ticket to}'
     required: false
+    # Application Default - true
   dry-run:
     description: 'a boolean to support dry run'
-    default: "false"
+    required: false
+    # Application Default - false
 
 runs:
   using: 'node20'
