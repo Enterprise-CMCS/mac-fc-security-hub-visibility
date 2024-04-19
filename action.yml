@@ -28,9 +28,6 @@ inputs:
     description: 'JSON string of Jira statuses and transition pairs to traverse when closing an issue e.g 'To Do:Start Progress, In Progress:Done'
     required: false
     # Application Default - '*: DONE'
-  jira-epic-key:
-    description: 'Jira epic key where issues will be created'
-    required: false
   jira-custom-fields:
     description: 'JSON string of Jira custom field keys/values, e.g. { "customfield_14117": "example-value" }'
 # AWS
