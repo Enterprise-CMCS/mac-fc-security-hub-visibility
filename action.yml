@@ -25,7 +25,7 @@ inputs:
     description: 'the assignee accountId to assign the Jira ticket to'
     required: false
   jira-transition-map:
-    description: 'JSON string of Jira statuses and transition pairs to traverse when closing an issue e.g 'To Do:Start Progress, In Progress:Done'
+    description: 'JSON string of Jira statuses and transition pairs to traverse when closing an issue e.g "To Do:Start Progress, In Progress:Done"'
     required: false
     # Application Default - '*: DONE'
   jira-custom-fields:
