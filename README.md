@@ -44,7 +44,7 @@ Jira Personal Access Token used to authenticate.
 
 The Jira Project in which Security Hub tickets should be created in by this tool.
 
-### JIRA_IGNORED_STATUSES
+### JIRA_IGNORE_STATUSES
 **Required: No**
 
 **Default Value: 'Done, Closed, Resolved'**

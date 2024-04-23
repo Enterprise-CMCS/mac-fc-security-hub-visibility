@@ -81998,7 +81998,7 @@ async function run() {
             jiraUsername: getRequiredInputOrEnv('jira-username', 'JIRA_USERNAME'),
             jiraToken: getRequiredInputOrEnv('jira-token', 'JIRA_TOKEN'),
             jiraProjectKey: getRequiredInputOrEnv('jira-project-key', 'JIRA_PROJECT'),
-            jiraIgnoredStatuses: getDefaultInputOrEnv('jira-ignored-statuses', 'JIRA_IGNORED_STATUSES', 'Done, Closed, Resolved'),
+            jiraIgnoreStatuses: getDefaultInputOrEnv('jira-ignore-statuses', 'JIRA_IGNORE_STATUSES', 'Done, Closed, Resolved'),
             jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
             transitionMap: transitionMap,
             dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false)
@@ -82108,7 +82108,7 @@ class Jira {
     axiosInstance;
     transitionMap = [];
     jiraAssignee;
-    jiraIgnoredStatusesList;
+    jiraIgnoreStatusesList;
     isDryRun;
     dryRunIssueCounter = 0;
     constructor(jiraConfig) {
@@ -82116,7 +82116,7 @@ class Jira {
         this.jiraProject = jiraConfig.jiraProjectKey;
         this.jiraAssignee = jiraConfig.jiraAssignee;
         this.transitionMap = jiraConfig.transitionMap;
-        this.jiraIgnoredStatusesList = jiraConfig.jiraIgnoredStatuses.split(",").map((status) => status.trim());
+        this.jiraIgnoreStatusesList = jiraConfig.jiraIgnoreStatuses.split(",").map((status) => status.trim());
         this.isDryRun = jiraConfig.dryRun;
         this.axiosInstance = axios_1.default.create({
             baseURL: jiraConfig.jiraBaseURI,
@@ -82212,7 +82212,7 @@ class Jira {
     async getAllSecurityHubIssuesInJiraProject(identifyingLabels) {
         const labelQueries = [...identifyingLabels, "security-hub"].map((label) => Jira.formatLabelQuery(label));
         const projectQuery = `project = '${this.jiraProject}'`;
-        const statusQuery = `status not in ('${this.jiraIgnoredStatusesList.join("','" // wrap each closed status in single quotes
+        const statusQuery = `status not in ('${this.jiraIgnoreStatusesList.join("','" // wrap each closed status in single quotes
         )}')`;
         const fullQuery = [...labelQueries, projectQuery, statusQuery].join(" AND ");
         // We  want to do everything possible to prevent matching tickets that we shouldn't

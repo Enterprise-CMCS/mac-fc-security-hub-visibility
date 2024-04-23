@@ -9,7 +9,7 @@ export interface JiraConfig {
   jiraUsername: string;
   jiraToken: string;
   jiraProjectKey: string;
-  jiraIgnoredStatuses: string;
+  jiraIgnoreStatuses: string;
   jiraAssignee?: string;
   transitionMap: Array<{ status: string; transition: string }>;
   dryRun: boolean;
@@ -80,7 +80,7 @@ export class Jira {
   private axiosInstance: AxiosInstance;
   private transitionMap: Array<{ status: string; transition: string }> = [];
   private jiraAssignee?: string;
-  private jiraIgnoredStatusesList: string[];
+  private jiraIgnoreStatusesList: string[];
   private isDryRun: boolean;
   private dryRunIssueCounter: number = 0;
   constructor(jiraConfig: JiraConfig) {
@@ -88,7 +88,7 @@ export class Jira {
     this.jiraProject = jiraConfig.jiraProjectKey;
     this.jiraAssignee = jiraConfig.jiraAssignee;
     this.transitionMap = jiraConfig.transitionMap;
-    this.jiraIgnoredStatusesList = jiraConfig.jiraIgnoredStatuses.split(",").map((status) => status.trim());
+    this.jiraIgnoreStatusesList = jiraConfig.jiraIgnoreStatuses.split(",").map((status) => status.trim());
     this.isDryRun = jiraConfig.dryRun;
 
     this.axiosInstance = axios.create({
@@ -195,7 +195,7 @@ export class Jira {
       Jira.formatLabelQuery(label)
     );
     const projectQuery = `project = '${this.jiraProject}'`;
-    const statusQuery = `status not in ('${this.jiraIgnoredStatusesList.join(
+    const statusQuery = `status not in ('${this.jiraIgnoreStatusesList.join(
       "','" // wrap each closed status in single quotes
     )}')`;
     const fullQuery = [...labelQueries, projectQuery, statusQuery].join(
