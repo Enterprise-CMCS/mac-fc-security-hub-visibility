@@ -100,7 +100,7 @@ async function run(): Promise<void> {
       jiraUsername: getRequiredInputOrEnv('jira-username', 'JIRA_USERNAME'),
       jiraToken: getRequiredInputOrEnv('jira-token', 'JIRA_TOKEN'),
       jiraProjectKey: getRequiredInputOrEnv('jira-project-key', 'JIRA_PROJECT'),
-      jiraIgnoredStatuses: getDefaultInputOrEnv('jira-ignored-statuses', 'JIRA_IGNORED_STATUSES', 'Done, Closed, Resolved'),
+      jiraIgnoreStatuses: getDefaultInputOrEnv('jira-ignore-statuses', 'JIRA_IGNORE_STATUSES', 'Done, Closed, Resolved'),
       jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
       transitionMap: transitionMap,
       dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false) 

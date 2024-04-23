@@ -3,7 +3,7 @@ export interface JiraConfig {
     jiraUsername: string;
     jiraToken: string;
     jiraProjectKey: string;
-    jiraIgnoredStatuses: string;
+    jiraIgnoreStatuses: string;
     jiraAssignee?: string;
     transitionMap: Array<{
         status: string;
@@ -53,7 +53,7 @@ export declare class Jira {
     private axiosInstance;
     private transitionMap;
     private jiraAssignee?;
-    private jiraIgnoredStatusesList;
+    private jiraIgnoreStatusesList;
     private isDryRun;
     private dryRunIssueCounter;
     constructor(jiraConfig: JiraConfig);
