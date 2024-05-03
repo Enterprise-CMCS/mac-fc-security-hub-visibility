@@ -68,7 +68,12 @@ function handleAxiosError(error: unknown): string {
       return `Errors from Axios request: ${errMsgs}`;
     }
     // For non-aggregate AxiosError, extract the single error message
-    return `Error from Axios request: ${extractErrorMessage(error)}`;
+    let errorMessage = `Error from Axios request: ${extractErrorMessage(error)}`;
+    // Include response data in the error message if available
+    if (error.response && error.response.data) {
+      errorMessage += `\nResponse data: ${JSON.stringify(error.response.data)}`;
+    }
+    return errorMessage;
   }
   // Fallback for non-Axios errors
   return `${extractErrorMessage(error)}`;
