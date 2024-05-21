@@ -38,7 +38,7 @@ inputs:
   aws-severities:
     description: 'Comma-separated list of Security Hub finding severities to sync'
     required: false
-    # Application Default - 'Done, Closed, Resolved'
+    # Application Default - 'CRITICAL,HIGH,MEDIUM'
   auto-close:
     description: 'a boolean to support auto closing for issue'
     required: false
