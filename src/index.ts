@@ -10,6 +10,8 @@ async function run(): Promise<void> {
     process.env.JIRA_CLOSED_STATUSES = core.getInput('jira-ignore-statuses')
     process.env.AUTO_CLOSE = core.getInput('auto-close')
     process.env.ASSIGNEE = core.getInput('assign-jira-ticket-to')
+    process.env.JIRA_FEATURE_KEY = core.getInput('jira-feature-issue')
+    process.env.JIRA_LINK_TYPE = core.getInput('jira-link-type')
 
     let customJiraFields
     const customJiraFieldsInput = core.getInput('jira-custom-fields')
