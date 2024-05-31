@@ -39,6 +39,12 @@ inputs:
   assign-jira-ticket-to:
     description: 'the assignee accountId to assign the Jira ticket to}'
     required: false
+  jira-feature-issue:
+    description: 'the new created issue will be linked to this feature issue'
+    required: false
+  jira-link-type:
+    description: "this defines the relation of the new issue with feature issue specified and default value for this is 'Relates'"
+    required: false
 
 runs:
   using: 'node20'
