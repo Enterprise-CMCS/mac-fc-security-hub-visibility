@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import {SecurityHubJiraSync} from '@enterprise-cmcs/macpro-security-hub-sync';
+import {SecurityHubJiraSync} from '@enterprise-cmcs/macpro-security-hub-sync'
 
 async function run(): Promise<void> {
   try {
@@ -12,6 +12,12 @@ async function run(): Promise<void> {
     process.env.ASSIGNEE = core.getInput('assign-jira-ticket-to')
     process.env.JIRA_LINK_ID = core.getInput('jira-link-id')
     process.env.JIRA_LINK_TYPE = core.getInput('jira-link-type')
+    process.env.INCLUDE_ALL_PRODUCTS = core.getInput('include-all-products')
+    const productList: string[] = core
+      .getInput('skip-products')
+      .split(',')
+      .map((product: string) => product.trim())
+    process.env.SKIP_PRODUCTS = productList.join(',')
 
     let customJiraFields
     const customJiraFieldsInput = core.getInput('jira-custom-fields')
