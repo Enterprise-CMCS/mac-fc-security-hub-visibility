@@ -51,6 +51,9 @@ inputs:
   skip-products:
     description: "comma separated list of product names for those the findings should be skipped"
     required: false
+  jira-link-direction:
+    description: "this variable is to specify the direction of linked issue either inward or outward"
+    required: false
 
 runs:
   using: 'node20'
