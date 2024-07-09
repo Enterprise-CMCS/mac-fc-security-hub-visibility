@@ -310,7 +310,7 @@ export class SecurityHubJiraSync {
       newIssueInfo = await this.jira.createNewIssue(newIssueData);
       const issue_id = this.jiraLinkId;
       if (issue_id) {
-        let linkType = this.jiraLinkType;
+        const linkType = this.jiraLinkType;
         const linkDirection = this.jiraLinkDirection;
         await this.jira.linkIssues(
           newIssueInfo.key,

@@ -1,5 +1,6 @@
 import { SecurityHubFinding } from "./libs";
 import { Issue, CustomFields, JiraConfig } from "./libs/jira-lib";
+import { Resource } from "@aws-sdk/client-securityhub";
 interface UpdateForReturn {
     action: string;
     webUrl: string;
@@ -10,6 +11,8 @@ export interface SecurityHubJiraSyncConfig {
     severities: string[];
     customJiraFields?: CustomFields;
     newIssueDelay: string;
+    skipProducts?: string;
+    includeAllProducts: boolean;
 }
 export declare class SecurityHubJiraSync {
     private readonly jira;
@@ -19,10 +22,16 @@ export declare class SecurityHubJiraSync {
     private readonly severities;
     private readonly autoClose;
     private readonly jiraBaseURI;
+    private includeAllProducts?;
+    private skipProducts?;
+    private jiraLinkId?;
+    private jiraLinkType?;
+    private jiraLinkDirection?;
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
     sync(): Promise<void>;
     getAWSAccountID(): Promise<string>;
     closeIssuesForResolvedFindings(jiraIssues: Issue[], shFindings: SecurityHubFinding[]): Promise<UpdateForReturn[]>;
+    makeResourceList(resources: Resource[] | undefined): string;
     createIssueBody(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrl(standardsControlArn?: string): string;
     getSeverityMappingToJiraPriority: (severity: string) => "Lowest" | "Low" | "Medium" | "High" | "Critical";

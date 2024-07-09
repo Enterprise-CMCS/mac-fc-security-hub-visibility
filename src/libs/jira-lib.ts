@@ -16,6 +16,8 @@ export interface JiraConfig {
   jiraLinkId?: string
   jiraLinkType?: string
   jiraLinkDirection?: string
+  includeAllProducts: boolean
+  skipProducts?: string
 }
 
 export type CustomFields = {

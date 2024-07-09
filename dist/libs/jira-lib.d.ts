@@ -10,6 +10,11 @@ export interface JiraConfig {
         transition: string;
     }>;
     dryRun: boolean;
+    jiraLinkId?: string;
+    jiraLinkType?: string;
+    jiraLinkDirection?: string;
+    includeAllProducts: boolean;
+    skipProducts?: string;
 }
 export type CustomFields = {
     [key: string]: string;
@@ -56,6 +61,9 @@ export declare class Jira {
     private jiraIgnoreStatusesList;
     private isDryRun;
     private dryRunIssueCounter;
+    private jiraLinkId?;
+    private jiraLinkType?;
+    private jiraLinkDirection?;
     constructor(jiraConfig: JiraConfig);
     getCurrentUser(): Promise<any>;
     getIssue(issueId: string): Promise<any>;
@@ -66,6 +74,7 @@ export declare class Jira {
     private static formatLabelQuery;
     getAllSecurityHubIssuesInJiraProject(identifyingLabels: string[]): Promise<Issue[]>;
     createNewIssue(issue: NewIssueData): Promise<Issue>;
+    linkIssues(newIssueKey: string, issueID: string, linkType?: string, linkDirection?: string): Promise<void>;
     updateIssueTitleById(issueId: string, updatedIssue: Partial<Issue>): Promise<void>;
     addCommentToIssueById(issueId: string, comment: string): Promise<void>;
     getNextTransition(currentStatus: string): string | undefined;
