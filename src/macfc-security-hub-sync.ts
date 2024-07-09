@@ -2,6 +2,7 @@ import { extractErrorMessage } from "index";
 import { Jira, SecurityHub, SecurityHubFinding } from "./libs";
 import { Issue, NewIssueData, CustomFields, JiraConfig } from "./libs/jira-lib";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
+import { Resource } from "@aws-sdk/client-securityhub";
 
 interface UpdateForReturn {
   action: string;
@@ -13,7 +14,9 @@ export interface SecurityHubJiraSyncConfig {
   region: string;
   severities: string[];
   customJiraFields?: CustomFields;
-  newIssueDelay: string
+  newIssueDelay: string;
+  skipProducts?: string
+  includeAllProducts: boolean
 }
 
 export class SecurityHubJiraSync {
@@ -24,6 +27,12 @@ export class SecurityHubJiraSync {
   private readonly severities;
   private readonly autoClose: boolean;
   private readonly jiraBaseURI: string;
+  private includeAllProducts?: boolean;
+  private skipProducts?: string[];
+  private jiraLinkId?: string;
+  private jiraLinkType?: string;
+  private jiraLinkDirection?: string;
+  
   constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean) {
     this.securityHub = new SecurityHub(securityHubConfig);
     this.region = securityHubConfig.region;
@@ -32,6 +41,13 @@ export class SecurityHubJiraSync {
     this.jiraBaseURI = jiraConfig.jiraBaseURI;
     this.customJiraFields = securityHubConfig.customJiraFields;
     this.autoClose = autoClose;
+    this.includeAllProducts = securityHubConfig.includeAllProducts
+    this.skipProducts = securityHubConfig.skipProducts
+      ?.split(',')
+      .map(product => product.trim())
+    this.jiraLinkId = jiraConfig.jiraLinkId
+    this.jiraLinkType = jiraConfig.jiraLinkType
+    this.jiraLinkDirection = jiraConfig.jiraLinkDirection
   }
 
   async sync() {
@@ -154,7 +170,23 @@ export class SecurityHubJiraSync {
     }
     return updatesForReturn;
   }
+  makeResourceList(resources: Resource[] | undefined) {
+    if (!resources) {
+      return `No Resources`;
+    }
+    const maxLength = Math.max(...resources.map(({ Id }) => Id?.length || 0));
+    const title = "Resource Id".padEnd(maxLength + maxLength / 2 + 4);
 
+    let Table = `${title}| Partition   | Region     | Type    \n`;
+    resources.forEach(({ Id, Partition, Region, Type }) => {
+      Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? "").padEnd(
+        11
+      )} | ${(Region ?? "").padEnd(9)} | ${Type ?? ""} \n`;
+    });
+
+    Table += `------------------------------------------------------------------------------------------------`;
+    return Table;
+  }
   createIssueBody(finding: SecurityHubFinding) {
     const {
       remediation: {
@@ -204,6 +236,12 @@ export class SecurityHubJiraSync {
 
       h2. SecurityHubFindingUrl:
       ${this.createSecurityHubFindingUrl(standardsControlArn)}
+
+      h2. Resources:
+      Following are the resources those were non-compliant at the time of the issue creation
+      ${this.makeResourceList(finding.Resources)}
+
+      To check the latest list of resources, kindly refer to the finding url
 
       h2. AC:
 
@@ -258,6 +296,7 @@ export class SecurityHubJiraSync {
           "security-hub",
           finding.severity,
           finding.accountAlias,
+          finding.ProductName,
           ...identifyingLabels,
         ],
         priority: {
@@ -269,6 +308,17 @@ export class SecurityHubJiraSync {
     let newIssueInfo;
     try {
       newIssueInfo = await this.jira.createNewIssue(newIssueData);
+      const issue_id = this.jiraLinkId;
+      if (issue_id) {
+        let linkType = this.jiraLinkType;
+        const linkDirection = this.jiraLinkDirection;
+        await this.jira.linkIssues(
+          newIssueInfo.key,
+          issue_id,
+          linkType,
+          linkDirection
+        );
+      }
     } catch (e: unknown) {
       throw new Error(`Error creating Jira issue from finding: ${extractErrorMessage(e)}`);
     }
