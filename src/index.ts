@@ -14,6 +14,7 @@ async function run(): Promise<void> {
     process.env.JIRA_LINK_TYPE = core.getInput('jira-link-type')
     process.env.INCLUDE_ALL_PRODUCTS = core.getInput('include-all-products')
     process.env.JIRA_LINK_DIRECTION = core.getInput('jira-link-direction')
+    process.env.LABELS_CONFIG = core.getInput('jira-labels-config')
 
     const productList: string[] = core
       .getInput('skip-products')

@@ -54,7 +54,9 @@ inputs:
   jira-link-direction:
     description: "this variable is to specify the direction of linked issue either inward or outward"
     required: false
-
+  jira-labels-config:
+    description: "This variable is to specify stringified labels config"
+    required: false
 runs:
   using: 'node20'
   main: 'dist/index.js'
