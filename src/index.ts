@@ -169,7 +169,8 @@ async function run(): Promise<void> {
         'INCLUDE_ALL_PRODUCTS',
         false
       ),
-      skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS')
+      skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
+      jiraLabelsConfig: getInputOrEnv('jira-labels-config', 'JIRA_LABELS_CONFIG')
     }
 
     const severitiesStr = getDefaultInputOrEnv(

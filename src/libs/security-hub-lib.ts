@@ -12,6 +12,7 @@ import {SecurityHubJiraSyncConfig} from "../macfc-security-hub-sync"
 import { extractErrorMessage } from "../index";
 
 export interface SecurityHubFinding {
+  id?: string;
   title?: string;
   region?: string;
   accountAlias?: string;
@@ -22,6 +23,7 @@ export interface SecurityHubFinding {
   remediation?: Remediation;
   ProductName?: string;
   Resources?: Resource[];
+  [key: string]: string | unknown;
 }
 
 export class SecurityHub {
@@ -132,6 +134,7 @@ export class SecurityHub {
   ): SecurityHubFinding {
     if (!finding) return {};
     return {
+      id: finding.Id,
       title: finding.Title,
       region: finding.Region,
       accountAlias: this.accountAlias,

@@ -10,6 +10,12 @@ interface UpdateForReturn {
   summary: string
 }
 
+interface LabelConfig {
+  labelField: string
+  labelPrefix?: string
+  labelDelimiter?: string
+}
+
 export interface SecurityHubJiraSyncConfig {
   region: string
   severities: string[]
@@ -32,6 +38,7 @@ export class SecurityHubJiraSync {
   private jiraLinkId?: string
   private jiraLinkType?: string
   private jiraLinkDirection?: string
+  private jiraLabelsConfig?: LabelConfig[]
 
   constructor(
     jiraConfig: JiraConfig,
@@ -52,6 +59,9 @@ export class SecurityHubJiraSync {
     this.jiraLinkId = jiraConfig.jiraLinkId
     this.jiraLinkType = jiraConfig.jiraLinkType
     this.jiraLinkDirection = jiraConfig.jiraLinkDirection
+    if (jiraConfig.jiraLabelsConfig) {
+      this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig)
+    }
   }
 
   async sync() {
@@ -192,6 +202,17 @@ export class SecurityHubJiraSync {
     Table += `------------------------------------------------------------------------------------------------`
     return Table
   }
+  createSecurityHubFindingUrlThroughFilters(findingId: string) {
+    const arnParts = findingId.split(':')
+    const region = arnParts[3]
+    const accountId = arnParts[4]
+
+    const baseUrl = `https://${region}.console.aws.amazon.com/securityhub/home?region=${region}`
+    const searchParam = `Id%3D%255Coperator%255C%253AEQUALS%255C%253A${findingId}`
+    const url = `${baseUrl}#/findings?search=${searchParam}`
+
+    return url
+  }
   createIssueBody(finding: SecurityHubFinding) {
     const {
       remediation: {
@@ -200,6 +221,7 @@ export class SecurityHubJiraSync {
           Text: remediationText = ''
         } = {}
       } = {},
+      id = '',
       title = '',
       description = '',
       accountAlias = '',
@@ -240,7 +262,11 @@ export class SecurityHubJiraSync {
       ${severity}
 
       h2. SecurityHubFindingUrl:
-      ${this.createSecurityHubFindingUrl(standardsControlArn)}
+      ${
+        standardsControlArn
+          ? this.createSecurityHubFindingUrl(standardsControlArn)
+          : this.createSecurityHubFindingUrlThroughFilters(id)
+      }
 
       h2. Resources:
       Following are the resources those were non-compliant at the time of the issue creation
@@ -288,6 +314,41 @@ export class SecurityHubJiraSync {
         throw new Error(`Invalid severity: ${severity}`)
     }
   }
+  createLabels(
+    finding: SecurityHubFinding,
+    identifyingLabels: string[],
+    config: LabelConfig[]
+  ): string[] {
+    const labels: string[] = []
+    const fields = ['accountId', 'region', 'identify']
+    const values = [...identifyingLabels, 'security-hub']
+
+    config.forEach(
+      ({labelField: field, labelDelimiter: delim, labelPrefix: prefix}) => {
+        const delimiter = delim ?? ''
+        const labelPrefix = prefix ?? ''
+
+        if (fields.includes(field)) {
+          const index = fields.indexOf(field)
+          if (index >= 0) {
+            labels.push(
+              `${labelPrefix}${delimiter}${values[index]
+                ?.trim()
+                .replace(/ /g, '')}`
+            )
+          }
+        } else {
+          const value = (finding[field] ?? '')
+            .toString()
+            .trim()
+            .replace(/ /g, '')
+          labels.push(`${labelPrefix}${delimiter}${value}`)
+        }
+      }
+    )
+
+    return labels
+  }
   async createJiraIssueFromFinding(
     finding: SecurityHubFinding,
     identifyingLabels: string[]
@@ -306,13 +367,25 @@ export class SecurityHubJiraSync {
           'security-hub',
           finding.severity,
           finding.accountAlias,
-          finding.ProductName?.trim().replace(/ /g, '-'),
+          finding.ProductName?.trim().replace(/ /g, ''),
           ...identifyingLabels
         ],
         priority: {
           name: this.getSeverityMappingToJiraPriority(finding.severity)
         },
         ...this.customJiraFields
+      }
+    }
+    if (this.jiraLabelsConfig) {
+      try {
+        const config = this.jiraLabelsConfig
+        newIssueData.fields.labels = this.createLabels(
+          finding,
+          identifyingLabels,
+          config
+        )
+      } catch (e) {
+        console.log('Invalid labels config - going with default labels')
       }
     }
     let newIssueInfo

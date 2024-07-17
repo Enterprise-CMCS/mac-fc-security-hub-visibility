@@ -18,6 +18,7 @@ export interface JiraConfig {
   jiraLinkDirection?: string
   includeAllProducts: boolean
   skipProducts?: string
+  jiraLabelsConfig?: string
 }
 
 export type CustomFields = {

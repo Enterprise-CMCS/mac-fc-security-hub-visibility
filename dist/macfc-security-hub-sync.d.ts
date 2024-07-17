@@ -6,6 +6,11 @@ interface UpdateForReturn {
     webUrl: string;
     summary: string;
 }
+interface LabelConfig {
+    labelField: string;
+    labelPrefix?: string;
+    labelDelimiter?: string;
+}
 export interface SecurityHubJiraSyncConfig {
     region: string;
     severities: string[];
@@ -27,14 +32,17 @@ export declare class SecurityHubJiraSync {
     private jiraLinkId?;
     private jiraLinkType?;
     private jiraLinkDirection?;
+    private jiraLabelsConfig?;
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
     sync(): Promise<void>;
     getAWSAccountID(): Promise<string>;
     closeIssuesForResolvedFindings(jiraIssues: Issue[], shFindings: SecurityHubFinding[]): Promise<UpdateForReturn[]>;
     makeResourceList(resources: Resource[] | undefined): string;
+    createSecurityHubFindingUrlThroughFilters(findingId: string): string;
     createIssueBody(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrl(standardsControlArn?: string): string;
     getSeverityMappingToJiraPriority: (severity: string) => "Lowest" | "Low" | "Medium" | "High" | "Critical";
+    createLabels(finding: SecurityHubFinding, identifyingLabels: string[], config: LabelConfig[]): string[];
     createJiraIssueFromFinding(finding: SecurityHubFinding, identifyingLabels: string[]): Promise<{
         action: string;
         webUrl: string;
