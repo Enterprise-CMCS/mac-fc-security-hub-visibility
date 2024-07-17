@@ -62,7 +62,9 @@ inputs:
   skip-products:
     description: "comma separated list of product names for those the findings should be skipped"
     required: false
-
+  jira-labels-config:
+    description: "This variable is to specify stringified labels config"
+    required: false
 runs:
   using: 'node20'
   main: 'dist/index.js'
