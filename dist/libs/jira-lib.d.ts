@@ -1,3 +1,4 @@
+import { LabelConfig } from 'macfc-security-hub-sync';
 export interface JiraConfig {
     jiraBaseURI: string;
     jiraUsername: string;
@@ -65,6 +66,7 @@ export declare class Jira {
     private jiraLinkId?;
     private jiraLinkType?;
     private jiraLinkDirection?;
+    private jiraLabelsConfig?;
     constructor(jiraConfig: JiraConfig);
     getCurrentUser(): Promise<any>;
     getIssue(issueId: string): Promise<any>;
@@ -73,6 +75,7 @@ export declare class Jira {
     transitionIssueByName(issueId: string, transitionName: string): Promise<void>;
     removeCurrentUserAsWatcher(issueId: string): Promise<void>;
     private static formatLabelQuery;
+    createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
     getAllSecurityHubIssuesInJiraProject(identifyingLabels: string[]): Promise<Issue[]>;
     createNewIssue(issue: NewIssueData): Promise<Issue>;
     linkIssues(newIssueKey: string, issueID: string, linkType?: string, linkDirection?: string): Promise<void>;

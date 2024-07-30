@@ -6,7 +6,7 @@ interface UpdateForReturn {
     webUrl: string;
     summary: string;
 }
-interface LabelConfig {
+export interface LabelConfig {
     labelField: string;
     labelPrefix?: string;
     labelDelimiter?: string;

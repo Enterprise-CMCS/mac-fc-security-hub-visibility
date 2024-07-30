@@ -59391,6 +59391,7 @@ class Jira {
     jiraLinkId;
     jiraLinkType;
     jiraLinkDirection;
+    jiraLabelsConfig;
     constructor(jiraConfig) {
         this.jiraBaseURI = jiraConfig.jiraBaseURI;
         this.jiraProject = jiraConfig.jiraProjectKey;
@@ -59403,6 +59404,9 @@ class Jira {
         this.jiraLinkId = jiraConfig.jiraLinkId;
         this.jiraLinkType = jiraConfig.jiraLinkType;
         this.jiraLinkDirection = jiraConfig.jiraLinkDirection;
+        if (jiraConfig.jiraLabelsConfig) {
+            this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
+        }
         this.axiosInstance = axios_1.default.create({
             baseURL: jiraConfig.jiraBaseURI,
             headers: {
@@ -59494,12 +59498,41 @@ class Jira {
     static formatLabelQuery(label) {
         return `labels = '${label}'`;
     }
+    createSearchLabels(identifyingLabels, config) {
+        const labels = [];
+        const fields = ["accountId", "region", "identify"];
+        const values = [...identifyingLabels, "security-hub"];
+        config.forEach(({ labelField: field, labelDelimiter: delim, labelPrefix: prefix }) => {
+            const delimiter = delim ?? "";
+            const labelPrefix = prefix ?? "";
+            if (fields.includes(field)) {
+                const index = fields.indexOf(field);
+                if (index >= 0) {
+                    labels.push(`${labelPrefix}${delimiter}${values[index]
+                        ?.trim()
+                        .replace(/ /g, "")}`);
+                }
+            }
+        });
+        return labels;
+    }
     async getAllSecurityHubIssuesInJiraProject(identifyingLabels) {
-        const labelQueries = [...identifyingLabels, 'security-hub'].map(label => Jira.formatLabelQuery(label));
+        const labelQueries = [...identifyingLabels, 'security-hub'].map(label => Jira.formatLabelQuery(label)).join(" AND ");
+        let finalLabelQuery = labelQueries;
+        if (this.jiraLabelsConfig) {
+            const config = this.jiraLabelsConfig;
+            const configLabels = this.createSearchLabels(identifyingLabels, config);
+            const searchQuery = configLabels
+                .map((label) => Jira.formatLabelQuery(label))
+                .join(" AND ");
+            if (searchQuery) {
+                finalLabelQuery = `(${finalLabelQuery}) OR (${searchQuery})`;
+            }
+        }
         const projectQuery = `project = '${this.jiraProject}'`;
         const statusQuery = `status not in ('${this.jiraIgnoreStatusesList.join("','" // wrap each closed status in single quotes
         )}')`;
-        const fullQuery = [...labelQueries, projectQuery, statusQuery].join(' AND ');
+        const fullQuery = [finalLabelQuery, projectQuery, statusQuery].join(' AND ');
         // We  want to do everything possible to prevent matching tickets that we shouldn't
         if (!fullQuery.includes(Jira.formatLabelQuery('security-hub'))) {
             throw new Error("ERROR:  Your query does not include the 'security-hub' label, and is too broad.  Refusing to continue");
