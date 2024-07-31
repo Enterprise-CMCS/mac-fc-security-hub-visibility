@@ -82721,18 +82721,16 @@ class SecurityHubJiraSync {
         return Table;
     }
     createSecurityHubFindingUrlThroughFilters(findingId) {
-        let region, accountId;
+        let region;
         if (findingId.startsWith("arn:")) {
             // Extract region and account ID from the ARN
             const arnParts = findingId.split(":");
             region = arnParts[3];
-            accountId = arnParts[4];
         }
         else {
             // Extract region and account ID from the non-ARN format
             const parts = findingId.split("/");
             region = parts[1];
-            accountId = parts[2];
         }
         const baseUrl = `https://${region}.console.aws.amazon.com/securityhub/home?region=${region}`;
         const searchParam = `Id%3D%255Coperator%255C%253AEQUALS%255C%253A${findingId}`;
