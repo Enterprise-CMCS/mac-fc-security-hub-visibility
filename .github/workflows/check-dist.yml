@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - zarate-test-workflow
   pull_request:
   workflow_dispatch:
 
@@ -14,31 +13,19 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v3
+      - uses: actions/setup-node@v3
         with:
-          version: 8
+          node-version: 18
 
       - name: Install dependencies
-        run: pnpm install
-
-      - name: Install diffoscope
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y diffoscope
+        run: npm ci
 
       - name: Build the dist/ directory
-        run: pnpm run build
+        run: npm run build
 
-      - name: Check for uncommitted changes in dist/
+      - name: Check for diff
         run: |
-          if git diff --exit-code dist; then
-            echo "Detected uncommitted changes after building. Please run 'pnpm run build' and commit the changes."
-            diffoscope dist dist-original > diffoscope-report.txt || true
-            echo "Differences in binary files:" && cat diffoscope-report.txt
+          if git diff --no-patch --exit-code dist; then
+            echo "Detected uncommitted changes after building. Please run 'npm run build' and commit the changes."
             exit 1
-          else
-            echo "No changes detected in the dist/ directory."
           fi
-        shell: bash
