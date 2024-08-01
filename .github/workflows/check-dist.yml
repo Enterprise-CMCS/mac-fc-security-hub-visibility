@@ -21,7 +21,7 @@ jobs:
         run: pnpm install
 
       - name: Build the dist/ directory
-        run: pnpm build
+        run: pnpm run build
 
       - name: Check for diff
         run: |
