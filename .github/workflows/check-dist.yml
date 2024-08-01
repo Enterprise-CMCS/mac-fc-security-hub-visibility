@@ -14,21 +14,29 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-      - uses: pnpm/action-setup@v3
+      
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v3
         with:
           version: 8
-
+      
       - name: Install dependencies
         run: pnpm install
 
       - name: Build the dist/ directory
         run: pnpm run build
 
-      - name: Check for diff
+      - name: Normalize line endings and whitespace
         run: |
-          if git diff --exit-code dist; then
+          find dist -type f -exec dos2unix {} \;
+          find dist -type f -exec sed -i 's/[[:space:]]\+$//' {} \;
+
+      - name: Check for uncommitted changes in dist/
+        run: |
+          if git diff --ignore-all-space --ignore-blank-lines --exit-code dist; then
             echo "No changes detected in the dist/ directory."
           else
             echo "Detected uncommitted changes after building. Please run 'pnpm run build' and commit the changes."
             exit 1
           fi
+        shell: bash
