@@ -31,3 +31,4 @@ jobs:
             echo "Detected uncommitted changes after building. Please run 'pnpm run build' and commit the changes."
             exit 1
           fi
+          
