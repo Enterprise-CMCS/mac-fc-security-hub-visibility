@@ -33,7 +33,7 @@ jobs:
 
       - name: Check for uncommitted changes in dist/
         run: |
-          if ! git diff --exit-code dist; then
+          if git diff --exit-code dist; then
             echo "Detected uncommitted changes after building. Please run 'pnpm run build' and commit the changes."
             diffoscope dist dist-original > diffoscope-report.txt || true
             echo "Differences in binary files:" && cat diffoscope-report.txt
