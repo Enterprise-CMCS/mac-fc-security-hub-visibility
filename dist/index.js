@@ -81916,16 +81916,15 @@ var __importStar = (this && this.__importStar) || function (mod) {
     return result;
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.extractErrorMessage = void 0;
+exports.extractErrorMessage = extractErrorMessage;
 const core = __importStar(__nccwpck_require__(19093));
 const macfc_security_hub_sync_1 = __nccwpck_require__(33922);
 function extractErrorMessage(error) {
     if (error instanceof Error) {
         return error.message;
     }
-    return "An unknown error occurred";
+    return 'An unknown error occurred';
 }
-exports.extractErrorMessage = extractErrorMessage;
 // Utility function to get input with fallback to environment variable, can return undefined
 function getInputOrEnv(inputName, envName) {
     const inputValue = core.getInput(inputName) || process.env[envName];
@@ -81949,8 +81948,15 @@ function getInputOrEnvAndConvertToBool(inputName, envName, defaultValue = false)
     return inputValue.trim().toLowerCase() === 'true';
 }
 function validateAndFilterSeverities(inputSeverities) {
-    const allowedSeverities = ["INFORMATIONAL", "LOW", "MEDIUM", "HIGH", "CRITICAL"];
-    const inputSeveritiesArray = inputSeverities.split(',')
+    const allowedSeverities = [
+        'INFORMATIONAL',
+        'LOW',
+        'MEDIUM',
+        'HIGH',
+        'CRITICAL'
+    ];
+    const inputSeveritiesArray = inputSeverities
+        .split(',')
         .map(severity => severity.trim().toUpperCase())
         .filter(severity => severity);
     // Check each severity in the array against the allowed severities
@@ -81966,7 +81972,9 @@ function parseAndValidateTransitionMap(transitionMapStr) {
         return [{ status: '*', transition: 'DONE' }]; // Defaults to wildcard status and transition of 'DONE' if no map is provided
     }
     const transitionMap = transitionMapStr.split(';').map(ruleStr => {
-        const [status, transition] = ruleStr.split(':').map(part => part.trim().toUpperCase());
+        const [status, transition] = ruleStr
+            .split(':')
+            .map(part => part.trim().toUpperCase());
         if (!status || !transition) {
             throw new Error(`Invalid transition rule format: '${ruleStr}'. Expected format is 'Status:Transition'.`);
         }
@@ -82001,14 +82009,23 @@ async function run() {
             jiraIgnoreStatuses: getDefaultInputOrEnv('jira-ignore-statuses', 'JIRA_IGNORE_STATUSES', 'Done, Closed, Resolved'),
             jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
             transitionMap: transitionMap,
-            dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false)
+            dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false),
+            jiraLinkId: getInputOrEnv('jira-link-id', 'JIRA_LINK_ID'),
+            jiraLinkType: getDefaultInputOrEnv('jira-link-type', 'JIRA_LINK_TYPE', 'Relates'),
+            jiraLinkDirection: getDefaultInputOrEnv('jira-link-direction', 'JIRA_LINK_DIRECTION', 'inward'),
+            includeAllProducts: getInputOrEnvAndConvertToBool('include-all-products', 'INCLUDE_ALL_PRODUCTS', false),
+            skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
+            jiraLabelsConfig: getInputOrEnv('jira-labels-config', 'JIRA_LABELS_CONFIG')
         };
+        console.log("TEST LOG - to test PR check without building");
         const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
         const securityHubConfig = {
             region: getDefaultInputOrEnv('aws-region', 'AWS_REGION', 'us-east-1'),
             severities: validateAndFilterSeverities(severitiesStr),
             newIssueDelay: getDefaultInputOrEnv('security-hub-new-issue-delay', 'SECURITY_HUB_NEW_ISSUE_DELAY', '86400000'), //
-            customJiraFields: customJiraFields
+            customJiraFields: customJiraFields,
+            includeAllProducts: getInputOrEnvAndConvertToBool('include-all-products', 'INCLUDE_ALL_PRODUCTS', false),
+            skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS')
         };
         const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true);
         core.info('Syncing Security Hub and Jira');
@@ -82093,7 +82110,9 @@ function handleAxiosError(error) {
         // Check if the cause of the AxiosError is an AggregateError
         if (error.cause instanceof AggregateError && error.cause.errors) {
             // Map each error in the AggregateError to its message and join them
-            const errMsgs = error.cause.errors.map(err => (0, index_1.extractErrorMessage)(err)).join(', ');
+            const errMsgs = error.cause.errors
+                .map(err => (0, index_1.extractErrorMessage)(err))
+                .join(', ');
             return `Errors from Axios request: ${errMsgs}`;
         }
         // For non-aggregate AxiosError, extract the single error message
@@ -82116,19 +82135,31 @@ class Jira {
     jiraIgnoreStatusesList;
     isDryRun;
     dryRunIssueCounter = 0;
+    jiraLinkId;
+    jiraLinkType;
+    jiraLinkDirection;
+    jiraLabelsConfig;
     constructor(jiraConfig) {
         this.jiraBaseURI = jiraConfig.jiraBaseURI;
         this.jiraProject = jiraConfig.jiraProjectKey;
         this.jiraAssignee = jiraConfig.jiraAssignee;
         this.transitionMap = jiraConfig.transitionMap;
-        this.jiraIgnoreStatusesList = jiraConfig.jiraIgnoreStatuses.split(",").map((status) => status.trim());
+        this.jiraIgnoreStatusesList = jiraConfig.jiraIgnoreStatuses
+            .split(',')
+            .map(status => status.trim());
         this.isDryRun = jiraConfig.dryRun;
+        this.jiraLinkId = jiraConfig.jiraLinkId;
+        this.jiraLinkType = jiraConfig.jiraLinkType;
+        this.jiraLinkDirection = jiraConfig.jiraLinkDirection;
+        if (jiraConfig.jiraLabelsConfig) {
+            this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
+        }
         this.axiosInstance = axios_1.default.create({
             baseURL: jiraConfig.jiraBaseURI,
             headers: {
-                "Authorization": `Bearer ${jiraConfig.jiraToken}`,
-                "Content-Type": "application/json",
-            },
+                Authorization: `Bearer ${jiraConfig.jiraToken}`,
+                'Content-Type': 'application/json'
+            }
         });
     }
     async getCurrentUser() {
@@ -82203,8 +82234,8 @@ class Jira {
             }
             await this.axiosInstance.delete(`/rest/api/2/issue/${issueId}/watchers`, {
                 params: {
-                    username: currentUser.name,
-                },
+                    username: currentUser.name
+                }
             });
         }
         catch (error) {
@@ -82214,18 +82245,47 @@ class Jira {
     static formatLabelQuery(label) {
         return `labels = '${label}'`;
     }
+    createSearchLabels(identifyingLabels, config) {
+        const labels = [];
+        const fields = ["accountId", "region", "identify"];
+        const values = [...identifyingLabels, "security-hub"];
+        config.forEach(({ labelField: field, labelDelimiter: delim, labelPrefix: prefix }) => {
+            const delimiter = delim ?? "";
+            const labelPrefix = prefix ?? "";
+            if (fields.includes(field)) {
+                const index = fields.indexOf(field);
+                if (index >= 0) {
+                    labels.push(`${labelPrefix}${delimiter}${values[index]
+                        ?.trim()
+                        .replace(/ /g, "")}`);
+                }
+            }
+        });
+        return labels;
+    }
     async getAllSecurityHubIssuesInJiraProject(identifyingLabels) {
-        const labelQueries = [...identifyingLabels, "security-hub"].map((label) => Jira.formatLabelQuery(label));
+        const labelQueries = [...identifyingLabels, 'security-hub'].map(label => Jira.formatLabelQuery(label)).join(" AND ");
+        let finalLabelQuery = labelQueries;
+        if (this.jiraLabelsConfig) {
+            const config = this.jiraLabelsConfig;
+            const configLabels = this.createSearchLabels(identifyingLabels, config);
+            const searchQuery = configLabels
+                .map((label) => Jira.formatLabelQuery(label))
+                .join(" AND ");
+            if (searchQuery) {
+                finalLabelQuery = `(${finalLabelQuery}) OR (${searchQuery})`;
+            }
+        }
         const projectQuery = `project = '${this.jiraProject}'`;
         const statusQuery = `status not in ('${this.jiraIgnoreStatusesList.join("','" // wrap each closed status in single quotes
         )}')`;
-        const fullQuery = [...labelQueries, projectQuery, statusQuery].join(" AND ");
+        const fullQuery = [finalLabelQuery, projectQuery, statusQuery].join(' AND ');
         // We  want to do everything possible to prevent matching tickets that we shouldn't
-        if (!fullQuery.includes(Jira.formatLabelQuery("security-hub"))) {
+        if (!fullQuery.includes(Jira.formatLabelQuery('security-hub'))) {
             throw new Error("ERROR:  Your query does not include the 'security-hub' label, and is too broad.  Refusing to continue");
         }
-        if (!fullQuery.match(Jira.formatLabelQuery("[0-9]{12}"))) {
-            throw new Error("ERROR:  Your query does not include an AWS Account ID as a label, and is too broad.  Refusing to continue");
+        if (!fullQuery.match(Jira.formatLabelQuery('[0-9]{12}'))) {
+            throw new Error('ERROR:  Your query does not include an AWS Account ID as a label, and is too broad.  Refusing to continue');
         }
         console.log(fullQuery);
         let totalIssuesReceived = 0;
@@ -82238,7 +82298,7 @@ class Jira {
                     jql: fullQuery,
                     startAt: startAt,
                     maxResults: 50,
-                    fields: ["*all"]
+                    fields: ['*all']
                 });
                 const results = response.data;
                 allIssues = allIssues.concat(results.issues);
@@ -82267,9 +82327,10 @@ class Jira {
                     id: `dryrun-id-${this.dryRunIssueCounter}`,
                     key: `DRYRUN-KEY-${this.dryRunIssueCounter}`,
                     fields: {
-                        description: "Dry Run Description",
-                        issuetype: { name: "Dry Run Issue" },
-                        summary: issue.fields.summary || `Dry Run Summary ${this.dryRunIssueCounter}`,
+                        description: 'Dry Run Description',
+                        issuetype: { name: 'Dry Run Issue' },
+                        summary: issue.fields.summary ||
+                            `Dry Run Summary ${this.dryRunIssueCounter}`,
                         labels: []
                     },
                     webUrl: `${this.jiraBaseURI}/browse/DRYRUN-KEY-${this.dryRunIssueCounter}`
@@ -82279,12 +82340,36 @@ class Jira {
             response = await this.axiosInstance.post('/rest/api/2/issue', issue);
             const newIssue = response.data;
             // Construct the webUrl for the new issue
-            newIssue["webUrl"] = `${this.jiraBaseURI}/browse/${newIssue.key}`;
+            newIssue['webUrl'] = `${this.jiraBaseURI}/browse/${newIssue.key}`;
             await this.removeCurrentUserAsWatcher(newIssue.key);
             return newIssue;
         }
         catch (error) {
             throw new Error(`Error creating Jira issue: ${handleAxiosError(error)}`);
+        }
+    }
+    async linkIssues(newIssueKey, issueID, linkType = "Relates", linkDirection = "inward") {
+        if (this.isDryRun) {
+            console.log(`[Dry Run] Would link issues ${newIssueKey} with ${issueID} using type ${linkType} and direction ${linkDirection}`);
+            return;
+        }
+        const linkData = {
+            type: { name: linkType },
+            inwardIssue: { key: newIssueKey },
+            outwardIssue: { key: issueID },
+        };
+        if (linkDirection === "outward") {
+            const temp = linkData.inwardIssue.key;
+            linkData.inwardIssue.key = linkData.outwardIssue.key;
+            linkData.outwardIssue.key = temp;
+        }
+        try {
+            const response = await this.axiosInstance.post('/rest/api/2/issueLink', linkData);
+            console.log(`Successfully linked issue ${newIssueKey} with ${issueID}:`, response.data);
+        }
+        catch (error) {
+            console.error("Error linking issues:", error);
+            throw new Error(`Error linking issues: ${error}`);
         }
     }
     async updateIssueTitleById(issueId, updatedIssue) {
@@ -82294,7 +82379,7 @@ class Jira {
         }
         try {
             const response = await this.axiosInstance.put(`/rest/api/2/issue/${issueId}`, updatedIssue);
-            console.log("Issue title updated successfully:", response.data);
+            console.log('Issue title updated successfully:', response.data);
         }
         catch (error) {
             throw new Error(`Error updating issue title: ${handleAxiosError(error)}`);
@@ -82306,7 +82391,9 @@ class Jira {
             return;
         }
         try {
-            await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/comment`, { body: comment });
+            await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/comment`, {
+                body: comment
+            });
             await this.removeCurrentUserAsWatcher(issueId); // Commenting on the issue adds the user as a watcher, so we remove them
         }
         catch (error) {
@@ -82381,6 +82468,8 @@ class SecurityHub {
     severityLabels;
     newIssueDelay;
     accountAlias = "";
+    includeAllProducts;
+    skipProducts;
     constructor(securityHubJiraSyncConfig) {
         this.region = securityHubJiraSyncConfig.region;
         this.severityLabels = securityHubJiraSyncConfig.severities.map((severity) => ({
@@ -82389,6 +82478,10 @@ class SecurityHub {
         }));
         this.newIssueDelay = securityHubJiraSyncConfig.newIssueDelay;
         this.getAccountAlias().catch((error) => console.error(error));
+        this.includeAllProducts = securityHubJiraSyncConfig.includeAllProducts;
+        this.skipProducts = securityHubJiraSyncConfig.skipProducts
+            ?.split(',')
+            .map(product => product.trim());
     }
     async getAccountAlias() {
         const iamClient = new client_iam_1.IAMClient({ region: this.region });
@@ -82408,7 +82501,6 @@ class SecurityHub {
                     { Comparison: "EQUALS", Value: "NEW" },
                     { Comparison: "EQUALS", Value: "NOTIFIED" },
                 ],
-                ProductName: [{ Comparison: "EQUALS", Value: "Security Hub" }],
                 SeverityLabel: this.severityLabels,
                 CreatedAt: [
                     {
@@ -82417,6 +82509,20 @@ class SecurityHub {
                     },
                 ],
             };
+            if (this.includeAllProducts !== true) {
+                filters.ProductName = [{ Comparison: "EQUALS", Value: "Security Hub" }];
+            }
+            if (this.skipProducts) {
+                this.skipProducts.forEach((product) => {
+                    if (!filters.ProductName) {
+                        filters.ProductName = [];
+                    }
+                    filters.ProductName?.push({
+                        Comparison: "NOT_EQUALS",
+                        Value: product,
+                    });
+                });
+            }
             // use an object to store unique findings by title
             const uniqueFindings = {};
             // use a variable to track pagination
@@ -82454,6 +82560,7 @@ class SecurityHub {
         if (!finding)
             return {};
         return {
+            id: finding.Id,
             title: finding.Title,
             region: finding.Region,
             accountAlias: this.accountAlias,
@@ -82466,6 +82573,8 @@ class SecurityHub {
                 ? finding.ProductFields.StandardsControlArn
                 : "",
             remediation: finding.Remediation,
+            ProductName: finding.ProductName,
+            Resources: finding.Resources
         };
     }
 }
@@ -82492,6 +82601,12 @@ class SecurityHubJiraSync {
     severities;
     autoClose;
     jiraBaseURI;
+    includeAllProducts;
+    skipProducts;
+    jiraLinkId;
+    jiraLinkType;
+    jiraLinkDirection;
+    jiraLabelsConfig;
     constructor(jiraConfig, securityHubConfig, autoClose) {
         this.securityHub = new libs_1.SecurityHub(securityHubConfig);
         this.region = securityHubConfig.region;
@@ -82500,6 +82615,16 @@ class SecurityHubJiraSync {
         this.jiraBaseURI = jiraConfig.jiraBaseURI;
         this.customJiraFields = securityHubConfig.customJiraFields;
         this.autoClose = autoClose;
+        this.includeAllProducts = securityHubConfig.includeAllProducts;
+        this.skipProducts = securityHubConfig.skipProducts
+            ?.split(',')
+            .map(product => product.trim());
+        this.jiraLinkId = jiraConfig.jiraLinkId;
+        this.jiraLinkType = jiraConfig.jiraLinkType;
+        this.jiraLinkDirection = jiraConfig.jiraLinkDirection;
+        if (jiraConfig.jiraLabelsConfig) {
+            this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
+        }
     }
     async sync() {
         const updatesForReturn = [];
@@ -82509,7 +82634,7 @@ class SecurityHubJiraSync {
         // Step 1. Get all open Security Hub issues from Jira
         const jiraIssues = await this.jira.getAllSecurityHubIssuesInJiraProject(identifyingLabels);
         // Step 2. Get all current findings from Security Hub
-        console.log("Getting active Security Hub Findings with severities: " + this.severities);
+        console.log('Getting active Security Hub Findings with severities: ' + this.severities);
         const shFindingsObj = await this.securityHub.getAllActiveFindings();
         const shFindings = Object.values(shFindingsObj);
         console.log(shFindings);
@@ -82521,7 +82646,7 @@ class SecurityHubJiraSync {
     }
     async getAWSAccountID() {
         const client = new client_sts_1.STSClient({
-            region: this.region,
+            region: this.region
         });
         const command = new client_sts_1.GetCallerIdentityCommand({});
         let response;
@@ -82531,15 +82656,15 @@ class SecurityHubJiraSync {
         catch (e) {
             throw new Error(`Error getting AWS Account ID: ${(0, index_1.extractErrorMessage)(e)}`);
         }
-        const accountID = response.Account || "";
-        if (!accountID.match("[0-9]{12}")) {
-            throw new Error("ERROR:  An issue was encountered when looking up your AWS Account ID.  Refusing to continue.");
+        const accountID = response.Account || '';
+        if (!accountID.match('[0-9]{12}')) {
+            throw new Error('ERROR:  An issue was encountered when looking up your AWS Account ID.  Refusing to continue.');
         }
         return accountID;
     }
     async closeIssuesForResolvedFindings(jiraIssues, shFindings) {
         const updatesForReturn = [];
-        const expectedJiraIssueTitles = Array.from(new Set(shFindings.map((finding) => `SecurityHub Finding - ${finding.title}`)));
+        const expectedJiraIssueTitles = Array.from(new Set(shFindings.map(finding => `SecurityHub Finding - ${finding.title}`)));
         try {
             const makeComment = () => `As of ${new Date(Date.now()).toDateString()}, this Security Hub finding has been marked resolved`;
             // close all security-hub labeled Jira issues that do not have an active finding
@@ -82548,25 +82673,25 @@ class SecurityHubJiraSync {
                     if (!expectedJiraIssueTitles.includes(jiraIssues[i].fields.summary)) {
                         await this.jira.closeIssue(jiraIssues[i].key);
                         updatesForReturn.push({
-                            action: "closed",
+                            action: 'closed',
                             webUrl: `${this.jiraBaseURI}/browse/${jiraIssues[i].key}`,
-                            summary: jiraIssues[i].fields.summary,
+                            summary: jiraIssues[i].fields.summary
                         });
                         await this.jira.addCommentToIssueById(jiraIssues[i].id, makeComment());
                     }
                 }
             }
             else {
-                console.log("Skipping auto closing...");
+                console.log('Skipping auto closing...');
                 for (let i = 0; i < jiraIssues.length; i++) {
                     if (!expectedJiraIssueTitles.includes(jiraIssues[i].fields.summary) &&
-                        !jiraIssues[i].fields.summary.includes("Resolved") // skip already resolved issues
+                        !jiraIssues[i].fields.summary.includes('Resolved') // skip already resolved issues
                     ) {
                         try {
                             await this.jira.updateIssueTitleById(jiraIssues[i].id, {
                                 fields: {
-                                    summary: `Resolved ${jiraIssues[i].fields.summary}`,
-                                },
+                                    summary: `Resolved ${jiraIssues[i].fields.summary}`
+                                }
                             });
                             await this.jira.addCommentToIssueById(jiraIssues[i].id, makeComment());
                         }
@@ -82582,8 +82707,38 @@ class SecurityHubJiraSync {
         }
         return updatesForReturn;
     }
+    makeResourceList(resources) {
+        if (!resources) {
+            return `No Resources`;
+        }
+        const maxLength = Math.max(...resources.map(({ Id }) => Id?.length || 0));
+        const title = 'Resource Id'.padEnd(maxLength + maxLength / 2 + 4);
+        let Table = `${title}| Partition   | Region     | Type    \n`;
+        resources.forEach(({ Id, Partition, Region, Type }) => {
+            Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} \n`;
+        });
+        Table += `------------------------------------------------------------------------------------------------`;
+        return Table;
+    }
+    createSecurityHubFindingUrlThroughFilters(findingId) {
+        let region;
+        if (findingId.startsWith("arn:")) {
+            // Extract region and account ID from the ARN
+            const arnParts = findingId.split(":");
+            region = arnParts[3];
+        }
+        else {
+            // Extract region and account ID from the non-ARN format
+            const parts = findingId.split("/");
+            region = parts[1];
+        }
+        const baseUrl = `https://${region}.console.aws.amazon.com/securityhub/home?region=${region}`;
+        const searchParam = `Id%3D%255Coperator%255C%253AEQUALS%255C%253A${findingId}`;
+        const url = `${baseUrl}#/findings?search=${searchParam}`;
+        return url;
+    }
     createIssueBody(finding) {
-        const { remediation: { Recommendation: { Url: remediationUrl = "", Text: remediationText = "", } = {}, } = {}, title = "", description = "", accountAlias = "", awsAccountId = "", severity = "", standardsControlArn = "", } = finding;
+        const { remediation: { Recommendation: { Url: remediationUrl = '', Text: remediationText = '' } = {} } = {}, id = '', title = '', description = '', accountAlias = '', awsAccountId = '', severity = '', standardsControlArn = '' } = finding;
         return `----
 
       *This issue was generated from Security Hub data and is managed through automation.*
@@ -82616,35 +82771,68 @@ class SecurityHubJiraSync {
       ${severity}
 
       h2. SecurityHubFindingUrl:
-      ${this.createSecurityHubFindingUrl(standardsControlArn)}
+      ${standardsControlArn
+            ? this.createSecurityHubFindingUrl(standardsControlArn)
+            : this.createSecurityHubFindingUrlThroughFilters(id)}
+
+      h2. Resources:
+      Following are the resources those were non-compliant at the time of the issue creation
+      ${this.makeResourceList(finding.Resources)}
+
+      To check the latest list of resources, kindly refer to the finding url
 
       h2. AC:
 
       * All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed.  (Note:  this ticket will automatically close when the AC is met.)`;
     }
-    createSecurityHubFindingUrl(standardsControlArn = "") {
+    createSecurityHubFindingUrl(standardsControlArn = '') {
         if (!standardsControlArn) {
-            return "";
+            return '';
         }
-        const [, partition, , region, , , securityStandards, , securityStandardsVersion, controlId,] = standardsControlArn.split(/[/:]+/);
+        const [, partition, , region, , , securityStandards, , securityStandardsVersion, controlId] = standardsControlArn.split(/[/:]+/);
         return `https://${region}.console.${partition}.amazon.com/securityhub/home?region=${region}#/standards/${securityStandards}-${securityStandardsVersion}/${controlId}`;
     }
     getSeverityMappingToJiraPriority = (severity) => {
         switch (severity) {
-            case "INFORMATIONAL":
-                return "Lowest";
-            case "LOW":
-                return "Low";
-            case "MEDIUM":
-                return "Medium";
-            case "HIGH":
-                return "High";
-            case "CRITICAL":
-                return "Critical";
+            case 'INFORMATIONAL':
+                return 'Lowest';
+            case 'LOW':
+                return 'Low';
+            case 'MEDIUM':
+                return 'Medium';
+            case 'HIGH':
+                return 'High';
+            case 'CRITICAL':
+                return 'Critical';
             default:
                 throw new Error(`Invalid severity: ${severity}`);
         }
     };
+    createLabels(finding, identifyingLabels, config) {
+        const labels = [];
+        const fields = ['accountId', 'region', 'identify'];
+        const values = [...identifyingLabels, 'security-hub'];
+        config.forEach(({ labelField: field, labelDelimiter: delim, labelPrefix: prefix }) => {
+            const delimiter = delim ?? '';
+            const labelPrefix = prefix ?? '';
+            if (fields.includes(field)) {
+                const index = fields.indexOf(field);
+                if (index >= 0) {
+                    labels.push(`${labelPrefix}${delimiter}${values[index]
+                        ?.trim()
+                        .replace(/ /g, '')}`);
+                }
+            }
+            else {
+                const value = (finding[field] ?? '')
+                    .toString()
+                    .trim()
+                    .replace(/ /g, '');
+                labels.push(`${labelPrefix}${delimiter}${value}`);
+            }
+        });
+        return labels;
+    }
     async createJiraIssueFromFinding(finding, identifyingLabels) {
         if (!finding.severity) {
             throw new Error(`Severity must be defined in Security Hub finding: ${finding.title}`);
@@ -82653,38 +82841,54 @@ class SecurityHubJiraSync {
             fields: {
                 summary: `SecurityHub Finding - ${finding.title}`,
                 description: this.createIssueBody(finding),
-                issuetype: { name: "Task" },
+                issuetype: { name: 'Task' },
                 labels: [
-                    "security-hub",
+                    'security-hub',
                     finding.severity,
                     finding.accountAlias,
-                    ...identifyingLabels,
+                    finding.ProductName?.trim().replace(/ /g, ''),
+                    ...identifyingLabels
                 ],
                 priority: {
-                    name: this.getSeverityMappingToJiraPriority(finding.severity),
+                    name: this.getSeverityMappingToJiraPriority(finding.severity)
                 },
-                ...this.customJiraFields,
-            },
+                ...this.customJiraFields
+            }
         };
+        if (this.jiraLabelsConfig) {
+            try {
+                const config = this.jiraLabelsConfig;
+                newIssueData.fields.labels = this.createLabels(finding, identifyingLabels, config);
+            }
+            catch (e) {
+                console.log('Invalid labels config - going with default labels');
+            }
+        }
         let newIssueInfo;
         try {
             newIssueInfo = await this.jira.createNewIssue(newIssueData);
+            const issue_id = this.jiraLinkId;
+            if (issue_id) {
+                const linkType = this.jiraLinkType;
+                const linkDirection = this.jiraLinkDirection;
+                await this.jira.linkIssues(newIssueInfo.key, issue_id, linkType, linkDirection);
+            }
         }
         catch (e) {
             throw new Error(`Error creating Jira issue from finding: ${(0, index_1.extractErrorMessage)(e)}`);
         }
         return {
-            action: "created",
+            action: 'created',
             webUrl: newIssueInfo.webUrl,
-            summary: newIssueData.fields.summary,
+            summary: newIssueData.fields.summary
         };
     }
     async createJiraIssuesForNewFindings(jiraIssues, shFindings, identifyingLabels) {
         const updatesForReturn = [];
-        const existingJiraIssueTitles = jiraIssues.map((i) => i.fields.summary);
+        const existingJiraIssueTitles = jiraIssues.map(i => i.fields.summary);
         const uniqueSecurityHubFindings = [
-            ...new Set(shFindings.map((finding) => JSON.stringify(finding))),
-        ].map((finding) => JSON.parse(finding));
+            ...new Set(shFindings.map(finding => JSON.stringify(finding)))
+        ].map(finding => JSON.parse(finding));
         for (let i = 0; i < uniqueSecurityHubFindings.length; i++) {
             const finding = uniqueSecurityHubFindings[i];
             if (!existingJiraIssueTitles.includes(`SecurityHub Finding - ${finding.title}`)) {
