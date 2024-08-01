@@ -59701,6 +59701,7 @@ async function run() {
             skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
             jiraLabelsConfig: getInputOrEnv('jira-labels-config', 'JIRA_LABELS_CONFIG')
         };
+        console.log("TEST LOG - to test PR check without building");
         const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
         const securityHubConfig = {
             region: getDefaultInputOrEnv('aws-region', 'AWS_REGION', 'us-east-1'),
