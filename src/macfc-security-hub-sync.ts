@@ -397,7 +397,6 @@ export class SecurityHubJiraSync {
       }
     }
     let newIssueInfo
-    console.log("I am test")
     try {
       newIssueInfo = await this.jira.createNewIssue(newIssueData)
       const issue_id = this.jiraLinkId
