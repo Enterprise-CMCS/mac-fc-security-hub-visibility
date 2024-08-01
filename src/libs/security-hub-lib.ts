@@ -5,11 +5,14 @@ import {
   GetFindingsCommandOutput,
   Remediation,
   AwsSecurityFinding,
+  Resource,
+  AwsSecurityFindingFilters,
 } from "@aws-sdk/client-securityhub";
 import {SecurityHubJiraSyncConfig} from "../macfc-security-hub-sync"
 import { extractErrorMessage } from "../index";
 
 export interface SecurityHubFinding {
+  id?: string;
   title?: string;
   region?: string;
   accountAlias?: string;
@@ -18,6 +21,9 @@ export interface SecurityHubFinding {
   description?: string;
   standardsControlArn?: string;
   remediation?: Remediation;
+  ProductName?: string;
+  Resources?: Resource[];
+  [key: string]: string | unknown;
 }
 
 export class SecurityHub {
@@ -25,6 +31,8 @@ export class SecurityHub {
   private readonly severityLabels: { Comparison: string; Value: string }[];
   private readonly newIssueDelay: string;
   private accountAlias = "";
+  private includeAllProducts?: boolean;
+  private skipProducts?: string[];
 
   constructor(securityHubJiraSyncConfig: SecurityHubJiraSyncConfig) {
     this.region = securityHubJiraSyncConfig.region
@@ -34,6 +42,10 @@ export class SecurityHub {
     }));
     this.newIssueDelay = securityHubJiraSyncConfig.newIssueDelay
     this.getAccountAlias().catch((error) => console.error(error));
+    this.includeAllProducts = securityHubJiraSyncConfig.includeAllProducts
+    this.skipProducts = securityHubJiraSyncConfig.skipProducts
+      ?.split(',')
+      .map(product => product.trim())
   }
 
   private async getAccountAlias(): Promise<void> {
@@ -52,13 +64,12 @@ export class SecurityHub {
       const delayForNewIssues = +(this.newIssueDelay);
       const maxDatetime = new Date(currentTime.getTime() - delayForNewIssues);
 
-      const filters = {
+      const filters:AwsSecurityFindingFilters = {
         RecordState: [{ Comparison: "EQUALS", Value: "ACTIVE" }],
         WorkflowStatus: [
           { Comparison: "EQUALS", Value: "NEW" },
           { Comparison: "EQUALS", Value: "NOTIFIED" },
         ],
-        ProductName: [{ Comparison: "EQUALS", Value: "Security Hub" }],
         SeverityLabel: this.severityLabels,
         CreatedAt: [
           {
@@ -67,7 +78,20 @@ export class SecurityHub {
           },
         ],
       };
-
+      if(this.includeAllProducts !== true){
+        filters.ProductName = [{ Comparison: "EQUALS", Value: "Security Hub" }];
+      }
+      if(this.skipProducts){
+        this.skipProducts.forEach((product:string) => {
+          if (!filters.ProductName) {
+            filters.ProductName = [];
+          }
+          filters.ProductName?.push({
+            Comparison: "NOT_EQUALS",
+            Value: product,
+          });
+        })
+      }
       // use an object to store unique findings by title
       const uniqueFindings: { [title: string]: SecurityHubFinding } = {};
 
@@ -110,6 +134,7 @@ export class SecurityHub {
   ): SecurityHubFinding {
     if (!finding) return {};
     return {
+      id: finding.Id,
       title: finding.Title,
       region: finding.Region,
       accountAlias: this.accountAlias,
@@ -124,6 +149,8 @@ export class SecurityHub {
           ? finding.ProductFields.StandardsControlArn
           : "",
       remediation: finding.Remediation,
+      ProductName: finding.ProductName,
+      Resources: finding.Resources
     };
   }
 }
