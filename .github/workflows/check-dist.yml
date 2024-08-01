@@ -23,6 +23,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Install diffoscope
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y diffoscope
+
       - name: Build the dist/ directory
         run: pnpm run build
 
@@ -30,7 +35,9 @@ jobs:
         run: |
           if ! git diff --exit-code dist; then
             echo "Detected uncommitted changes after building. Please run 'pnpm run build' and commit the changes."
-            exit 1  
+            diffoscope dist dist-original > diffoscope-report.txt || true
+            echo "Differences in binary files:" && cat diffoscope-report.txt
+            exit 1
           else
             echo "No changes detected in the dist/ directory."
           fi
