@@ -37,9 +37,9 @@ jobs:
       - name: Check for uncommitted changes in dist/
         run: |
           if git diff --ignore-all-space --ignore-blank-lines --exit-code dist; then
-            echo "No changes detected in the dist/ directory."
-          else
             echo "Detected uncommitted changes after building. Please run 'pnpm run build' and commit the changes."
-            exit 1
+            exit 1  
+          else
+            echo "No changes detected in the dist/ directory."
           fi
         shell: bash
