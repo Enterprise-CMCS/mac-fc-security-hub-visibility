@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 import axios, { AxiosError, AxiosInstance } from "axios";
 import { extractErrorMessage } from "../index";
+import { LabelConfig } from 'macfc-security-hub-sync';
 
 dotenv.config();
 
@@ -13,6 +14,12 @@ export interface JiraConfig {
   jiraAssignee?: string;
   transitionMap: Array<{ status: string; transition: string }>;
   dryRun: boolean;
+  jiraLinkId?: string;
+  jiraLinkType?: string;
+  jiraLinkDirection?: string;
+  includeAllProducts: boolean;
+  skipProducts?: string;
+  jiraLabelsConfig?: string;
 }
 
 export type CustomFields = {
@@ -24,7 +31,7 @@ interface IssueType {
 }
 
 interface PriorityField {
-  name?: string
+  name?: string;
   id?: string;
 }
 
@@ -88,6 +95,7 @@ export class Jira {
   private jiraIgnoreStatusesList: string[];
   private isDryRun: boolean;
   private dryRunIssueCounter: number = 0;
+  private jiraLabelsConfig?: LabelConfig[];
   constructor(jiraConfig: JiraConfig) {
     this.jiraBaseURI = jiraConfig.jiraBaseURI;
     this.jiraProject = jiraConfig.jiraProjectKey;
@@ -95,6 +103,9 @@ export class Jira {
     this.transitionMap = jiraConfig.transitionMap;
     this.jiraIgnoreStatusesList = jiraConfig.jiraIgnoreStatuses.split(",").map((status) => status.trim());
     this.isDryRun = jiraConfig.dryRun;
+    if (jiraConfig.jiraLabelsConfig) {
+      this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
+    }
 
     this.axiosInstance = axios.create({
       baseURL: jiraConfig.jiraBaseURI,
@@ -192,18 +203,49 @@ export class Jira {
   private static formatLabelQuery(label: string): string {
     return `labels = '${label}'`;
   }
+  createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[] {
+    const labels: string[] = [];
+    const fields = ["accountId", "region", "identify"];
+    const values = [...identifyingLabels, "security-hub"];
 
+    config.forEach(
+      ({ labelField: field, labelDelimiter: delim, labelPrefix: prefix }) => {
+        const delimiter = delim ?? "";
+        const labelPrefix = prefix ?? "";
+
+        if (fields.includes(field)) {
+          const index = fields.indexOf(field);
+          if (index >= 0) {
+            labels.push(`${labelPrefix}${delimiter}${values[index]?.trim().replace(/ /g, "")}`);
+          }
+        }
+      }
+    );
+
+    return labels;
+  }
   async getAllSecurityHubIssuesInJiraProject(
     identifyingLabels: string[]
   ): Promise<Issue[]> {
     const labelQueries = [...identifyingLabels, "security-hub"].map((label) =>
       Jira.formatLabelQuery(label)
-    );
+    ).join(' AND ');
+    let finalLabelQuery = labelQueries;
+    if(this.jiraLabelsConfig) {
+      const config = this.jiraLabelsConfig;
+      const configLabels = this.createSearchLabels(identifyingLabels, config);
+      const searchQuery = configLabels
+        .map((label) => Jira.formatLabelQuery(label))
+        .join(" AND ");
+      if (searchQuery) {
+        finalLabelQuery = `(${finalLabelQuery}) OR (${searchQuery})`;
+      }
+    }
     const projectQuery = `project = '${this.jiraProject}'`;
     const statusQuery = `status not in ('${this.jiraIgnoreStatusesList.join(
       "','" // wrap each closed status in single quotes
     )}')`;
-    const fullQuery = [...labelQueries, projectQuery, statusQuery].join(
+    const fullQuery = [finalLabelQuery, projectQuery, statusQuery].join(
       " AND "
     );
     // We  want to do everything possible to prevent matching tickets that we shouldn't
@@ -282,6 +324,32 @@ export class Jira {
       throw new Error(`Error creating Jira issue: ${handleAxiosError(error)}`);
     }
   }
+  async linkIssues(newIssueKey: string, issueID: string, linkType = "Relates", linkDirection = "inward") {
+    if (this.isDryRun) {
+      console.log(`[Dry Run] Would link issues ${newIssueKey} with ${issueID} using type ${linkType} and direction ${linkDirection}`);
+      return;
+    }
+  
+    const linkData = {
+      type: { name: linkType },
+      inwardIssue: { key: newIssueKey },
+      outwardIssue: { key: issueID },
+    };
+  
+    if (linkDirection === "outward") {
+      const temp = linkData.inwardIssue.key;
+      linkData.inwardIssue.key = linkData.outwardIssue.key;
+      linkData.outwardIssue.key = temp;
+    }
+  
+    try {
+      const response = await this.axiosInstance.post('/rest/api/2/issueLink', linkData);
+      console.log(`Successfully linked issue ${newIssueKey} with ${issueID}:`, response.data);
+    } catch (error: unknown) {
+      console.error("Error linking issues:", error);
+      throw new Error(`Error linking issues: ${error}`);
+    }
+  }  
   async updateIssueTitleById(issueId: string, updatedIssue: Partial<Issue>) {
     if (this.isDryRun) {
       console.log(`[Dry Run] Would update issue title for issue ${issueId} with:`, updatedIssue);
