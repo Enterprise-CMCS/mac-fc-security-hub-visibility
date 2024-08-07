@@ -2,6 +2,7 @@ import { extractErrorMessage } from "index";
 import { Jira, SecurityHub, SecurityHubFinding } from "./libs";
 import { Issue, NewIssueData, CustomFields, JiraConfig } from "./libs/jira-lib";
 import { STSClient, GetCallerIdentityCommand } from "@aws-sdk/client-sts";
+import {Resource} from '@aws-sdk/client-securityhub';
 
 interface UpdateForReturn {
   action: string;
@@ -9,11 +10,25 @@ interface UpdateForReturn {
   summary: string;
 }
 
+export interface LabelConfig {
+  labelField: string;
+  labelPrefix?: string;
+  labelDelimiter?: string;
+}
+
 export interface SecurityHubJiraSyncConfig {
   region: string;
   severities: string[];
   customJiraFields?: CustomFields;
-  newIssueDelay: string
+  newIssueDelay: string;
+  skipProducts?: string;
+  includeAllProducts: boolean;
+}
+export interface SecurityHubJiraSyncConfig {
+  region: string;
+  severities: string[];
+  customJiraFields?: CustomFields;
+  newIssueDelay: string;
 }
 
 export class SecurityHubJiraSync {
@@ -24,6 +39,10 @@ export class SecurityHubJiraSync {
   private readonly severities;
   private readonly autoClose: boolean;
   private readonly jiraBaseURI: string;
+  private jiraLinkId?: string;
+  private jiraLinkType?: string;
+  private jiraLinkDirection?: string;
+  private jiraLabelsConfig?: LabelConfig[];
   constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean) {
     this.securityHub = new SecurityHub(securityHubConfig);
     this.region = securityHubConfig.region;
@@ -32,6 +51,12 @@ export class SecurityHubJiraSync {
     this.jiraBaseURI = jiraConfig.jiraBaseURI;
     this.customJiraFields = securityHubConfig.customJiraFields;
     this.autoClose = autoClose;
+    this.jiraLinkId = jiraConfig.jiraLinkId;
+    this.jiraLinkType = jiraConfig.jiraLinkType;
+    this.jiraLinkDirection = jiraConfig.jiraLinkDirection;
+    if (jiraConfig.jiraLabelsConfig) {
+      this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
+    }
   }
 
   async sync() {
@@ -154,7 +179,40 @@ export class SecurityHubJiraSync {
     }
     return updatesForReturn;
   }
+  makeResourceList(resources: Resource[] | undefined) {
+    if (!resources) {
+      return `No Resources`;
+    }
+    const maxLength = Math.max(...resources.map(({Id}) => Id?.length || 0));
+    const title = 'Resource Id'.padEnd(maxLength + maxLength / 2 + 4);
 
+    let Table = `${title}| Partition   | Region     | Type    \n`;
+    resources.forEach(({Id, Partition, Region, Type}) => {
+      Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} \n`;
+    });
+
+    Table += `------------------------------------------------------------------------------------------------`;
+    return Table;
+  }
+  createSecurityHubFindingUrlThroughFilters(findingId: string) {
+    let region;
+
+    if (findingId.startsWith("arn:")) {
+      // Extract region and account ID from the ARN
+      const arnParts = findingId.split(":");
+      region = arnParts[3];
+    } else {
+      // Extract region and account ID from the non-ARN format
+      const parts = findingId.split("/");
+      region = parts[1];
+    }
+
+    const baseUrl = `https://${region}.console.aws.amazon.com/securityhub/home?region=${region}`;
+    const searchParam = `Id%3D%255Coperator%255C%253AEQUALS%255C%253A${findingId}`;
+    const url = `${baseUrl}#/findings?search=${searchParam}`;
+
+    return url;
+  }
   createIssueBody(finding: SecurityHubFinding) {
     const {
       remediation: {
@@ -163,6 +221,7 @@ export class SecurityHubJiraSync {
           Text: remediationText = "",
         } = {},
       } = {},
+      id = "",
       title = "",
       description = "",
       accountAlias = "",
@@ -202,9 +261,14 @@ export class SecurityHubJiraSync {
       h2. Severity:
       ${severity}
 
-      h2. SecurityHubFindingUrl:
-      ${this.createSecurityHubFindingUrl(standardsControlArn)}
+ h2. SecurityHubFindingUrl:
+      ${standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
+      h2. Resources:
+      Following are the resources those were non-compliant at the time of the issue creation
+      ${this.makeResourceList(finding.Resources)}
+
+      To check the latest list of resources, kindly refer to the finding url
       h2. AC:
 
       * All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed.  (Note:  this ticket will automatically close when the AC is met.)`;
@@ -245,6 +309,30 @@ export class SecurityHubJiraSync {
         throw new Error(`Invalid severity: ${severity}`);
     }
   };
+  createLabels(finding: SecurityHubFinding, identifyingLabels: string[], config: LabelConfig[]): string[] {
+    const labels: string[] = [];
+    const fields = ['accountId', 'region', 'identify'];
+    const values = [...identifyingLabels, 'security-hub'];
+
+    config.forEach(
+      ({labelField: field, labelDelimiter: delim, labelPrefix: prefix}) => {
+        const delimiter = delim ?? '';
+        const labelPrefix = prefix ?? '';
+
+        if (fields.includes(field)) {
+          const index = fields.indexOf(field);
+          if (index >= 0) {
+            labels.push(`${labelPrefix}${delimiter}${values[index]?.trim().replace(/ /g, '')}`);
+          }
+        } else {
+          const value = (finding[field] ?? '').toString().trim().replace(/ /g, '');
+          labels.push(`${labelPrefix}${delimiter}${value}`);
+        }
+      }
+    )
+
+    return labels;
+  }
   async createJiraIssueFromFinding(finding: SecurityHubFinding, identifyingLabels: string[]) {
     if (!finding.severity) {
       throw new Error(`Severity must be defined in Security Hub finding: ${finding.title}`);
@@ -258,6 +346,7 @@ export class SecurityHubJiraSync {
           "security-hub",
           finding.severity,
           finding.accountAlias,
+          finding.ProductName?.trim().replace(/ /g, ''),
           ...identifyingLabels,
         ],
         priority: {
@@ -266,9 +355,32 @@ export class SecurityHubJiraSync {
         ...this.customJiraFields,
       },
     };
+    if (this.jiraLabelsConfig) {
+      try {
+        const config = this.jiraLabelsConfig;
+        newIssueData.fields.labels = this.createLabels(
+          finding,
+          identifyingLabels,
+          config
+        );
+      } catch (e) {
+        console.log('Invalid labels config - going with default labels');
+      }
+    }
     let newIssueInfo;
     try {
       newIssueInfo = await this.jira.createNewIssue(newIssueData);
+      const issue_id = this.jiraLinkId;
+      if (issue_id) {
+        const linkType = this.jiraLinkType;
+        const linkDirection = this.jiraLinkDirection;
+        await this.jira.linkIssues(
+          newIssueInfo.key,
+          issue_id,
+          linkType,
+          linkDirection
+        );
+      }
     } catch (e: unknown) {
       throw new Error(`Error creating Jira issue from finding: ${extractErrorMessage(e)}`);
     }

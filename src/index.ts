@@ -103,7 +103,13 @@ async function run(): Promise<void> {
       jiraIgnoreStatuses: getDefaultInputOrEnv('jira-ignore-statuses', 'JIRA_IGNORE_STATUSES', 'Done, Closed, Resolved'),
       jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
       transitionMap: transitionMap,
-      dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false) 
+      dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false), 
+      jiraLinkId: getInputOrEnv('jira-link-id', 'JIRA_LINK_ID'),
+      jiraLinkType: getDefaultInputOrEnv('jira-link-type', 'JIRA_LINK_TYPE','Relates'),
+      jiraLinkDirection: getDefaultInputOrEnv('jira-link-direction', 'JIRA_LINK_DIRECTION', 'inward'),
+      includeAllProducts: getInputOrEnvAndConvertToBool('include-all-products', 'INCLUDE_ALL_PRODUCTS', false),
+      skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
+      jiraLabelsConfig: getInputOrEnv('jira-labels-config', 'JIRA_LABELS_CONFIG'),
     }
 
     const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
@@ -112,7 +118,9 @@ async function run(): Promise<void> {
       region: getDefaultInputOrEnv('aws-region', 'AWS_REGION', 'us-east-1'),
       severities: validateAndFilterSeverities(severitiesStr),
       newIssueDelay: getDefaultInputOrEnv('security-hub-new-issue-delay', 'SECURITY_HUB_NEW_ISSUE_DELAY', '86400000'), //
-      customJiraFields: customJiraFields
+      customJiraFields: customJiraFields,
+      includeAllProducts: getInputOrEnvAndConvertToBool('include-all-products', 'INCLUDE_ALL_PRODUCTS', false),
+      skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
     }
 
     const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true);

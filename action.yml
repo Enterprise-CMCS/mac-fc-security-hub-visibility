@@ -47,7 +47,24 @@ inputs:
     description: 'a boolean to support dry run'
     required: false
     # Application Default - false
-
+  jira-link-id:
+    description: 'the new created issue will be linked to this link id'
+    required: false
+  jira-link-type:
+    description: "this defines the relation of the new issue with feature issue specified and default value for this is 'Relates'"
+    required: false
+  jira-link-direction:
+    description: "this variable is to specify the direction of linked issue either inward or outward"
+    required: false
+  include-all-products:
+    description: "a boolean to enable findings from other products"
+    required: false
+  skip-products:
+    description: "comma separated list of product names for those the findings should be skipped"
+    required: false
+  jira-labels-config:
+    description: "This variable is to specify stringified labels config"
+    required: false
 runs:
   using: 'node20'
   main: 'dist/index.js'
