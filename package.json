@@ -5,6 +5,7 @@
   "main": "./dist/index.js",
   "typings": "./dist/index.js",
   "scripts": {
+    "format": "prettier --write 'src/**/*.{js,jsx,ts,tsx,json,css,md}'",
     "bp": "rm -rf ./dist && rm -rf ./node_modules && npm i --save && tsc && npm publish",
     "build": "ncc build src/index.ts --out dist",
     "test": "vitest --config ./src/tests/vitest.config.ts",
@@ -25,6 +26,9 @@
     "@vitest/ui": "^0.30.1",
     "aws-sdk-client-mock": "^2.1.1",
     "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "prettier": "^3.3.3",
     "semantic-release": "^21.0.1",
     "typescript": "^5.0.4",
     "vitest": "^0.34.3"
