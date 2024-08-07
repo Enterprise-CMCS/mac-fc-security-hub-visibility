@@ -1,5 +1,5 @@
-import { SecurityHubFinding } from "./libs";
-import { Issue, CustomFields, JiraConfig } from "./libs/jira-lib";
+import { SecurityHubFinding } from './libs';
+import { Issue, CustomFields, JiraConfig } from './libs/jira-lib';
 import { Resource } from '@aws-sdk/client-securityhub';
 interface UpdateForReturn {
     action: string;

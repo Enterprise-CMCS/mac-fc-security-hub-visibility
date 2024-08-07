@@ -1,5 +1,5 @@
-import { Remediation, AwsSecurityFinding, Resource } from "@aws-sdk/client-securityhub";
-import { SecurityHubJiraSyncConfig } from "../macfc-security-hub-sync";
+import { Remediation, AwsSecurityFinding, Resource } from '@aws-sdk/client-securityhub';
+import { SecurityHubJiraSyncConfig } from '../macfc-security-hub-sync';
 export interface SecurityHubFinding {
     id?: string;
     title?: string;
