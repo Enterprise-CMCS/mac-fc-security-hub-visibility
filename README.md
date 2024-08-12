@@ -6,6 +6,7 @@
 1. Gets all current findings from Security Hub, filtered by the `Severity` of the findings (default is `CRITICAL,HIGH,MEDIUM`)
 
 2. Creates Jira issues for findings that do not already have a Jira issue
+    - To avoid creating duplicate issues, the search criteria use the custom label configuration as well as default configuration for three identifying search labels: region, AWS account ID, and "security-hub."
     - each Security Hub Finding type (by title) is represented as a single issue, e.g. if there are three resources that have violated the 'S3.8' rule there will be a single S3.8 Jira issue created
 
 3. Closes existing Jira issues in the target project if their underlying findings are no longer active
@@ -177,7 +178,53 @@ If set to true, when a Security Hub finding is resolved, the corresponding Jira 
 **Default Value: false**
 
 Execute a sync but only log API calls to Jira which would create/modify Jira Issues.
+### `jira-link-id`
 
+**Required: No**
+
+**Default Value: None**
+
+**Description:** This field specifies the Jira link ID to which the newly created issue will be linked. If a value is provided, the issue will be associated with this link ID. If not specified, the issue will remain unlinked.
+
+### `jira-link-type`
+
+**Required: No**
+
+**Default Value: 'Relates'**
+
+**Description:** Defines the type of relationship between the new issue and the feature issue specified by the `jira-link-id`. The default relationship is 'Relates'. Other types can be used depending on your Jira configuration, such as 'Blocks', 'Is blocked by', or 'Duplicates'.
+
+### `include-all-products`
+
+**Required: No**
+
+**Default Value: false**
+
+**Description:** A boolean flag that determines whether findings from all products should be included in the sync process. When set to true, the tool will include findings from other products beyond those specified. When false, only findings from the specified products will be processed.
+
+### `skip-products`
+
+**Required: No**
+
+**Default Value: None**
+
+**Description:** A comma-separated list of product names for which findings should be excluded from the sync. This allows you to omit specific products from the synchronization process.
+
+### `jira-link-direction`
+
+**Required: No**
+
+**Default Value: None**
+
+**Description:** Specifies the direction of the issue link in Jira, which can be either 'inward' or 'outward'. 'Inward' means the new issue will be linked to the feature issue, while 'outward' means the feature issue will be linked to the new issue.
+
+### `jira-labels-config`
+
+**Required: No**
+
+**Default Value: None**
+
+**Description:** Specifies a stringified configuration for labels to be applied to the Jira issue. Labels are used to categorize and tag issues, making them easier to search and filter.
 
 ## Local Testing
 
