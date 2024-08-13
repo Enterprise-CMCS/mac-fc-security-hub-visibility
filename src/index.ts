@@ -68,9 +68,7 @@ function validateAndFilterSeverities(inputSeverities: string): string[] {
   inputSeveritiesArray.forEach(severity => {
     if (!allowedSeverities.includes(severity)) {
       throw new Error(
-        `Invalid severity level detected: '${severity}'. Allowed severities are: ${allowedSeverities.join(
-          ', '
-        )}.`
+        `Invalid severity level detected: '${severity}'. Allowed severities are: ${allowedSeverities.join(', ')}.`
       )
     }
   })
@@ -127,9 +125,7 @@ async function run(): Promise<void> {
         customJiraFields = JSON.parse(customJiraFieldsStr) as CustomFields
       } catch (e: unknown) {
         throw new Error(
-          `Error parsing JSON string for jira-custom-fields input: ${extractErrorMessage(
-            e
-          )}`
+          `Error parsing JSON string for jira-custom-fields input: ${extractErrorMessage(e)}`
         )
       }
     }
@@ -170,8 +166,12 @@ async function run(): Promise<void> {
         false
       ),
       skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
-      jiraLabelsConfig: getInputOrEnv('jira-labels-config', 'JIRA_LABELS_CONFIG')
+      jiraLabelsConfig: getInputOrEnv(
+        'jira-labels-config',
+        'JIRA_LABELS_CONFIG'
+      )
     }
+
     const severitiesStr = getDefaultInputOrEnv(
       'aws-severities',
       'AWS_SEVERITIES',

@@ -1,7 +1,7 @@
 import * as dotenv from 'dotenv'
 import axios, {AxiosError, AxiosInstance} from 'axios'
 import {extractErrorMessage} from '../index'
-import { LabelConfig } from 'macfc-security-hub-sync'
+import {LabelConfig} from 'macfc-security-hub-sync'
 
 dotenv.config()
 
@@ -100,11 +100,7 @@ export class Jira {
   private jiraIgnoreStatusesList: string[]
   private isDryRun: boolean
   private dryRunIssueCounter: number = 0
-  private jiraLinkId?: string
-  private jiraLinkType?: string
-  private jiraLinkDirection?: string
   private jiraLabelsConfig?: LabelConfig[]
-
   constructor(jiraConfig: JiraConfig) {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.jiraProject = jiraConfig.jiraProjectKey
@@ -114,9 +110,6 @@ export class Jira {
       .split(',')
       .map(status => status.trim())
     this.isDryRun = jiraConfig.dryRun
-    this.jiraLinkId = jiraConfig.jiraLinkId
-    this.jiraLinkType = jiraConfig.jiraLinkType
-    this.jiraLinkDirection = jiraConfig.jiraLinkDirection
     if (jiraConfig.jiraLabelsConfig) {
       this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig)
     }
@@ -146,9 +139,7 @@ export class Jira {
       return response.data
     } catch (error: unknown) {
       throw new Error(
-        `Error fetching issue details for issue ${issueId}: ${handleAxiosError(
-          error
-        )}`
+        `Error fetching issue details for issue ${issueId}: ${handleAxiosError(error)}`
       )
     }
   }
@@ -157,9 +148,7 @@ export class Jira {
       return (await this.getIssue(issueId)).fields.status.name.toUpperCase()
     } catch (error: unknown) {
       throw new Error(
-        `Error fetching current status for issue ${issueId}: ${handleAxiosError(
-          error
-        )}`
+        `Error fetching current status for issue ${issueId}: ${handleAxiosError(error)}`
       )
     }
   }
@@ -219,9 +208,7 @@ export class Jira {
       )
     } catch (error: unknown) {
       throw new Error(
-        `Error transitioning issue ${issueId} to '${transitionName}': ${handleAxiosError(
-          error
-        )}`
+        `Error transitioning issue ${issueId} to '${transitionName}': ${handleAxiosError(error)}`
       )
     }
   }
@@ -256,45 +243,43 @@ export class Jira {
     identifyingLabels: string[],
     config: LabelConfig[]
   ): string[] {
-    const labels: string[] = [];
-    const fields = ["accountId", "region", "identify"];
-    const values = [...identifyingLabels, "security-hub"];
+    const labels: string[] = []
+    const fields = ['accountId', 'region', 'identify']
+    const values = [...identifyingLabels, 'security-hub']
 
     config.forEach(
-      ({ labelField: field, labelDelimiter: delim, labelPrefix: prefix }) => {
-        const delimiter = delim ?? "";
-        const labelPrefix = prefix ?? "";
+      ({labelField: field, labelDelimiter: delim, labelPrefix: prefix}) => {
+        const delimiter = delim ?? ''
+        const labelPrefix = prefix ?? ''
 
         if (fields.includes(field)) {
-          const index = fields.indexOf(field);
+          const index = fields.indexOf(field)
           if (index >= 0) {
             labels.push(
-              `${labelPrefix}${delimiter}${values[index]
-                ?.trim()
-                .replace(/ /g, "")}`
-            );
+              `${labelPrefix}${delimiter}${values[index]?.trim().replace(/ /g, '')}`
+            )
           }
         }
       }
-    );
+    )
 
-    return labels;
+    return labels
   }
   async getAllSecurityHubIssuesInJiraProject(
     identifyingLabels: string[]
   ): Promise<Issue[]> {
-    const labelQueries = [...identifyingLabels, 'security-hub'].map(label =>
-      Jira.formatLabelQuery(label)
-    ).join(" AND ");
-    let finalLabelQuery = labelQueries;
-    if(this.jiraLabelsConfig) {
-      const config = this.jiraLabelsConfig;
-      const configLabels = this.createSearchLabels(identifyingLabels, config);
+    const labelQueries = [...identifyingLabels, 'security-hub']
+      .map(label => Jira.formatLabelQuery(label))
+      .join(' AND ')
+    let finalLabelQuery = labelQueries
+    if (this.jiraLabelsConfig) {
+      const config = this.jiraLabelsConfig
+      const configLabels = this.createSearchLabels(identifyingLabels, config)
       const searchQuery = configLabels
-        .map((label) => Jira.formatLabelQuery(label))
-        .join(" AND ");
+        .map(label => Jira.formatLabelQuery(label))
+        .join(' AND ')
       if (searchQuery) {
-        finalLabelQuery = `(${finalLabelQuery}) OR (${searchQuery})`;
+        finalLabelQuery = `(${finalLabelQuery}) OR (${searchQuery})`
       }
     }
     const projectQuery = `project = '${this.jiraProject}'`
@@ -335,9 +320,7 @@ export class Jira {
         total = results.total
       } catch (error: unknown) {
         throw new Error(
-          `Error getting Security Hub issues from Jira: ${handleAxiosError(
-            error
-          )}`
+          `Error getting Security Hub issues from Jira: ${handleAxiosError(error)}`
         )
       }
     } while (totalIssuesReceived < total)
@@ -387,32 +370,45 @@ export class Jira {
       throw new Error(`Error creating Jira issue: ${handleAxiosError(error)}`)
     }
   }
-  async linkIssues(newIssueKey: string, issueID: string, linkType = "Relates", linkDirection = "inward") {
+  async linkIssues(
+    newIssueKey: string,
+    issueID: string,
+    linkType = 'Relates',
+    linkDirection = 'inward'
+  ) {
     if (this.isDryRun) {
-      console.log(`[Dry Run] Would link issues ${newIssueKey} with ${issueID} using type ${linkType} and direction ${linkDirection}`);
-      return;
+      console.log(
+        `[Dry Run] Would link issues ${newIssueKey} with ${issueID} using type ${linkType} and direction ${linkDirection}`
+      )
+      return
     }
-  
+
     const linkData = {
-      type: { name: linkType },
-      inwardIssue: { key: newIssueKey },
-      outwardIssue: { key: issueID },
-    };
-  
-    if (linkDirection === "outward") {
-      const temp = linkData.inwardIssue.key;
-      linkData.inwardIssue.key = linkData.outwardIssue.key;
-      linkData.outwardIssue.key = temp;
+      type: {name: linkType},
+      inwardIssue: {key: newIssueKey},
+      outwardIssue: {key: issueID}
     }
-  
+
+    if (linkDirection === 'outward') {
+      const temp = linkData.inwardIssue.key
+      linkData.inwardIssue.key = linkData.outwardIssue.key
+      linkData.outwardIssue.key = temp
+    }
+
     try {
-      const response = await this.axiosInstance.post('/rest/api/2/issueLink', linkData);
-      console.log(`Successfully linked issue ${newIssueKey} with ${issueID}:`, response.data);
+      const response = await this.axiosInstance.post(
+        '/rest/api/2/issueLink',
+        linkData
+      )
+      console.log(
+        `Successfully linked issue ${newIssueKey} with ${issueID}:`,
+        response.data
+      )
     } catch (error: unknown) {
-      console.error("Error linking issues:", error);
-      throw new Error(`Error linking issues: ${error}`);
+      console.error('Error linking issues:', error)
+      throw new Error(`Error linking issues: ${error}`)
     }
-  }  
+  }
   async updateIssueTitleById(issueId: string, updatedIssue: Partial<Issue>) {
     if (this.isDryRun) {
       console.log(
@@ -519,9 +515,7 @@ export class Jira {
       throw new Error(`Overran transition map for issue ${issueId}.`)
     } catch (error: unknown) {
       throw new Error(
-        `Error applying transition map to issue ${issueId}: ${extractErrorMessage(
-          error
-        )}`
+        `Error applying transition map to issue ${issueId}: ${extractErrorMessage(error)}`
       )
     }
   }

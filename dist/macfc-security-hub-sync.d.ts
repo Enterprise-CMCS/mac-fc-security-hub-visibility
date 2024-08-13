@@ -19,6 +19,12 @@ export interface SecurityHubJiraSyncConfig {
     skipProducts?: string;
     includeAllProducts: boolean;
 }
+export interface SecurityHubJiraSyncConfig {
+    region: string;
+    severities: string[];
+    customJiraFields?: CustomFields;
+    newIssueDelay: string;
+}
 export declare class SecurityHubJiraSync {
     private readonly jira;
     private readonly securityHub;
@@ -27,8 +33,6 @@ export declare class SecurityHubJiraSync {
     private readonly severities;
     private readonly autoClose;
     private readonly jiraBaseURI;
-    private includeAllProducts?;
-    private skipProducts?;
     private jiraLinkId?;
     private jiraLinkType?;
     private jiraLinkDirection?;

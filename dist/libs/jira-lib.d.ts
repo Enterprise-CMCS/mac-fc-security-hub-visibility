@@ -63,9 +63,6 @@ export declare class Jira {
     private jiraIgnoreStatusesList;
     private isDryRun;
     private dryRunIssueCounter;
-    private jiraLinkId?;
-    private jiraLinkType?;
-    private jiraLinkDirection?;
     private jiraLabelsConfig?;
     constructor(jiraConfig: JiraConfig);
     getCurrentUser(): Promise<any>;

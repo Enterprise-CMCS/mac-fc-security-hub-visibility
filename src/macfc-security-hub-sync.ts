@@ -24,6 +24,12 @@ export interface SecurityHubJiraSyncConfig {
   skipProducts?: string
   includeAllProducts: boolean
 }
+export interface SecurityHubJiraSyncConfig {
+  region: string
+  severities: string[]
+  customJiraFields?: CustomFields
+  newIssueDelay: string
+}
 
 export class SecurityHubJiraSync {
   private readonly jira: Jira
@@ -33,13 +39,10 @@ export class SecurityHubJiraSync {
   private readonly severities
   private readonly autoClose: boolean
   private readonly jiraBaseURI: string
-  private includeAllProducts?: boolean
-  private skipProducts?: string[]
   private jiraLinkId?: string
   private jiraLinkType?: string
   private jiraLinkDirection?: string
   private jiraLabelsConfig?: LabelConfig[]
-
   constructor(
     jiraConfig: JiraConfig,
     securityHubConfig: SecurityHubJiraSyncConfig,
@@ -52,10 +55,6 @@ export class SecurityHubJiraSync {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.customJiraFields = securityHubConfig.customJiraFields
     this.autoClose = autoClose
-    this.includeAllProducts = securityHubConfig.includeAllProducts
-    this.skipProducts = securityHubConfig.skipProducts
-      ?.split(',')
-      .map(product => product.trim())
     this.jiraLinkId = jiraConfig.jiraLinkId
     this.jiraLinkType = jiraConfig.jiraLinkType
     this.jiraLinkDirection = jiraConfig.jiraLinkDirection
@@ -71,9 +70,8 @@ export class SecurityHubJiraSync {
     const identifyingLabels: string[] = [accountId, this.region]
 
     // Step 1. Get all open Security Hub issues from Jira
-    const jiraIssues = await this.jira.getAllSecurityHubIssuesInJiraProject(
-      identifyingLabels
-    )
+    const jiraIssues =
+      await this.jira.getAllSecurityHubIssuesInJiraProject(identifyingLabels)
 
     // Step 2. Get all current findings from Security Hub
     console.log(
@@ -178,9 +176,7 @@ export class SecurityHubJiraSync {
       }
     } catch (e: unknown) {
       throw new Error(
-        `Error closing Jira issue for resolved finding: ${extractErrorMessage(
-          e
-        )}`
+        `Error closing Jira issue for resolved finding: ${extractErrorMessage(e)}`
       )
     }
     return updatesForReturn
@@ -194,25 +190,23 @@ export class SecurityHubJiraSync {
 
     let Table = `${title}| Partition   | Region     | Type    \n`
     resources.forEach(({Id, Partition, Region, Type}) => {
-      Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(
-        11
-      )} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} \n`
+      Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} \n`
     })
 
     Table += `------------------------------------------------------------------------------------------------`
     return Table
   }
   createSecurityHubFindingUrlThroughFilters(findingId: string) {
-    let region;
+    let region
 
-    if (findingId.startsWith("arn:")) {
+    if (findingId.startsWith('arn:')) {
       // Extract region and account ID from the ARN
-      const arnParts = findingId.split(":");
-      region = arnParts[3];
+      const arnParts = findingId.split(':')
+      region = arnParts[3]
     } else {
       // Extract region and account ID from the non-ARN format
-      const parts = findingId.split("/");
-      region = parts[1];
+      const parts = findingId.split('/')
+      region = parts[1]
     }
 
     const baseUrl = `https://${region}.console.aws.amazon.com/securityhub/home?region=${region}`
@@ -269,19 +263,14 @@ export class SecurityHubJiraSync {
       h2. Severity:
       ${severity}
 
-      h2. SecurityHubFindingUrl:
-      ${
-        standardsControlArn
-          ? this.createSecurityHubFindingUrl(standardsControlArn)
-          : this.createSecurityHubFindingUrlThroughFilters(id)
-      }
+ h2. SecurityHubFindingUrl:
+      ${standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
       h2. Resources:
       Following are the resources those were non-compliant at the time of the issue creation
       ${this.makeResourceList(finding.Resources)}
 
       To check the latest list of resources, kindly refer to the finding url
-
       h2. AC:
 
       * All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed.  (Note:  this ticket will automatically close when the AC is met.)`
@@ -340,9 +329,7 @@ export class SecurityHubJiraSync {
           const index = fields.indexOf(field)
           if (index >= 0) {
             labels.push(
-              `${labelPrefix}${delimiter}${values[index]
-                ?.trim()
-                .replace(/ /g, '')}`
+              `${labelPrefix}${delimiter}${values[index]?.trim().replace(/ /g, '')}`
             )
           }
         } else {
@@ -397,7 +384,6 @@ export class SecurityHubJiraSync {
       }
     }
     let newIssueInfo
-    console.log("I am test")
     try {
       newIssueInfo = await this.jira.createNewIssue(newIssueData)
       const issue_id = this.jiraLinkId
