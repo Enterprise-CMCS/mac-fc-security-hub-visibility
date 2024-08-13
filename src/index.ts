@@ -177,7 +177,7 @@ async function run(): Promise<void> {
       'AWS_SEVERITIES',
       'CRITICAL,HIGH,MEDIUM'
     ) //
-    console.log('fail')
+    console.log('failed')
     const securityHubConfig: SecurityHubJiraSyncConfig = {
       region: getDefaultInputOrEnv('aws-region', 'AWS_REGION', 'us-east-1'),
       severities: validateAndFilterSeverities(severitiesStr),
