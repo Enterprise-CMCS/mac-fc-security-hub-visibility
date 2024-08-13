@@ -24,17 +24,17 @@ export declare class SecurityHub {
     constructor(securityHubJiraSyncConfig: SecurityHubJiraSyncConfig);
     private getAccountAlias;
     getAllActiveFindings(): Promise<{
-        id?: string | undefined;
-        title?: string | undefined;
-        region?: string | undefined;
+        id?: string;
+        title?: string;
+        region?: string;
         accountAlias: string;
-        awsAccountId?: string | undefined;
-        severity?: string | undefined;
-        description?: string | undefined;
-        standardsControlArn?: string | undefined;
-        remediation?: Remediation | undefined;
-        ProductName?: string | undefined;
-        Resources?: Resource[] | undefined;
+        awsAccountId?: string;
+        severity?: string;
+        description?: string;
+        standardsControlArn?: string;
+        remediation?: Remediation;
+        ProductName?: string;
+        Resources?: Resource[];
     }[]>;
     awsSecurityFindingToSecurityHubFinding(finding: AwsSecurityFinding): SecurityHubFinding;
 }
