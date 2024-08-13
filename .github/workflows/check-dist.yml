@@ -19,12 +19,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
+      - name: Install dependencies
+        run: git status
       - name: Build the dist/ directory
         run: npm run build
 
       - name: Check for diff
         run: |
+          git status
           git diff --exit-code HEAD^ HEAD -- dist/
           exit_code=$?  
           echo "Exit code: $exit_code"  # Display the exit code
