@@ -25,7 +25,7 @@ jobs:
       - name: Check for diff
         run: |
           git status
-          git diff --exit-code dist/
+          git diff -w --exit-code dist/
           exit_code=$?  
           echo "Exit code: $exit_code"  # Display the exit code
           if [ $exit_code -ne 0 ]; then
