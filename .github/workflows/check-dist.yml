@@ -11,33 +11,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
+      - uses: actions/setup-node@v3
         with:
           node-version: 18
 
       - name: Install dependencies
-        run: npm i
-
-      - name: Save the dist/ directory before build
-        run: |
-          mkdir -p .git/previous-dist
-          cp -r dist/* .git/previous-dist/
+        run: npm ci
 
       - name: Build the dist/ directory
         run: npm run build
-
       - name: Show Folder Structure
         run: ls -R
 
-      - name: Check for changes in dist/
+      - name: Check for diff
         run: |
-          # Check differences between current and previous dist/
-          git diff --exit-code .git/previous-dist/ dist/
-          exit_code=$?
-          echo "Exit code: $exit_code"
+          git diff -w --exit-code dist/
+          exit_code=$?  
+          echo "Exit code: $exit_code"  # Display the exit code
           if [ $exit_code -ne 0 ]; then
+            echo $?
             echo "Detected uncommitted changes after building. Please run 'npm run build' and commit the changes."
-            exit 1
+            exit 1 
           fi
