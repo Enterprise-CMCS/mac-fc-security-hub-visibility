@@ -172,7 +172,7 @@ async function run(): Promise<void> {
       skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
       jiraLabelsConfig: getInputOrEnv('jira-labels-config', 'JIRA_LABELS_CONFIG')
     }
-    console.log("TEST LOG - to test PR check without building")
+    console.log("TEST LOG - to test PR check without building - updated")
     const severitiesStr = getDefaultInputOrEnv(
       'aws-severities',
       'AWS_SEVERITIES',
