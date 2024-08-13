@@ -26,8 +26,8 @@ jobs:
       - name: Check for diff
         run: |
           git diff --exit-code dist/
-          exit_code = $?
-          echo $exit_code
+          exit_code=$?
+          echo "Exit code: $exit_code"  # Display the exit code
           if [ $exit_code -ne 0 ]; then
             echo $?
             echo "Detected uncommitted changes after building. Please run 'npm run build' and commit the changes."
