@@ -59704,6 +59704,7 @@ async function run() {
             jiraLabelsConfig: getInputOrEnv('jira-labels-config', 'JIRA_LABELS_CONFIG')
         };
         const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
+        console.log('fail');
         const securityHubConfig = {
             region: getDefaultInputOrEnv('aws-region', 'AWS_REGION', 'us-east-1'),
             severities: validateAndFilterSeverities(severitiesStr),
