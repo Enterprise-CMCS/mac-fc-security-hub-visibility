@@ -20,8 +20,6 @@ jobs:
 
       - name: Build the dist/ directory
         run: npm run build
-      - name: Show Folder Structure
-        run: ls -R
 
       - name: Check for diff
         run: |
