@@ -484,14 +484,19 @@ export class Jira {
     }
 
     // Attempt to apply a wildcard transition first
-    const wildcardApplied = await this.applyWildcardTransition(issueId)
-    if (wildcardApplied) {
+    try {
+      const wildcardApplied = await this.applyWildcardTransition(issueId)
+      if (wildcardApplied) {
+        console.log(
+          `Wildcard transition applied to issue ${issueId}. Closing process completed.`
+        )
+        return // Exit the method as the wildcard transition takes precedence
+      }
+    } catch (e) {
       console.log(
-        `Wildcard transition applied to issue ${issueId}. Closing process completed.`
+        'Applying wildcard transition failed - Attempting the issue closure with transition map'
       )
-      return // Exit the method as the wildcard transition takes precedence
     }
-
     console.log(
       `Attempting to close ${issueId}: Applying transition map to issue`
     )
