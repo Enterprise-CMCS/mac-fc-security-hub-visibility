@@ -60634,6 +60634,7 @@ class Jira {
             // Fetch available transitions for the issue
             const availableTransitions = await this.getIssueTransitions(issueId);
             // Find the transition ID corresponding to the provided transition name
+            console.log("available", availableTransitions);
             const transition = availableTransitions.find(t => t.name.toLocaleUpperCase() === transitionName || t.name.toLowerCase() === transitionName.toLocaleLowerCase());
             if (!transition) {
                 throw new Error(`Transition '${transitionName}' not found for issue ${issueId}`);

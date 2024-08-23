@@ -186,6 +186,7 @@ export class Jira {
       const availableTransitions = await this.getIssueTransitions(issueId)
 
       // Find the transition ID corresponding to the provided transition name
+      console.log("available", availableTransitions);
       const transition = availableTransitions.find(
         t => t.name.toLocaleUpperCase() === transitionName || t.name.toLowerCase() === transitionName.toLocaleLowerCase()
       )
