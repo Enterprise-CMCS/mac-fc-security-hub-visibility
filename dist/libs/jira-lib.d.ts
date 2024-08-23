@@ -70,6 +70,7 @@ export declare class Jira {
     getCurrentStatus(issueId: string): Promise<any>;
     getIssueTransitions(issueId: string): Promise<Transition[]>;
     transitionIssueByName(issueId: string, transitionName: string): Promise<void>;
+    transitionIssueById(issueId: string, transitionId: string, transitionName: string): Promise<void>;
     removeCurrentUserAsWatcher(issueId: string): Promise<void>;
     private static formatLabelQuery;
     createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];

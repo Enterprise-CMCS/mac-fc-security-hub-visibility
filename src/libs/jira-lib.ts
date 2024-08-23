@@ -213,6 +213,33 @@ export class Jira {
       )
     }
   }
+  async transitionIssueById(issueId: string, transitionId: string, transitionName: string) {
+    if (this.isDryRun) {
+      console.log(
+        `[Dry Run] Would transition issue ${issueId} with transition:`,
+        transitionName
+      )
+      return
+    }
+
+    try {
+
+      // Transition the issue using the found transition ID
+      await this.axiosInstance.post(
+        `/rest/api/2/issue/${issueId}/transitions`,
+        {
+          transition: {id: transitionId}
+        }
+      )
+      console.log(
+        `Issue ${issueId} transitioned successfully to '${transitionName}'.`
+      )
+    } catch (error: unknown) {
+      throw new Error(
+        `Error transitioning issue ${issueId} to '${transitionName}': ${handleAxiosError(error)}`
+      )
+    }
+  }
   async removeCurrentUserAsWatcher(issueId: string) {
     try {
       const currentUser = await this.getCurrentUser()
@@ -551,9 +578,9 @@ export class Jira {
             }
             break;
           }
-          const transitionId = targetTransitions[0].name;
+          const transition = targetTransitions[0];
           processedTransitions.push(targetTransitions[0].name.toLowerCase());
-          await this.transitionIssueByName(issueKey, transitionId);
+          await this.transitionIssueById(issueKey, transition.id, transition.name );
           console.log(
             `Transitioned issue ${issueKey} to the next stage: ${targetTransitions[0].name}`
           );
