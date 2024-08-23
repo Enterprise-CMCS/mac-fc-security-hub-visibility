@@ -80,6 +80,8 @@ export declare class Jira {
     addCommentToIssueById(issueId: string, comment: string): Promise<void>;
     getNextTransition(currentStatus: string): string | undefined;
     applyWildcardTransition(issueId: string): Promise<boolean>;
-    closeIssue(issueId: string): Promise<void>;
+    closeIssueUsingTransitionMap(issueId: string): Promise<void>;
+    completeWorkflow(issueKey: string): Promise<void>;
+    closeIssue(issueKey: string): Promise<void>;
 }
 export {};

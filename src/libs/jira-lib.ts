@@ -477,7 +477,7 @@ export class Jira {
     return false // No wildcard transition found
   }
 
-  async closeIssue(issueId: string) {
+  async closeIssueUsingTransitionMap(issueId: string) {
     if (this.isDryRun) {
       console.log(`[Dry Run] Would apply transition map to issue ${issueId}`)
       return
@@ -517,6 +517,78 @@ export class Jira {
       throw new Error(
         `Error applying transition map to issue ${issueId}: ${extractErrorMessage(error)}`
       )
+    }
+  }
+  async completeWorkflow(issueKey: string) {
+    const opposedStatuses = ["canceled", "backout", "rejected"];
+    try {
+      const issue = await this.getIssue(issueKey);
+      const processedTransitions: string[] = [];
+      do {
+        const availableTransitions: Transition[] = await this.getIssueTransitions(issueKey);
+        if (availableTransitions.length > 0) {
+          const targetTransitions = availableTransitions.filter(
+            (transition: { name: string }) =>
+              !opposedStatuses.includes(transition.name.toLowerCase()) &&
+              !processedTransitions.includes(transition.name.toLowerCase())
+          );
+          if (targetTransitions.length <= 0) {
+            if (!processedTransitions.length) {
+              throw new Error("Unsupported workflow; no transition available");
+            }
+            const lastStatus =
+              processedTransitions[
+                processedTransitions.length - 1
+              ].toLowerCase();
+            const doneStatuses = ["done", "closed", "close", "complete", "completed", "approve", "approved", "deploy", "deployed"];
+            if (!doneStatuses.includes(lastStatus)) {
+              throw new Error(
+                "Unsupported Workflow: does not contain any of " +
+                  doneStatuses.join(",") +
+                  "statuses"
+              );
+            }
+            break;
+          }
+          const transitionId = targetTransitions[0].name;
+          processedTransitions.push(targetTransitions[0].name.toLowerCase());
+          await this.transitionIssueByName(issueKey, transitionId);
+          console.log(
+            `Transitioned issue ${issueKey} to the next stage: ${targetTransitions[0].name}`
+          );
+        } else {
+          break;
+        }
+      } while (true);
+    } catch (e) {
+      console.log("Error completing the workflow ", e);
+    }
+  }
+
+  async closeIssue(issueKey: string) {
+    if (!issueKey) return;
+    try {
+      const transitions = await this.getIssueTransitions(issueKey);
+      const doneTransition = transitions.find(
+        (t: { name: string }) => t.name === "Done"
+      );
+
+      if (!doneTransition) {
+        try {
+          if(this.transitionMap.length) {
+            await this.closeIssueUsingTransitionMap(issueKey)
+          } else {
+            await this.completeWorkflow(issueKey)
+          }
+        } catch (e) {
+          await this.completeWorkflow(issueKey);
+        }
+        return;
+      }
+
+      await this.transitionIssueByName(issueKey, doneTransition.name);
+    } catch (e: any) {
+      throw new Error(`Error closing issue ${issueKey}: ${e.message}`);
     }
   }
 }
