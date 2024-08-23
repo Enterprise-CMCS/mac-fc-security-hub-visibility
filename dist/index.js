@@ -60889,7 +60889,8 @@ class Jira {
         }
     }
     async completeWorkflow(issueKey) {
-        const opposedStatuses = ["canceled", "backout", "rejected"];
+        const opposedStatuses = ["canceled", "backout", "rejected", "cancel", "reject"];
+        const doneStatuses = ["done", "closed", "close", "complete", "completed", "approve", "approved", "deploy", "deployed"];
         try {
             const issue = await this.getIssue(issueKey);
             const processedTransitions = [];
@@ -60898,17 +60899,19 @@ class Jira {
                 if (availableTransitions.length > 0) {
                     const targetTransitions = availableTransitions.filter((transition) => !opposedStatuses.includes(transition.name.toLowerCase()) &&
                         !processedTransitions.includes(transition.name.toLowerCase()));
+                    const lastStatus = processedTransitions[processedTransitions.length - 1].toLowerCase();
                     if (targetTransitions.length <= 0) {
                         if (!processedTransitions.length) {
                             throw new Error("Unsupported workflow; no transition available");
                         }
-                        const lastStatus = processedTransitions[processedTransitions.length - 1].toLowerCase();
-                        const doneStatuses = ["done", "closed", "close", "complete", "completed", "approve", "approved", "deploy", "deployed"];
                         if (!doneStatuses.includes(lastStatus)) {
                             throw new Error("Unsupported Workflow: does not contain any of " +
                                 doneStatuses.join(",") +
                                 "statuses");
                         }
+                        break;
+                    }
+                    else if (doneStatuses.includes(lastStatus)) {
                         break;
                     }
                     const transition = targetTransitions[0];
