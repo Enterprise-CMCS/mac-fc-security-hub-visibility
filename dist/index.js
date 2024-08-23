@@ -60890,7 +60890,7 @@ class Jira {
     }
     async completeWorkflow(issueKey) {
         const opposedStatuses = ["canceled", "backout", "rejected", "cancel", "reject"];
-        const doneStatuses = ["done", "closed", "close", "complete", "completed", "approve", "approved", "deploy", "deployed"];
+        const doneStatuses = ["done", "closed", "close", "complete", "completed", "deploy", "deployed"];
         try {
             const issue = await this.getIssue(issueKey);
             const processedTransitions = [];
