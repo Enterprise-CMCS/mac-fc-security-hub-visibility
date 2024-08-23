@@ -60899,7 +60899,7 @@ class Jira {
                 if (availableTransitions.length > 0) {
                     const targetTransitions = availableTransitions.filter((transition) => !opposedStatuses.includes(transition.name.toLowerCase()) &&
                         !processedTransitions.includes(transition.name.toLowerCase()));
-                    const lastStatus = processedTransitions[processedTransitions.length - 1].toLowerCase();
+                    const lastStatus = processedTransitions[processedTransitions?.length - 1]?.toLowerCase();
                     if (targetTransitions.length <= 0) {
                         if (!processedTransitions.length) {
                             throw new Error("Unsupported workflow; no transition available");

@@ -563,8 +563,8 @@ export class Jira {
           );
           const lastStatus =
           processedTransitions[
-            processedTransitions.length - 1
-          ].toLowerCase();
+            processedTransitions?.length - 1
+          ]?.toLowerCase();
           if (targetTransitions.length <= 0) {
             if (!processedTransitions.length) {
               throw new Error("Unsupported workflow; no transition available");
