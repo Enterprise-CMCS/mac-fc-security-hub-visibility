@@ -187,7 +187,7 @@ export class Jira {
 
       // Find the transition ID corresponding to the provided transition name
       const transition = availableTransitions.find(
-        t => t.name.toLocaleUpperCase() === transitionName
+        t => t.name.toLocaleUpperCase() === transitionName || t.name.toLowerCase() === transitionName.toLocaleLowerCase()
       )
 
       if (!transition) {
