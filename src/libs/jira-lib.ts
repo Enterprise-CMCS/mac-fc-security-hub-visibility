@@ -578,10 +578,10 @@ export class Jira {
             }
             break;
           } else if (doneStatuses.includes(lastStatus)) {
-              break;
+              return;
           }
           const transition = targetTransitions[0];
-          processedTransitions.push(targetTransitions[0].name.toLowerCase());
+          processedTransitions.push(targetTransitions[0].name?.toLowerCase());
           await this.transitionIssueById(issueKey, transition.id, transition.name );
           console.log(
             `Transitioned issue ${issueKey} to the next stage: ${targetTransitions[0].name}`
