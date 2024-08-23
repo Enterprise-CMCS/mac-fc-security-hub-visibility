@@ -558,7 +558,9 @@ export class Jira {
       'backout',
       'rejected',
       'cancel',
-      'reject'
+      'reject',
+      'block',
+      'blocked'
     ]
     const doneStatuses = [
       'done',
@@ -636,7 +638,7 @@ export class Jira {
               await this.completeWorkflow(issueKey)
             } catch (e) {
               console.log(
-                'The built-in complete workflow failed, please specify the transition map'
+                'The built-in autoclose failed, specify the transition map. Please see README for "jira-transition-map".'
               )
             }
           }
