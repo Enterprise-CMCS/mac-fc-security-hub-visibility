@@ -70,6 +70,7 @@ export declare class Jira {
     getCurrentStatus(issueId: string): Promise<any>;
     getIssueTransitions(issueId: string): Promise<Transition[]>;
     transitionIssueByName(issueId: string, transitionName: string): Promise<void>;
+    transitionIssueById(issueId: string, transitionId: string, transitionName: string): Promise<void>;
     removeCurrentUserAsWatcher(issueId: string): Promise<void>;
     private static formatLabelQuery;
     createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
@@ -80,6 +81,8 @@ export declare class Jira {
     addCommentToIssueById(issueId: string, comment: string): Promise<void>;
     getNextTransition(currentStatus: string): string | undefined;
     applyWildcardTransition(issueId: string): Promise<boolean>;
-    closeIssue(issueId: string): Promise<void>;
+    closeIssueUsingTransitionMap(issueId: string): Promise<void>;
+    completeWorkflow(issueKey: string): Promise<void>;
+    closeIssue(issueKey: string): Promise<void>;
 }
 export {};

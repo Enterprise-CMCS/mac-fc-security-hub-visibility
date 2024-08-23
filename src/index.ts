@@ -80,7 +80,7 @@ function parseAndValidateTransitionMap(
   transitionMapStr: string | undefined
 ): Array<{status: string; transition: string}> {
   if (!transitionMapStr) {
-    return [{status: '*', transition: 'DONE'}] // Defaults to wildcard status and transition of 'DONE' if no map is provided
+    return [] // Defaults to wildcard status and transition of 'DONE' if no map is provided
   }
 
   const transitionMap = transitionMapStr.split(';').map(ruleStr => {
@@ -112,7 +112,7 @@ async function run(): Promise<void> {
     const transitionMapStr = getDefaultInputOrEnv(
       'jira-transition-map',
       'JIRA_TRANSITION_MAP',
-      '*: DONE'
+      ''
     )
 
     let customJiraFields: CustomFields | undefined
