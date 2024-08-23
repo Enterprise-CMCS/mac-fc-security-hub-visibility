@@ -60634,8 +60634,9 @@ class Jira {
             // Fetch available transitions for the issue
             const availableTransitions = await this.getIssueTransitions(issueId);
             // Find the transition ID corresponding to the provided transition name
-            console.log("available", availableTransitions);
-            const transition = availableTransitions.find(t => t.name.toLocaleUpperCase() === transitionName || t.name.toLowerCase() === transitionName.toLocaleLowerCase());
+            console.log('available', availableTransitions);
+            const transition = availableTransitions.find(t => t.name.toLocaleUpperCase() === transitionName ||
+                t.name.toLowerCase() === transitionName.toLocaleLowerCase());
             if (!transition) {
                 throw new Error(`Transition '${transitionName}' not found for issue ${issueId}`);
             }
@@ -60889,8 +60890,22 @@ class Jira {
         }
     }
     async completeWorkflow(issueKey) {
-        const opposedStatuses = ["canceled", "backout", "rejected", "cancel", "reject"];
-        const doneStatuses = ["done", "closed", "close", "complete", "completed", "deploy", "deployed"];
+        const opposedStatuses = [
+            'canceled',
+            'backout',
+            'rejected',
+            'cancel',
+            'reject'
+        ];
+        const doneStatuses = [
+            'done',
+            'closed',
+            'close',
+            'complete',
+            'completed',
+            'deploy',
+            'deployed'
+        ];
         try {
             const issue = await this.getIssue(issueKey);
             const processedTransitions = [];
@@ -60902,12 +60917,12 @@ class Jira {
                     const lastStatus = processedTransitions[processedTransitions?.length - 1]?.toLowerCase();
                     if (targetTransitions.length <= 0) {
                         if (!processedTransitions.length) {
-                            throw new Error("Unsupported workflow; no transition available");
+                            throw new Error('Unsupported workflow; no transition available');
                         }
                         if (!doneStatuses.includes(lastStatus)) {
-                            throw new Error("Unsupported Workflow: does not contain any of " +
-                                doneStatuses.join(",") +
-                                "statuses");
+                            throw new Error('Unsupported Workflow: does not contain any of ' +
+                                doneStatuses.join(',') +
+                                'statuses');
                         }
                         break;
                     }
@@ -60925,7 +60940,7 @@ class Jira {
             } while (true);
         }
         catch (e) {
-            console.log("Error completing the workflow ", e);
+            console.log('Error completing the workflow ', e);
         }
     }
     async closeIssue(issueKey) {
@@ -60933,18 +60948,28 @@ class Jira {
             return;
         try {
             const transitions = await this.getIssueTransitions(issueKey);
-            const doneTransition = transitions.find((t) => t.name === "Done");
+            const doneTransition = transitions.find((t) => t.name === 'Done');
             if (!doneTransition) {
                 try {
                     if (this.transitionMap.length) {
                         await this.closeIssueUsingTransitionMap(issueKey);
                     }
                     else {
-                        await this.completeWorkflow(issueKey);
+                        try {
+                            await this.completeWorkflow(issueKey);
+                        }
+                        catch (e) {
+                            console.log('The built-in complete workflow failed, please specify the transition map');
+                        }
                     }
                 }
                 catch (e) {
-                    await this.completeWorkflow(issueKey);
+                    try {
+                        await this.completeWorkflow(issueKey);
+                    }
+                    catch (e) {
+                        console.log('The built-in complete workflow failed, please specify the transition map');
+                    }
                 }
                 return;
             }

@@ -186,9 +186,11 @@ export class Jira {
       const availableTransitions = await this.getIssueTransitions(issueId)
 
       // Find the transition ID corresponding to the provided transition name
-      console.log("available", availableTransitions);
+      console.log('available', availableTransitions)
       const transition = availableTransitions.find(
-        t => t.name.toLocaleUpperCase() === transitionName || t.name.toLowerCase() === transitionName.toLocaleLowerCase()
+        t =>
+          t.name.toLocaleUpperCase() === transitionName ||
+          t.name.toLowerCase() === transitionName.toLocaleLowerCase()
       )
 
       if (!transition) {
@@ -213,7 +215,11 @@ export class Jira {
       )
     }
   }
-  async transitionIssueById(issueId: string, transitionId: string, transitionName: string) {
+  async transitionIssueById(
+    issueId: string,
+    transitionId: string,
+    transitionName: string
+  ) {
     if (this.isDryRun) {
       console.log(
         `[Dry Run] Would transition issue ${issueId} with transition:`,
@@ -223,7 +229,6 @@ export class Jira {
     }
 
     try {
-
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
         `/rest/api/2/issue/${issueId}/transitions`,
@@ -548,77 +553,108 @@ export class Jira {
     }
   }
   async completeWorkflow(issueKey: string) {
-    const opposedStatuses = ["canceled", "backout", "rejected", "cancel", "reject"];
-    const doneStatuses = ["done", "closed", "close", "complete", "completed", "deploy", "deployed"];
+    const opposedStatuses = [
+      'canceled',
+      'backout',
+      'rejected',
+      'cancel',
+      'reject'
+    ]
+    const doneStatuses = [
+      'done',
+      'closed',
+      'close',
+      'complete',
+      'completed',
+      'deploy',
+      'deployed'
+    ]
     try {
-      const issue = await this.getIssue(issueKey);
-      const processedTransitions: string[] = [];
+      const issue = await this.getIssue(issueKey)
+      const processedTransitions: string[] = []
       do {
-        const availableTransitions: Transition[] = await this.getIssueTransitions(issueKey);
+        const availableTransitions: Transition[] =
+          await this.getIssueTransitions(issueKey)
         if (availableTransitions.length > 0) {
           const targetTransitions = availableTransitions.filter(
-            (transition: { name: string }) =>
+            (transition: {name: string}) =>
               !opposedStatuses.includes(transition.name.toLowerCase()) &&
               !processedTransitions.includes(transition.name.toLowerCase())
-          );
+          )
           const lastStatus =
-          processedTransitions[
-            processedTransitions?.length - 1
-          ]?.toLowerCase();
+            processedTransitions[
+              processedTransitions?.length - 1
+            ]?.toLowerCase()
           if (targetTransitions.length <= 0) {
             if (!processedTransitions.length) {
-              throw new Error("Unsupported workflow; no transition available");
+              throw new Error('Unsupported workflow; no transition available')
             }
             if (!doneStatuses.includes(lastStatus)) {
               throw new Error(
-                "Unsupported Workflow: does not contain any of " +
-                  doneStatuses.join(",") +
-                  "statuses"
-              );
+                'Unsupported Workflow: does not contain any of ' +
+                  doneStatuses.join(',') +
+                  'statuses'
+              )
             }
-            break;
+            break
           } else if (doneStatuses.includes(lastStatus)) {
-              return;
+            return
           }
-          const transition = targetTransitions[0];
-          processedTransitions.push(targetTransitions[0].name?.toLowerCase());
-          await this.transitionIssueById(issueKey, transition.id, transition.name );
+          const transition = targetTransitions[0]
+          processedTransitions.push(targetTransitions[0].name?.toLowerCase())
+          await this.transitionIssueById(
+            issueKey,
+            transition.id,
+            transition.name
+          )
           console.log(
             `Transitioned issue ${issueKey} to the next stage: ${targetTransitions[0].name}`
-          );
+          )
         } else {
-          break;
+          break
         }
-      } while (true);
+      } while (true)
     } catch (e) {
-      console.log("Error completing the workflow ", e);
+      console.log('Error completing the workflow ', e)
     }
   }
 
   async closeIssue(issueKey: string) {
-    if (!issueKey) return;
+    if (!issueKey) return
     try {
-      const transitions = await this.getIssueTransitions(issueKey);
+      const transitions = await this.getIssueTransitions(issueKey)
       const doneTransition = transitions.find(
-        (t: { name: string }) => t.name === "Done"
-      );
+        (t: {name: string}) => t.name === 'Done'
+      )
 
       if (!doneTransition) {
         try {
-          if(this.transitionMap.length) {
+          if (this.transitionMap.length) {
             await this.closeIssueUsingTransitionMap(issueKey)
           } else {
-            await this.completeWorkflow(issueKey)
+            try {
+              await this.completeWorkflow(issueKey)
+            } catch (e) {
+              console.log(
+                'The built-in complete workflow failed, please specify the transition map'
+              )
+            }
           }
         } catch (e) {
-          await this.completeWorkflow(issueKey);
+          try {
+            await this.completeWorkflow(issueKey)
+          } catch (e) {
+            console.log(
+              'The built-in complete workflow failed, please specify the transition map'
+            )
+          }
         }
-        return;
+        return
       }
 
-      await this.transitionIssueByName(issueKey, doneTransition.name);
+      await this.transitionIssueByName(issueKey, doneTransition.name)
     } catch (e: any) {
-      throw new Error(`Error closing issue ${issueKey}: ${e.message}`);
+      throw new Error(`Error closing issue ${issueKey}: ${e.message}`)
     }
   }
 }
