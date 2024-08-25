@@ -254,7 +254,7 @@ export class Jira {
     try {
       const currentUser = await this.getCurrentUser()
       console.log(currentUser)
-      console.log(`Remove watcher ${currentUser.name} from ${issueId}`)
+      console.log(`Remove watcher ${currentUser.name ?? currentUser.displayName} from ${issueId}`)
 
       if (this.isDryRun) {
         console.log(
