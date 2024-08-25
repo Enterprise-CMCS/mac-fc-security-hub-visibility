@@ -60581,7 +60581,10 @@ class Jira {
         this.axiosInstance = axios_1.default.create({
             baseURL: jiraConfig.jiraBaseURI,
             headers: {
-                Authorization: `Bearer ${jiraConfig.jiraToken}`,
+                Authorization: jiraConfig.jiraBaseURI.includes('atlassian')
+                    ? 'Basic ' +
+                        Buffer.from(`${jiraConfig.jiraUsername}:${jiraConfig.jiraToken}`).toString('base64')
+                    : `Bearer ${jiraConfig.jiraToken}`,
                 'Content-Type': 'application/json'
             }
         });
