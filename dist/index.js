@@ -60679,7 +60679,7 @@ class Jira {
             }
             await this.axiosInstance.delete(`/rest/api/2/issue/${issueId}/watchers`, {
                 params: {
-                    username: currentUser.name
+                    username: currentUser.name ?? currentUser.accountId
                 }
             });
         }
