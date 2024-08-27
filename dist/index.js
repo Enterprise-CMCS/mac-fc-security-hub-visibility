@@ -60672,7 +60672,6 @@ class Jira {
     async removeCurrentUserAsWatcher(issueId) {
         try {
             const currentUser = await this.getCurrentUser();
-            console.log(currentUser);
             console.log(`Remove watcher ${currentUser.name ?? currentUser.displayName} from ${issueId}`);
             if (this.isDryRun) {
                 console.log(`[Dry Run] Would remove ${currentUser.name} from ${issueId} as watcher.`);
