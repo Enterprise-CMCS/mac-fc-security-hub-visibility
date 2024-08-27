@@ -117,7 +117,12 @@ export class Jira {
     this.axiosInstance = axios.create({
       baseURL: jiraConfig.jiraBaseURI,
       headers: {
-        Authorization: `Bearer ${jiraConfig.jiraToken}`,
+        Authorization: jiraConfig.jiraBaseURI.includes('atlassian')
+          ? 'Basic ' +
+            Buffer.from(
+              `${jiraConfig.jiraUsername}:${jiraConfig.jiraToken}`
+            ).toString('base64')
+          : `Bearer ${jiraConfig.jiraToken}`,
         'Content-Type': 'application/json'
       }
     })
@@ -248,7 +253,7 @@ export class Jira {
   async removeCurrentUserAsWatcher(issueId: string) {
     try {
       const currentUser = await this.getCurrentUser()
-      console.log(`Remove watcher ${currentUser.name} from ${issueId}`)
+      console.log(`Remove watcher ${currentUser.name ?? currentUser.displayName} from ${issueId}`)
 
       if (this.isDryRun) {
         console.log(
@@ -256,10 +261,20 @@ export class Jira {
         )
         return // Skip the actual API call
       }
-
+      const params = {
+        key: '',
+        value: ''
+      }
+      if(currentUser.name){
+        params.key = 'username'
+        params.value = currentUser.name
+      } else {
+        params.key = 'accountId'
+        params.value = currentUser.accountId
+      }
       await this.axiosInstance.delete(`/rest/api/2/issue/${issueId}/watchers`, {
         params: {
-          username: currentUser.name
+          [params.key]: params.value
         }
       })
     } catch (error: unknown) {
