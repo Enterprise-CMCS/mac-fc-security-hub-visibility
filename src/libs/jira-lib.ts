@@ -253,7 +253,9 @@ export class Jira {
   async removeCurrentUserAsWatcher(issueId: string) {
     try {
       const currentUser = await this.getCurrentUser()
-      console.log(`Remove watcher ${currentUser.name ?? currentUser.displayName} from ${issueId}`)
+      console.log(
+        `Remove watcher ${currentUser.name ?? currentUser.displayName} from ${issueId}`
+      )
 
       if (this.isDryRun) {
         console.log(
@@ -265,7 +267,7 @@ export class Jira {
         key: '',
         value: ''
       }
-      if(currentUser.name){
+      if (currentUser.name) {
         params.key = 'username'
         params.value = currentUser.name
       } else {
