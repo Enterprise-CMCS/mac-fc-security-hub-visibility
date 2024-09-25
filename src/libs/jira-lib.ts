@@ -277,7 +277,7 @@ export class Jira {
         }
         const user = response.data[0]
         const splitted = user.accountId.split(':')
-        params.value = splitted.length > 1 ? splitted[0] : splitted[1]
+        params.value = splitted.length > 1 ? splitted[1] : splitted[0]
         params.key = 'accountId'
       }
       const res = await this.axiosInstance.post(
