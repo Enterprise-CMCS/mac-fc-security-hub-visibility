@@ -59939,8 +59939,12 @@ class Jira {
                 params.key = 'username';
             }
             else {
-                const response = await this.axiosInstance.get(`/rest/api/3/user/search?username=${watcher}`);
-                const user = response.data;
+                const response = await this.axiosInstance.get(`/rest/api/3/user/search?query=${encodeURIComponent(watcher)}`);
+                if (!response.data.length) {
+                    console.log('Invalid wacther id ' + watcher);
+                    return;
+                }
+                const user = response.data[0];
                 params.value = user.accountId;
                 params.key = 'accountId';
             }
