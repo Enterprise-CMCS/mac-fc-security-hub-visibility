@@ -6,6 +6,7 @@ export interface JiraConfig {
     jiraProjectKey: string;
     jiraIgnoreStatuses: string;
     jiraAssignee?: string;
+    jiraWatchers?: string;
     transitionMap: Array<{
         status: string;
         transition: string;
@@ -64,6 +65,7 @@ export declare class Jira {
     private isDryRun;
     private dryRunIssueCounter;
     private jiraLabelsConfig?;
+    private jiraWatchers?;
     constructor(jiraConfig: JiraConfig);
     getCurrentUser(): Promise<any>;
     getIssue(issueId: string): Promise<any>;
@@ -71,6 +73,7 @@ export declare class Jira {
     getIssueTransitions(issueId: string): Promise<Transition[]>;
     transitionIssueByName(issueId: string, transitionName: string): Promise<void>;
     transitionIssueById(issueId: string, transitionId: string, transitionName: string): Promise<void>;
+    addUserAsWatcher(issueId: string, watcher: string, isEnterprise?: boolean): Promise<void>;
     removeCurrentUserAsWatcher(issueId: string): Promise<void>;
     private static formatLabelQuery;
     createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];

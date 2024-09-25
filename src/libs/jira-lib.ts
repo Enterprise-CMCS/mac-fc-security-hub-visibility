@@ -268,6 +268,11 @@ export class Jira {
       if (isEnterprise) {
         params.key = 'username'
       } else {
+        const response = await this.axiosInstance.get(
+          `/rest/api/3/user/search?username=${watcher}`
+        )
+        const user = response.data
+        params.value = user.accountId
         params.key = 'accountId'
       }
       const res = await this.axiosInstance.post(
@@ -278,6 +283,7 @@ export class Jira {
           }
         }
       )
+      console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId)
     } catch (error: unknown) {
       throw new Error(
         `Error creating issue or removing watcher: ${handleAxiosError(error)}`
