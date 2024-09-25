@@ -460,11 +460,13 @@ export class Jira {
       newIssue['webUrl'] = `${this.jiraBaseURI}/browse/${newIssue.key}`
       await this.removeCurrentUserAsWatcher(newIssue.key)
       if (this.jiraWatchers) {
-        this.jiraWatchers.map((watcher: string) =>
-          this.addUserAsWatcher(
-            newIssue.key,
-            watcher,
-            this.jiraBaseURI.includes('ent') == true
+        await Promise.all(
+          this.jiraWatchers.map((watcher: string) =>
+            this.addUserAsWatcher(
+              newIssue.key,
+              watcher,
+              this.jiraBaseURI.includes('atlassian') == false
+            )
           )
         )
       }
