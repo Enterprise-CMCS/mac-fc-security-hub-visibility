@@ -284,9 +284,7 @@ export class Jira {
       const res = await this.axiosInstance.post(
         `/rest/api/2/issue/${issueId}/watchers`,
         {
-          params: {
-            [params.key]: params.value
-          }
+          [params.key]: params.value
         }
       )
       console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId)
