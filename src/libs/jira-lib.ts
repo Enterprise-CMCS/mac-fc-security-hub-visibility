@@ -280,7 +280,7 @@ export class Jira {
         params.key = 'accountId'
       }
       const res = await this.axiosInstance.post(
-        `/rest/api/2/issue/${issueId}/watchers`,
+        `/rest/api/3/issue/${issueId}/watchers`,
         {
           params: {
             [params.key]: params.value
@@ -290,7 +290,7 @@ export class Jira {
       console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId)
     } catch (error: unknown) {
       throw new Error(
-        `Error creating issue or removing watcher: ${handleAxiosError(error)}`
+        `Error adding watcher: ${handleAxiosError(error)}`
       )
     }
   }

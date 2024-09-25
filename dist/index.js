@@ -59948,7 +59948,7 @@ class Jira {
                 params.value = user.accountId;
                 params.key = 'accountId';
             }
-            const res = await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/watchers`, {
+            const res = await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/watchers`, {
                 params: {
                     [params.key]: params.value
                 }
@@ -59956,7 +59956,7 @@ class Jira {
             console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId);
         }
         catch (error) {
-            throw new Error(`Error creating issue or removing watcher: ${handleAxiosError(error)}`);
+            throw new Error(`Error adding watcher: ${handleAxiosError(error)}`);
         }
     }
     async removeCurrentUserAsWatcher(issueId) {
