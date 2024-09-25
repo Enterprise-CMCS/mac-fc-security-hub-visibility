@@ -59946,10 +59946,11 @@ class Jira {
                 }
                 const user = response.data[0];
                 const splitted = user.accountId.split(':');
+                console.log(splitted);
                 params.value = splitted.length > 1 ? splitted[1] : splitted[0];
                 params.key = 'accountId';
             }
-            const res = await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/watchers`, {
+            const res = await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/watchers`, {
                 params: {
                     [params.key]: params.value
                 }
