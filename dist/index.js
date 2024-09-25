@@ -59956,6 +59956,7 @@ class Jira {
             console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId);
         }
         catch (error) {
+            console.error('Error adding watchers:', error.response ? error.response.data : error.message);
             throw new Error(`Error adding watcher: ${handleAxiosError(error)}`);
         }
     }
