@@ -276,7 +276,8 @@ export class Jira {
           return
         }
         const user = response.data[0]
-        params.value = user.accountId
+        const splitted = user.accountId.split(':')
+        params.value = splitted.length > 1 ? splitted[0] : splitted[1]
         params.key = 'accountId'
       }
       const res = await this.axiosInstance.post(
@@ -289,9 +290,7 @@ export class Jira {
       )
       console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId)
     } catch (error: unknown) {
-      throw new Error(
-        `Error adding watcher: ${handleAxiosError(error)}`
-      )
+      throw new Error(`Error adding watcher: ${handleAxiosError(error)}`)
     }
   }
   async removeCurrentUserAsWatcher(issueId: string) {
