@@ -59948,9 +59948,7 @@ class Jira {
                 params.value = user.accountId;
                 params.key = 'accountId';
             }
-            const res = await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/watchers`, {
-                [params.key]: params.value
-            });
+            const res = await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/watchers`, params.value);
             console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId);
         }
         catch (error) {
