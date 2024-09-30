@@ -261,6 +261,14 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
 **Description:** Specifies a stringified configuration for labels to be applied to the Jira issue. Labels are used to categorize and tag issues, making them easier to search and filter.
 
+### `jira-watchers`
+
+**Required: No**
+
+**Default Value: ''**
+
+**Description:** Comma separated list of User Emails for Atlassion Jira or User EUA IDs for Enterprise Jira.
+
 ## Local Testing
 
 See test-infrastructure/jira-container/README.md for instructions on how to run against local Jira container
