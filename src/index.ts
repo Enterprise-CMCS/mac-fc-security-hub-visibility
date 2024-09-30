@@ -146,6 +146,11 @@ async function run(): Promise<void> {
         'Done, Closed, Resolved'
       ),
       jiraWatchers: getDefaultInputOrEnv('jira-watchers', 'JIRA_WATCHERS', ''),
+      jiraAddLabels: getDefaultInputOrEnv(
+        'jira-add-labels',
+        'JIRA_ADD_LABELS',
+        ''
+      ),
       jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
       transitionMap: transitionMap,
       dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false),

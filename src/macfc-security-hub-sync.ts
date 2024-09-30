@@ -43,6 +43,7 @@ export class SecurityHubJiraSync {
   private jiraLinkType?: string
   private jiraLinkDirection?: string
   private jiraLabelsConfig?: LabelConfig[]
+  private jiraAddLabels?: string[]
   constructor(
     jiraConfig: JiraConfig,
     securityHubConfig: SecurityHubJiraSyncConfig,
@@ -58,6 +59,9 @@ export class SecurityHubJiraSync {
     this.jiraLinkId = jiraConfig.jiraLinkId
     this.jiraLinkType = jiraConfig.jiraLinkType
     this.jiraLinkDirection = jiraConfig.jiraLinkDirection
+    this.jiraAddLabels = jiraConfig.jiraAddLabels
+      ?.split(',')
+      .map(label => label.trim())
     if (jiraConfig.jiraLabelsConfig) {
       this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig)
     }
@@ -417,6 +421,10 @@ export class SecurityHubJiraSync {
       } catch (e) {
         console.log('Invalid labels config - going with default labels')
       }
+    }
+    if (this.jiraAddLabels) {
+      const prevLabels = newIssueData.fields.labels ?? []
+      newIssueData.fields.labels = [...prevLabels, ...this.jiraAddLabels]
     }
     let newIssueInfo
     try {

@@ -269,6 +269,14 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
 **Description:** Comma separated list of User Emails for Atlassion Jira or User EUA IDs for Enterprise Jira.
 
+### `jira-watchers`
+
+**Required: No**
+
+**Default Value: ''**
+
+**Description:** Comma separated list of Labels to be added on newly created issues.
+
 ## Local Testing
 
 See test-infrastructure/jira-container/README.md for instructions on how to run against local Jira container

@@ -37,6 +37,7 @@ export declare class SecurityHubJiraSync {
     private jiraLinkType?;
     private jiraLinkDirection?;
     private jiraLabelsConfig?;
+    private jiraAddLabels?;
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
     sync(): Promise<void>;
     getAWSAccountID(): Promise<string>;

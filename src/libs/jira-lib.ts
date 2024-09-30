@@ -13,6 +13,7 @@ export interface JiraConfig {
   jiraIgnoreStatuses: string
   jiraAssignee?: string
   jiraWatchers?: string
+  jiraAddLabels?: string
   transitionMap: Array<{status: string; transition: string}>
   dryRun: boolean
   jiraLinkId?: string
