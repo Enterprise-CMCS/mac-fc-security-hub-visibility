@@ -30,6 +30,10 @@ inputs:
     # Application Default - '*: DONE'
   jira-custom-fields:
     description: 'JSON string of Jira custom field keys/values, e.g. { "customfield_14117": "example-value" }'
+  jira-watchers:
+    description: 'Comma separated list of Emails for Atlassion Jira and User EUA IDs for Enterprise Jira '
+    required: false
+    default: ''
 # AWS
   aws-region:
     description: 'Target AWS region for Security Hub findings'

@@ -129,7 +129,6 @@ async function run(): Promise<void> {
         )
       }
     }
-
     const transitionMap = parseAndValidateTransitionMap(transitionMapStr)
 
     const jiraConfig: JiraConfig = {
@@ -146,6 +145,7 @@ async function run(): Promise<void> {
         'JIRA_IGNORE_STATUSES',
         'Done, Closed, Resolved'
       ),
+      jiraWatchers: getDefaultInputOrEnv('jira-watchers', 'JIRA_WATCHERS', ''),
       jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
       transitionMap: transitionMap,
       dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false),

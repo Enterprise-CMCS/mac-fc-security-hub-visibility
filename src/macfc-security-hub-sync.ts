@@ -197,51 +197,51 @@ export class SecurityHubJiraSync {
     return Table
   }
   createSecurityHubFindingUrlThroughFilters(findingId: string): string {
-    let region: string;
+    let region: string
 
     // Function to validate AWS region format
     function isAwsRegion(region: string): boolean {
-        const pattern = /^[a-z]{2}-[a-z]+-\d+$/;
-        return pattern.test(region);
+      const pattern = /^[a-z]{2}-[a-z]+-\d+$/
+      return pattern.test(region)
     }
 
     // Function to validate URL format
     function isValidUrl(url: string): boolean {
-        try {
-            new URL(url);
-            return true;
-        } catch {
-            return false;
-        }
+      try {
+        new URL(url)
+        return true
+      } catch {
+        return false
+      }
     }
 
     if (findingId.startsWith('arn:')) {
-        // Extract region from the ARN
-        const arnParts = findingId.split(':');
-        region = arnParts[3];
+      // Extract region from the ARN
+      const arnParts = findingId.split(':')
+      region = arnParts[3]
     } else {
-        // Extract region from the non-ARN format
-        const parts = findingId.split('/');
-        region = parts[1];
+      // Extract region from the non-ARN format
+      const parts = findingId.split('/')
+      region = parts[1]
     }
 
     // Validate the extracted region
     if (!isAwsRegion(region)) {
-        console.error(`Invalid AWS region: ${region}`);
-        region = 'us-east-1'
+      console.error(`Invalid AWS region: ${region}`)
+      region = 'us-east-1'
     }
 
-    const baseUrl = `https://${region}.console.aws.amazon.com/securityhub/home?region=${region}`;
-    const searchParam = `Id%3D%255Coperator%255C%253AEQUALS%255C%253A${findingId}`;
-    const url = `${baseUrl}#/findings?search=${searchParam}`;
+    const baseUrl = `https://${region}.console.aws.amazon.com/securityhub/home?region=${region}`
+    const searchParam = `Id%3D%255Coperator%255C%253AEQUALS%255C%253A${findingId}`
+    const url = `${baseUrl}#/findings?search=${searchParam}`
 
     // Validate the constructed URL
     if (!isValidUrl(url)) {
-        console.error(`Invalid URL constructed: ${url}`);
-        return '';
+      console.error(`Invalid URL constructed: ${url}`)
+      return ''
     }
 
-    return url;
+    return url
   }
 
   createIssueBody(finding: SecurityHubFinding) {

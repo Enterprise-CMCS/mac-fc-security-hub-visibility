@@ -59693,6 +59693,7 @@ async function run() {
             jiraToken: getRequiredInputOrEnv('jira-token', 'JIRA_TOKEN'),
             jiraProjectKey: getRequiredInputOrEnv('jira-project-key', 'JIRA_PROJECT'),
             jiraIgnoreStatuses: getDefaultInputOrEnv('jira-ignore-statuses', 'JIRA_IGNORE_STATUSES', 'Done, Closed, Resolved'),
+            jiraWatchers: getDefaultInputOrEnv('jira-watchers', 'JIRA_WATCHERS', ''),
             jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
             transitionMap: transitionMap,
             dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false),
@@ -59821,6 +59822,7 @@ class Jira {
     isDryRun;
     dryRunIssueCounter = 0;
     jiraLabelsConfig;
+    jiraWatchers;
     constructor(jiraConfig) {
         this.jiraBaseURI = jiraConfig.jiraBaseURI;
         this.jiraProject = jiraConfig.jiraProjectKey;
@@ -59829,6 +59831,9 @@ class Jira {
         this.jiraIgnoreStatusesList = jiraConfig.jiraIgnoreStatuses
             .split(',')
             .map(status => status.trim());
+        this.jiraWatchers = jiraConfig.jiraWatchers
+            ?.split(',')
+            .map(watcher => watcher.trim());
         this.isDryRun = jiraConfig.dryRun;
         if (jiraConfig.jiraLabelsConfig) {
             this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
@@ -59922,6 +59927,33 @@ class Jira {
         }
         catch (error) {
             throw new Error(`Error transitioning issue ${issueId} to '${transitionName}': ${handleAxiosError(error)}`);
+        }
+    }
+    async addUserAsWatcher(issueId, watcher, isEnterprise = true) {
+        try {
+            const params = {
+                key: '',
+                value: watcher
+            };
+            if (isEnterprise) {
+                params.key = 'username';
+            }
+            else {
+                const response = await this.axiosInstance.get(`/rest/api/3/user/search?query=${encodeURIComponent(watcher)}`);
+                if (!response.data.length) {
+                    console.log('Invalid wacther id ' + watcher);
+                    return;
+                }
+                const user = response.data[0];
+                params.value = user.accountId;
+                params.key = 'accountId';
+            }
+            const res = await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/watchers`, params.value);
+            console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId);
+        }
+        catch (error) {
+            console.error('Error adding watchers:', error.response ? error.response.data : error.message);
+            throw new Error(`Error adding watcher: ${handleAxiosError(error)}`);
         }
     }
     async removeCurrentUserAsWatcher(issueId) {
@@ -60054,6 +60086,9 @@ class Jira {
             // Construct the webUrl for the new issue
             newIssue['webUrl'] = `${this.jiraBaseURI}/browse/${newIssue.key}`;
             await this.removeCurrentUserAsWatcher(newIssue.key);
+            if (this.jiraWatchers) {
+                await Promise.all(this.jiraWatchers.map((watcher) => this.addUserAsWatcher(newIssue.key, watcher, this.jiraBaseURI.includes('atlassian') == false)));
+            }
             return newIssue;
         }
         catch (error) {

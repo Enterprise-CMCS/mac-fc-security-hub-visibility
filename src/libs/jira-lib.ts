@@ -12,6 +12,7 @@ export interface JiraConfig {
   jiraProjectKey: string
   jiraIgnoreStatuses: string
   jiraAssignee?: string
+  jiraWatchers?: string
   transitionMap: Array<{status: string; transition: string}>
   dryRun: boolean
   jiraLinkId?: string
@@ -101,6 +102,7 @@ export class Jira {
   private isDryRun: boolean
   private dryRunIssueCounter: number = 0
   private jiraLabelsConfig?: LabelConfig[]
+  private jiraWatchers?: string[]
   constructor(jiraConfig: JiraConfig) {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.jiraProject = jiraConfig.jiraProjectKey
@@ -109,6 +111,9 @@ export class Jira {
     this.jiraIgnoreStatusesList = jiraConfig.jiraIgnoreStatuses
       .split(',')
       .map(status => status.trim())
+    this.jiraWatchers = jiraConfig.jiraWatchers
+      ?.split(',')
+      .map(watcher => watcher.trim())
     this.isDryRun = jiraConfig.dryRun
     if (jiraConfig.jiraLabelsConfig) {
       this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig)
@@ -250,10 +255,49 @@ export class Jira {
       )
     }
   }
+  async addUserAsWatcher(
+    issueId: string,
+    watcher: string,
+    isEnterprise = true
+  ) {
+    try {
+      const params = {
+        key: '',
+        value: watcher
+      }
+      if (isEnterprise) {
+        params.key = 'username'
+      } else {
+        const response = await this.axiosInstance.get(
+          `/rest/api/3/user/search?query=${encodeURIComponent(watcher)}`
+        )
+        if (!response.data.length) {
+          console.log('Invalid wacther id ' + watcher)
+          return
+        }
+        const user = response.data[0]
+        params.value = user.accountId
+        params.key = 'accountId'
+      }
+      const res = await this.axiosInstance.post(
+        `/rest/api/2/issue/${issueId}/watchers`,
+        params.value
+      )
+      console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId)
+    } catch (error: any) {
+      console.error(
+        'Error adding watchers:',
+        error.response ? error.response.data : error.message
+      )
+      throw new Error(`Error adding watcher: ${handleAxiosError(error)}`)
+    }
+  }
   async removeCurrentUserAsWatcher(issueId: string) {
     try {
       const currentUser = await this.getCurrentUser()
-      console.log(`Remove watcher ${currentUser.name ?? currentUser.displayName} from ${issueId}`)
+      console.log(
+        `Remove watcher ${currentUser.name ?? currentUser.displayName} from ${issueId}`
+      )
 
       if (this.isDryRun) {
         console.log(
@@ -265,7 +309,7 @@ export class Jira {
         key: '',
         value: ''
       }
-      if(currentUser.name){
+      if (currentUser.name) {
         params.key = 'username'
         params.value = currentUser.name
       } else {
@@ -413,6 +457,17 @@ export class Jira {
       // Construct the webUrl for the new issue
       newIssue['webUrl'] = `${this.jiraBaseURI}/browse/${newIssue.key}`
       await this.removeCurrentUserAsWatcher(newIssue.key)
+      if (this.jiraWatchers) {
+        await Promise.all(
+          this.jiraWatchers.map((watcher: string) =>
+            this.addUserAsWatcher(
+              newIssue.key,
+              watcher,
+              this.jiraBaseURI.includes('atlassian') == false
+            )
+          )
+        )
+      }
       return newIssue
     } catch (error: unknown) {
       throw new Error(`Error creating Jira issue: ${handleAxiosError(error)}`)
