@@ -372,7 +372,7 @@ export class Jira {
         .map(label => Jira.formatLabelQuery(label))
         .join(' AND ')
       if (searchQuery) {
-        finalLabelQuery = `(${finalLabelQuery}) OR (${searchQuery})`
+        finalLabelQuery = `((${finalLabelQuery}) OR (${searchQuery}))`
       }
     }
     const projectQuery = `project = '${this.jiraProject}'`
