@@ -59694,6 +59694,7 @@ async function run() {
             jiraProjectKey: getRequiredInputOrEnv('jira-project-key', 'JIRA_PROJECT'),
             jiraIgnoreStatuses: getDefaultInputOrEnv('jira-ignore-statuses', 'JIRA_IGNORE_STATUSES', 'Done, Closed, Resolved'),
             jiraWatchers: getDefaultInputOrEnv('jira-watchers', 'JIRA_WATCHERS', ''),
+            jiraAddLabels: getDefaultInputOrEnv('jira-add-labels', 'JIRA_ADD_LABELS', ''),
             jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
             transitionMap: transitionMap,
             dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false),
@@ -60017,7 +60018,7 @@ class Jira {
                 .map(label => Jira.formatLabelQuery(label))
                 .join(' AND ');
             if (searchQuery) {
-                finalLabelQuery = `(${finalLabelQuery}) OR (${searchQuery})`;
+                finalLabelQuery = `((${finalLabelQuery}) OR (${searchQuery}))`;
             }
         }
         const projectQuery = `project = '${this.jiraProject}'`;
@@ -60444,6 +60445,7 @@ class SecurityHubJiraSync {
     jiraLinkType;
     jiraLinkDirection;
     jiraLabelsConfig;
+    jiraAddLabels;
     constructor(jiraConfig, securityHubConfig, autoClose) {
         this.securityHub = new libs_1.SecurityHub(securityHubConfig);
         this.region = securityHubConfig.region;
@@ -60455,6 +60457,9 @@ class SecurityHubJiraSync {
         this.jiraLinkId = jiraConfig.jiraLinkId;
         this.jiraLinkType = jiraConfig.jiraLinkType;
         this.jiraLinkDirection = jiraConfig.jiraLinkDirection;
+        this.jiraAddLabels = jiraConfig.jiraAddLabels
+            ?.split(',')
+            .map(label => label.trim());
         if (jiraConfig.jiraLabelsConfig) {
             this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
         }
@@ -60720,6 +60725,10 @@ class SecurityHubJiraSync {
             catch (e) {
                 console.log('Invalid labels config - going with default labels');
             }
+        }
+        if (this.jiraAddLabels) {
+            const prevLabels = newIssueData.fields.labels ?? [];
+            newIssueData.fields.labels = [...prevLabels, ...this.jiraAddLabels];
         }
         let newIssueInfo;
         try {

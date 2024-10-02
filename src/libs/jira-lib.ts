@@ -13,6 +13,7 @@ export interface JiraConfig {
   jiraIgnoreStatuses: string
   jiraAssignee?: string
   jiraWatchers?: string
+  jiraAddLabels?: string
   transitionMap: Array<{status: string; transition: string}>
   dryRun: boolean
   jiraLinkId?: string
@@ -371,7 +372,7 @@ export class Jira {
         .map(label => Jira.formatLabelQuery(label))
         .join(' AND ')
       if (searchQuery) {
-        finalLabelQuery = `(${finalLabelQuery}) OR (${searchQuery})`
+        finalLabelQuery = `((${finalLabelQuery}) OR (${searchQuery}))`
       }
     }
     const projectQuery = `project = '${this.jiraProject}'`

@@ -6,9 +6,9 @@
 
 2. Creates Jira issues for findings that do not already have a Jira issue
 
-- To avoid creating duplicate issues, the search criteria use the custom label configuration as well as default configuration for three identifying search labels: region, AWS account ID, and "security-hub."
+- **To avoid creating duplicate issues**, the search criteria use the custom label configuration as well as default configuration for three identifying search labels: region, AWS account ID, and "security-hub."
 
-- each Security Hub Finding type (by title) is represented as a single issue, e.g. if there are three resources that have violated the 'S3.8' rule there will be a single S3.8 Jira issue created
+- Each Security Hub Finding type (by title) is represented as a single issue, e.g. if there are three resources that have violated the 'S3.8' rule there will be a single S3.8 Jira issue created
 
 3. Closes existing Jira issues in the target project if their underlying findings are no longer active
 
@@ -268,6 +268,14 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 **Default Value: ''**
 
 **Description:** Comma separated list of User Emails for Atlassion Jira or User EUA IDs for Enterprise Jira.
+
+### `jira-watchers`
+
+**Required: No**
+
+**Default Value: ''**
+
+**Description:** Comma separated list of Labels to be added on newly created issues.
 
 ## Local Testing
 
