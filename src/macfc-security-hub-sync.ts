@@ -204,12 +204,12 @@ export class SecurityHubJiraSync {
   makeProductFieldSection(finding: SecurityHubFinding) {
     return `
     h2. Product Fields:
-    Type              |    ${finding.Type ?? 'N/A'}
-    Product Namne:    |    ${finding.ProductName ?? 'N/A'}
-    Provider Name:    |    ${finding.ProviderName ?? 'N/A'}
-    Provider Version: |    ${finding.ProviderVersion ?? 'N/A'}
-    Company Name:     |    ${finding.CompanyName ?? 'N/A'}
-    CVE:              |    ${finding.CVE ?? 'N/A'}
+    Type                     |    ${finding.Type ?? 'N/A'}
+    Product Name:            |    ${finding.ProductName ?? 'N/A'}
+    Provider Name:           |    ${finding.ProviderName ?? 'N/A'}
+    Provider Version:        |    ${finding.ProviderVersion ?? 'N/A'}
+    Company Name:            |    ${finding.CompanyName ?? 'N/A'}
+    CVE:                     |    ${finding.CVE ?? 'N/A'}
     --------------------------------------------------------
     `
   }
