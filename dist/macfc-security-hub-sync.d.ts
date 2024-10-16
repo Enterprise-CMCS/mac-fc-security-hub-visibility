@@ -43,6 +43,7 @@ export declare class SecurityHubJiraSync {
     getAWSAccountID(): Promise<string>;
     closeIssuesForResolvedFindings(jiraIssues: Issue[], shFindings: SecurityHubFinding[]): Promise<UpdateForReturn[]>;
     makeResourceList(resources: Resource[] | undefined): string;
+    makeProductFieldSection(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrlThroughFilters(findingId: string): string;
     createIssueBody(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrl(standardsControlArn?: string): string;
