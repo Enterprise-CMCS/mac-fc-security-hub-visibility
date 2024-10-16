@@ -60414,7 +60414,12 @@ class SecurityHub {
                 : '',
             remediation: finding.Remediation,
             ProductName: finding.ProductName,
-            Resources: finding.Resources
+            Resources: finding.Resources,
+            Type: finding.ProductFields?.Type,
+            ProviderName: finding.ProductFields?.ProviderName,
+            ProviderVersion: finding.ProductFields?.ProviderVersion,
+            CompanyName: finding.ProductFields?.CompanyName,
+            CVE: finding.ProductFields?.CVE
         };
     }
 }
@@ -60558,6 +60563,18 @@ class SecurityHubJiraSync {
         Table += `------------------------------------------------------------------------------------------------`;
         return Table;
     }
+    makeProductFieldSection(finding) {
+        return `
+    h2. Product Fields:
+    Type              |    ${finding.Type ?? 'N/A'}
+    Product Namne:    |    ${finding.ProductName ?? 'N/A'}
+    Provider Name:    |    ${finding.ProviderName ?? 'N/A'}
+    Provider Version: |    ${finding.ProviderVersion ?? 'N/A'}
+    Company Name:     |    ${finding.CompanyName ?? 'N/A'}
+    CVE:              |    ${finding.CVE ?? 'N/A'}
+    --------------------------------------------------------
+    `;
+    }
     createSecurityHubFindingUrlThroughFilters(findingId) {
         let region;
         // Function to validate AWS region format
@@ -60637,7 +60654,8 @@ class SecurityHubJiraSync {
       h2. Severity:
       ${severity}
 
- h2. SecurityHubFindingUrl:
+      ${this.makeProductFieldSection(finding)}
+      h2. SecurityHubFindingUrl:
       ${standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
       h2. Resources:

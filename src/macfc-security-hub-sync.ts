@@ -200,6 +200,19 @@ export class SecurityHubJiraSync {
     Table += `------------------------------------------------------------------------------------------------`
     return Table
   }
+
+  makeProductFieldSection(finding: SecurityHubFinding) {
+    return `
+    h2. Product Fields:
+    Type              |    ${finding.Type ?? 'N/A'}
+    Product Namne:    |    ${finding.ProductName ?? 'N/A'}
+    Provider Name:    |    ${finding.ProviderName ?? 'N/A'}
+    Provider Version: |    ${finding.ProviderVersion ?? 'N/A'}
+    Company Name:     |    ${finding.CompanyName ?? 'N/A'}
+    CVE:              |    ${finding.CVE ?? 'N/A'}
+    --------------------------------------------------------
+    `
+  }
   createSecurityHubFindingUrlThroughFilters(findingId: string): string {
     let region: string
 
@@ -302,7 +315,8 @@ export class SecurityHubJiraSync {
       h2. Severity:
       ${severity}
 
- h2. SecurityHubFindingUrl:
+      ${this.makeProductFieldSection(finding)}
+      h2. SecurityHubFindingUrl:
       ${standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
       h2. Resources:
