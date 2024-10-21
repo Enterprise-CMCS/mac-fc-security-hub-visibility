@@ -60477,11 +60477,11 @@ class SecurityHubJiraSync {
     removeDuplicateTitles(arr) {
         const seen = new Set(); // Store unique titles
         return arr.filter(obj => {
-            if (seen.has(obj.Title)) {
+            if (seen.has(obj.title)) {
                 return false; // Filter out duplicates
             }
             else {
-                seen.add(obj.Title); // Add new title to the set
+                seen.add(obj.title); // Add new title to the set
                 return true; // Keep the object
             }
         });
