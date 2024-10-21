@@ -59712,7 +59712,8 @@ async function run() {
             newIssueDelay: getDefaultInputOrEnv('security-hub-new-issue-delay', 'SECURITY_HUB_NEW_ISSUE_DELAY', '86400000'), //
             customJiraFields: customJiraFields,
             includeAllProducts: getInputOrEnvAndConvertToBool('include-all-products', 'INCLUDE_ALL_PRODUCTS', false),
-            skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS')
+            skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
+            consolidateTickets: getInputOrEnvAndConvertToBool('jira-consolidate-tickets', 'JIRA_CONSOLIDATE_TICKETS')
         };
         const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true);
         core.info('Syncing Security Hub and Jira');
@@ -60451,6 +60452,7 @@ class SecurityHubJiraSync {
     jiraLinkDirection;
     jiraLabelsConfig;
     jiraAddLabels;
+    jiraConsolidateTickets;
     constructor(jiraConfig, securityHubConfig, autoClose) {
         this.securityHub = new libs_1.SecurityHub(securityHubConfig);
         this.region = securityHubConfig.region;
@@ -60468,6 +60470,21 @@ class SecurityHubJiraSync {
         if (jiraConfig.jiraLabelsConfig) {
             this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
         }
+        if (securityHubConfig.consolidateTickets) {
+            this.jiraConsolidateTickets = securityHubConfig.consolidateTickets;
+        }
+    }
+    removeDuplicateTitles(arr) {
+        const seen = new Set(); // Store unique titles
+        return arr.filter(obj => {
+            if (seen.has(obj.Title)) {
+                return false; // Filter out duplicates
+            }
+            else {
+                seen.add(obj.Title); // Add new title to the set
+                return true; // Keep the object
+            }
+        });
     }
     async sync() {
         const updatesForReturn = [];
@@ -60483,8 +60500,12 @@ class SecurityHubJiraSync {
         console.log(shFindings);
         // Step 3. Close existing Jira issues if their finding is no longer active/current
         updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings)));
+        let consolidatedFindings = shFindings;
+        if (this.jiraConsolidateTickets) {
+            consolidatedFindings = this.removeDuplicateTitles(shFindings);
+        }
         // Step 4. Create Jira issue for current findings that do not already have a Jira issue
-        updatesForReturn.push(...(await this.createJiraIssuesForNewFindings(jiraIssues, shFindings, identifyingLabels)));
+        updatesForReturn.push(...(await this.createJiraIssuesForNewFindings(jiraIssues, consolidatedFindings, identifyingLabels)));
         console.log(JSON.stringify(updatesForReturn));
     }
     async getAWSAccountID() {

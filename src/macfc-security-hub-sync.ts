@@ -23,6 +23,7 @@ export interface SecurityHubJiraSyncConfig {
   newIssueDelay: string
   skipProducts?: string
   includeAllProducts: boolean
+  consolidateTickets: boolean
 }
 export interface SecurityHubJiraSyncConfig {
   region: string
@@ -44,6 +45,7 @@ export class SecurityHubJiraSync {
   private jiraLinkDirection?: string
   private jiraLabelsConfig?: LabelConfig[]
   private jiraAddLabels?: string[]
+  private jiraConsolidateTickets?: boolean
   constructor(
     jiraConfig: JiraConfig,
     securityHubConfig: SecurityHubJiraSyncConfig,
@@ -65,6 +67,20 @@ export class SecurityHubJiraSync {
     if (jiraConfig.jiraLabelsConfig) {
       this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig)
     }
+    if (securityHubConfig.consolidateTickets) {
+      this.jiraConsolidateTickets = securityHubConfig.consolidateTickets
+    }
+  }
+  removeDuplicateTitles(arr: SecurityHubFinding[]) {
+    const seen = new Set() // Store unique titles
+    return arr.filter(obj => {
+      if (seen.has(obj.Title)) {
+        return false // Filter out duplicates
+      } else {
+        seen.add(obj.Title) // Add new title to the set
+        return true // Keep the object
+      }
+    })
   }
 
   async sync() {
@@ -88,12 +104,15 @@ export class SecurityHubJiraSync {
     updatesForReturn.push(
       ...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings))
     )
-
+    let consolidatedFindings: SecurityHubFinding[] = shFindings
+    if (this.jiraConsolidateTickets) {
+      consolidatedFindings = this.removeDuplicateTitles(shFindings)
+    }
     // Step 4. Create Jira issue for current findings that do not already have a Jira issue
     updatesForReturn.push(
       ...(await this.createJiraIssuesForNewFindings(
         jiraIssues,
-        shFindings,
+        consolidatedFindings,
         identifyingLabels
       ))
     )

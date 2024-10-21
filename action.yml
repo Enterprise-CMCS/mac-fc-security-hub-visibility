@@ -72,6 +72,9 @@ inputs:
   jira-labels-config:
     description: "This variable is to specify stringified labels config"
     required: false
+  jira-consolidate-tickets:
+    description: "True/False value to enable/disable the consolidation of tickets"
+    required: false
 runs:
   using: 'node20'
   main: 'dist/index.js'
