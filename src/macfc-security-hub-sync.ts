@@ -107,6 +107,7 @@ export class SecurityHubJiraSync {
     let consolidatedFindings: SecurityHubFinding[] = shFindings
     if (this.jiraConsolidateTickets) {
       consolidatedFindings = this.removeDuplicateTitles(shFindings)
+      console.log('consolidated findings', consolidatedFindings)
     }
     // Step 4. Create Jira issue for current findings that do not already have a Jira issue
     updatesForReturn.push(
