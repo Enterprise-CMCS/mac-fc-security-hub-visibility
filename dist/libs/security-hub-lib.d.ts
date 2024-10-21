@@ -12,6 +12,11 @@ export interface SecurityHubFinding {
     remediation?: Remediation;
     ProductName?: string;
     Resources?: Resource[];
+    Type?: string;
+    CompanyName?: string;
+    ProviderName?: string;
+    ProviderVersion?: string;
+    CVE?: string;
     [key: string]: string | unknown;
 }
 export declare class SecurityHub {
@@ -35,6 +40,11 @@ export declare class SecurityHub {
         remediation?: Remediation;
         ProductName?: string;
         Resources?: Resource[];
+        Type?: string;
+        CompanyName?: string;
+        ProviderName?: string;
+        ProviderVersion?: string;
+        CVE?: string;
     }[]>;
     awsSecurityFindingToSecurityHubFinding(finding: AwsSecurityFinding): SecurityHubFinding;
 }

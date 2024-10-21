@@ -6,7 +6,7 @@
 
 2. Creates Jira issues for findings that do not already have a Jira issue
 
-- **To avoid creating duplicate issues**, the search criteria use the custom label configuration as well as default configuration for three identifying search labels: region, AWS account ID, and "security-hub."
+- **To prevent duplicate issues**, the search criteria utilize the default settings for three key identifiers: region, AWS account ID, and "security-hub," along with any provided custom label configurations. Additionally, a comparison of summary and finding title is performed against the findings list. It’s important to note that any modifications or deletions of labels or the Jira issue summary may result in the creation of duplicates
 
 - Each Security Hub Finding type (by title) is represented as a single issue, e.g. if there are three resources that have violated the 'S3.8' rule there will be a single S3.8 Jira issue created
 

@@ -197,7 +197,11 @@ async function run(): Promise<void> {
         'INCLUDE_ALL_PRODUCTS',
         false
       ),
-      skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS')
+      skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
+      consolidateTickets: getInputOrEnvAndConvertToBool(
+        'jira-consolidate-tickets',
+        'JIRA_CONSOLIDATE_TICKETS'
+      )
     }
 
     const autoClose = getInputOrEnvAndConvertToBool(

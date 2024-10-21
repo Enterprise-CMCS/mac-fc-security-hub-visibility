@@ -18,6 +18,7 @@ export interface SecurityHubJiraSyncConfig {
     newIssueDelay: string;
     skipProducts?: string;
     includeAllProducts: boolean;
+    consolidateTickets: boolean;
 }
 export interface SecurityHubJiraSyncConfig {
     region: string;
@@ -38,11 +39,14 @@ export declare class SecurityHubJiraSync {
     private jiraLinkDirection?;
     private jiraLabelsConfig?;
     private jiraAddLabels?;
+    private jiraConsolidateTickets?;
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
+    removeDuplicateTitles(arr: SecurityHubFinding[]): SecurityHubFinding[];
     sync(): Promise<void>;
     getAWSAccountID(): Promise<string>;
     closeIssuesForResolvedFindings(jiraIssues: Issue[], shFindings: SecurityHubFinding[]): Promise<UpdateForReturn[]>;
     makeResourceList(resources: Resource[] | undefined): string;
+    makeProductFieldSection(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrlThroughFilters(findingId: string): string;
     createIssueBody(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrl(standardsControlArn?: string): string;

@@ -23,6 +23,11 @@ export interface SecurityHubFinding {
   remediation?: Remediation
   ProductName?: string
   Resources?: Resource[]
+  Type?: string
+  CompanyName?: string
+  ProviderName?: string
+  ProviderVersion?: string
+  CVE?: string
   [key: string]: string | unknown
 }
 
@@ -154,7 +159,12 @@ export class SecurityHub {
           : '',
       remediation: finding.Remediation,
       ProductName: finding.ProductName,
-      Resources: finding.Resources
+      Resources: finding.Resources,
+      Type: finding.ProductFields?.Type,
+      ProviderName: finding.ProductFields?.ProviderName,
+      ProviderVersion: finding.ProductFields?.ProviderVersion,
+      CompanyName: finding.ProductFields?.CompanyName,
+      CVE: finding.ProductFields?.CVE
     }
   }
 }
