@@ -386,10 +386,13 @@ export class SecurityHubJiraSync {
             )
           }
         } else {
-          const value = (finding[field] ?? '')
-            .toString()
-            .trim()
-            .replace(/ /g, '')
+          let value = (finding[field] ?? '').toString().trim().replace(/ /g, '')
+          if (value == 'Default') {
+            value = (finding.CompanyName ?? '')
+              .toString()
+              .trim()
+              .replace(/ /g, '')
+          }
           labels.push(`${labelPrefix}${delimiter}${value}`)
         }
       }
