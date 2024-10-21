@@ -60496,7 +60496,15 @@ class SecurityHubJiraSync {
         // Step 2. Get all current findings from Security Hub
         console.log('Getting active Security Hub Findings with severities: ' + this.severities);
         const shFindingsObj = await this.securityHub.getAllActiveFindings();
-        const shFindings = Object.values(shFindingsObj);
+        const shFindings = Object.values(shFindingsObj).map(finding => {
+            if (finding.CompanyName) {
+                return {
+                    ...finding,
+                    ProductName: finding.ProductName
+                };
+            }
+            return finding;
+        });
         console.log(shFindings);
         // Step 3. Close existing Jira issues if their finding is no longer active/current
         updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings)));
@@ -60726,13 +60734,10 @@ class SecurityHubJiraSync {
                 }
             }
             else {
-                let value = (finding[field] ?? '').toString().trim().replace(/ /g, '');
-                if (value == 'Default') {
-                    value = (finding.CompanyName ?? '')
-                        .toString()
-                        .trim()
-                        .replace(/ /g, '');
-                }
+                const value = (finding[field] ?? '')
+                    .toString()
+                    .trim()
+                    .replace(/ /g, '');
                 labels.push(`${labelPrefix}${delimiter}${value}`);
             }
         });
