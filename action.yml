@@ -72,6 +72,15 @@ inputs:
   jira-labels-config:
     description: "This variable is to specify stringified labels config"
     required: false
+outputs:
+  findings_count:
+    description: 'Number of findings processed'
+  severity:
+    description: 'Severity levels of the findings'
+  resource_id:
+    description: 'Resource IDs associated with the findings'
+  timestamp:
+    description: 'Timestamp when the findings were processed'
 runs:
   using: 'node20'
   main: 'dist/index.js'

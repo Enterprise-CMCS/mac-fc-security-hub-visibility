@@ -211,7 +211,34 @@ async function run(): Promise<void> {
       jiraConfig,
       securityHubConfig,
       autoClose
-    ).sync()
+    );
+
+    // Perform the sync and capture the results
+    const syncResults = await sync.sync();
+
+    // Set outputs based on sync results
+    const findingsCount = syncResults.findings.length;
+    core.setOutput('findings_count', findingsCount.toString());
+
+    if (findingsCount > 0) {
+      const severities = Array.from(
+        new Set(syncResults.findings.map((f) => f.severity))
+      ).join(', ');
+      const resourceIds = syncResults.findings
+        .map((f) => f.id)
+        .slice(0, 10)
+        .join(', ');
+      const timestamp = new Date().toISOString();
+
+      core.setOutput('severity', severities);
+      core.setOutput('resource_id', resourceIds);
+      core.setOutput('timestamp', timestamp);
+    } else {
+      // Set empty outputs if there are no findings
+      core.setOutput('severity', '');
+      core.setOutput('resource_id', '');
+      core.setOutput('timestamp', '');
+    }
   } catch (error: unknown) {
     core.setFailed(`Sync failed: ${extractErrorMessage(error)}`)
   }
