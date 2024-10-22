@@ -212,11 +212,9 @@ async function run(): Promise<void> {
       securityHubConfig,
       autoClose
     );
-
-    // Perform the sync and capture the results
+    
     const syncResults = await sync.sync();
 
-    // Set outputs based on sync results
     const findingsCount = syncResults.findings.length;
     core.setOutput('findings_count', findingsCount.toString());
 
@@ -234,7 +232,6 @@ async function run(): Promise<void> {
       core.setOutput('resource_id', resourceIds);
       core.setOutput('timestamp', timestamp);
     } else {
-      // Set empty outputs if there are no findings
       core.setOutput('severity', '');
       core.setOutput('resource_id', '');
       core.setOutput('timestamp', '');
