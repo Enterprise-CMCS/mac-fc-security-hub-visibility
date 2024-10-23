@@ -23,6 +23,7 @@ export interface SecurityHubJiraSyncConfig {
   newIssueDelay: string
   skipProducts?: string
   includeAllProducts: boolean
+  consolidateTickets: boolean
 }
 export interface SecurityHubJiraSyncConfig {
   region: string
@@ -44,6 +45,7 @@ export class SecurityHubJiraSync {
   private jiraLinkDirection?: string
   private jiraLabelsConfig?: LabelConfig[]
   private jiraAddLabels?: string[]
+  private jiraConsolidateTickets?: boolean
   constructor(
     jiraConfig: JiraConfig,
     securityHubConfig: SecurityHubJiraSyncConfig,
@@ -65,6 +67,20 @@ export class SecurityHubJiraSync {
     if (jiraConfig.jiraLabelsConfig) {
       this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig)
     }
+    if (securityHubConfig.consolidateTickets) {
+      this.jiraConsolidateTickets = securityHubConfig.consolidateTickets
+    }
+  }
+  removeDuplicateTitles(arr: SecurityHubFinding[]) {
+    const seen = new Set() // Store unique titles
+    return arr.filter(obj => {
+      if (seen.has(obj.title)) {
+        return false // Filter out duplicates
+      } else {
+        seen.add(obj.title) // Add new title to the set
+        return true // Keep the object
+      }
+    })
   }
 
   async sync() {
@@ -82,18 +98,33 @@ export class SecurityHubJiraSync {
       'Getting active Security Hub Findings with severities: ' + this.severities
     )
     const shFindingsObj = await this.securityHub.getAllActiveFindings()
-    const shFindings = Object.values(shFindingsObj)
+    const shFindings = Object.values(shFindingsObj).map(finding => {
+      if (
+        finding.ProductName?.toLowerCase().includes('default') &&
+        finding.CompanyName?.toLowerCase().includes('tenable')
+      ) {
+        return {
+          ...finding,
+          ProductName: finding.CompanyName
+        }
+      }
+      return finding
+    })
     console.log(shFindings)
     // Step 3. Close existing Jira issues if their finding is no longer active/current
     updatesForReturn.push(
       ...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings))
     )
-
+    let consolidatedFindings: SecurityHubFinding[] = shFindings
+    if (this.jiraConsolidateTickets) {
+      consolidatedFindings = this.removeDuplicateTitles(shFindings)
+      console.log('consolidated findings', consolidatedFindings)
+    }
     // Step 4. Create Jira issue for current findings that do not already have a Jira issue
     updatesForReturn.push(
       ...(await this.createJiraIssuesForNewFindings(
         jiraIssues,
-        shFindings,
+        consolidatedFindings,
         identifyingLabels
       ))
     )
@@ -200,6 +231,19 @@ export class SecurityHubJiraSync {
     Table += `------------------------------------------------------------------------------------------------`
     return Table
   }
+
+  makeProductFieldSection(finding: SecurityHubFinding) {
+    return `
+    h2. Product Fields:
+    Type                     |    ${finding.Type ?? 'N/A'}
+    Product Name:            |    ${finding.ProductName ?? 'N/A'}
+    Provider Name:           |    ${finding.ProviderName ?? 'N/A'}
+    Provider Version:        |    ${finding.ProviderVersion ?? 'N/A'}
+    Company Name:            |    ${finding.CompanyName ?? 'N/A'}
+    CVE:                     |    ${finding.CVE ?? 'N/A'}
+    --------------------------------------------------------
+    `
+  }
   createSecurityHubFindingUrlThroughFilters(findingId: string): string {
     let region: string
 
@@ -302,7 +346,8 @@ export class SecurityHubJiraSync {
       h2. Severity:
       ${severity}
 
- h2. SecurityHubFindingUrl:
+      ${this.makeProductFieldSection(finding)}
+      h2. SecurityHubFindingUrl:
       ${standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
       h2. Resources:
@@ -428,6 +473,7 @@ export class SecurityHubJiraSync {
     }
     let newIssueInfo
     try {
+      console.log(newIssueData)
       newIssueInfo = await this.jira.createNewIssue(newIssueData)
       const issue_id = this.jiraLinkId
       if (issue_id) {
@@ -441,6 +487,7 @@ export class SecurityHubJiraSync {
         )
       }
     } catch (e: unknown) {
+      console.log(JSON.stringify(finding))
       throw new Error(
         `Error creating Jira issue from finding: ${extractErrorMessage(e)}`
       )
@@ -470,11 +517,16 @@ export class SecurityHubJiraSync {
           `SecurityHub Finding - ${finding.title}`
         )
       ) {
-        const update = await this.createJiraIssueFromFinding(
-          finding,
-          identifyingLabels
-        )
-        updatesForReturn.push(update)
+        try {
+          const update = await this.createJiraIssueFromFinding(
+            finding,
+            identifyingLabels
+          )
+          updatesForReturn.push(update)
+        } catch (e) {
+          console.log(e)
+          console.log('Moving forward with next findings')
+        }
       }
     }
 

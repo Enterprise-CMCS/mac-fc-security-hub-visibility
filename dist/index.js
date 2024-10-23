@@ -59712,7 +59712,8 @@ async function run() {
             newIssueDelay: getDefaultInputOrEnv('security-hub-new-issue-delay', 'SECURITY_HUB_NEW_ISSUE_DELAY', '86400000'), //
             customJiraFields: customJiraFields,
             includeAllProducts: getInputOrEnvAndConvertToBool('include-all-products', 'INCLUDE_ALL_PRODUCTS', false),
-            skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS')
+            skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
+            consolidateTickets: getInputOrEnvAndConvertToBool('jira-consolidate-tickets', 'JIRA_CONSOLIDATE_TICKETS')
         };
         const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true);
         core.info('Syncing Security Hub and Jira');
@@ -60414,7 +60415,12 @@ class SecurityHub {
                 : '',
             remediation: finding.Remediation,
             ProductName: finding.ProductName,
-            Resources: finding.Resources
+            Resources: finding.Resources,
+            Type: finding.ProductFields?.Type,
+            ProviderName: finding.ProductFields?.ProviderName,
+            ProviderVersion: finding.ProductFields?.ProviderVersion,
+            CompanyName: finding.ProductFields?.CompanyName,
+            CVE: finding.ProductFields?.CVE
         };
     }
 }
@@ -60446,6 +60452,7 @@ class SecurityHubJiraSync {
     jiraLinkDirection;
     jiraLabelsConfig;
     jiraAddLabels;
+    jiraConsolidateTickets;
     constructor(jiraConfig, securityHubConfig, autoClose) {
         this.securityHub = new libs_1.SecurityHub(securityHubConfig);
         this.region = securityHubConfig.region;
@@ -60463,6 +60470,21 @@ class SecurityHubJiraSync {
         if (jiraConfig.jiraLabelsConfig) {
             this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
         }
+        if (securityHubConfig.consolidateTickets) {
+            this.jiraConsolidateTickets = securityHubConfig.consolidateTickets;
+        }
+    }
+    removeDuplicateTitles(arr) {
+        const seen = new Set(); // Store unique titles
+        return arr.filter(obj => {
+            if (seen.has(obj.title)) {
+                return false; // Filter out duplicates
+            }
+            else {
+                seen.add(obj.title); // Add new title to the set
+                return true; // Keep the object
+            }
+        });
     }
     async sync() {
         const updatesForReturn = [];
@@ -60474,12 +60496,26 @@ class SecurityHubJiraSync {
         // Step 2. Get all current findings from Security Hub
         console.log('Getting active Security Hub Findings with severities: ' + this.severities);
         const shFindingsObj = await this.securityHub.getAllActiveFindings();
-        const shFindings = Object.values(shFindingsObj);
+        const shFindings = Object.values(shFindingsObj).map(finding => {
+            if (finding.ProductName?.toLowerCase().includes('default') &&
+                finding.CompanyName?.toLowerCase().includes('tenable')) {
+                return {
+                    ...finding,
+                    ProductName: finding.CompanyName
+                };
+            }
+            return finding;
+        });
         console.log(shFindings);
         // Step 3. Close existing Jira issues if their finding is no longer active/current
         updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings)));
+        let consolidatedFindings = shFindings;
+        if (this.jiraConsolidateTickets) {
+            consolidatedFindings = this.removeDuplicateTitles(shFindings);
+            console.log('consolidated findings', consolidatedFindings);
+        }
         // Step 4. Create Jira issue for current findings that do not already have a Jira issue
-        updatesForReturn.push(...(await this.createJiraIssuesForNewFindings(jiraIssues, shFindings, identifyingLabels)));
+        updatesForReturn.push(...(await this.createJiraIssuesForNewFindings(jiraIssues, consolidatedFindings, identifyingLabels)));
         console.log(JSON.stringify(updatesForReturn));
     }
     async getAWSAccountID() {
@@ -60557,6 +60593,18 @@ class SecurityHubJiraSync {
         });
         Table += `------------------------------------------------------------------------------------------------`;
         return Table;
+    }
+    makeProductFieldSection(finding) {
+        return `
+    h2. Product Fields:
+    Type                     |    ${finding.Type ?? 'N/A'}
+    Product Name:            |    ${finding.ProductName ?? 'N/A'}
+    Provider Name:           |    ${finding.ProviderName ?? 'N/A'}
+    Provider Version:        |    ${finding.ProviderVersion ?? 'N/A'}
+    Company Name:            |    ${finding.CompanyName ?? 'N/A'}
+    CVE:                     |    ${finding.CVE ?? 'N/A'}
+    --------------------------------------------------------
+    `;
     }
     createSecurityHubFindingUrlThroughFilters(findingId) {
         let region;
@@ -60637,7 +60685,8 @@ class SecurityHubJiraSync {
       h2. Severity:
       ${severity}
 
- h2. SecurityHubFindingUrl:
+      ${this.makeProductFieldSection(finding)}
+      h2. SecurityHubFindingUrl:
       ${standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
       h2. Resources:
@@ -60732,6 +60781,7 @@ class SecurityHubJiraSync {
         }
         let newIssueInfo;
         try {
+            console.log(newIssueData);
             newIssueInfo = await this.jira.createNewIssue(newIssueData);
             const issue_id = this.jiraLinkId;
             if (issue_id) {
@@ -60741,6 +60791,7 @@ class SecurityHubJiraSync {
             }
         }
         catch (e) {
+            console.log(JSON.stringify(finding));
             throw new Error(`Error creating Jira issue from finding: ${(0, index_1.extractErrorMessage)(e)}`);
         }
         return {
@@ -60758,8 +60809,14 @@ class SecurityHubJiraSync {
         for (let i = 0; i < uniqueSecurityHubFindings.length; i++) {
             const finding = uniqueSecurityHubFindings[i];
             if (!existingJiraIssueTitles.includes(`SecurityHub Finding - ${finding.title}`)) {
-                const update = await this.createJiraIssueFromFinding(finding, identifyingLabels);
-                updatesForReturn.push(update);
+                try {
+                    const update = await this.createJiraIssueFromFinding(finding, identifyingLabels);
+                    updatesForReturn.push(update);
+                }
+                catch (e) {
+                    console.log(e);
+                    console.log('Moving forward with next findings');
+                }
             }
         }
         return updatesForReturn;
