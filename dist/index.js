@@ -60780,6 +60780,7 @@ class SecurityHubJiraSync {
         }
         let newIssueInfo;
         try {
+            console.log(newIssueData);
             newIssueInfo = await this.jira.createNewIssue(newIssueData);
             const issue_id = this.jiraLinkId;
             if (issue_id) {
