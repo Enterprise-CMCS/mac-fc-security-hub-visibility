@@ -60789,6 +60789,7 @@ class SecurityHubJiraSync {
             }
         }
         catch (e) {
+            console.log(JSON.stringify(finding));
             throw new Error(`Error creating Jira issue from finding: ${(0, index_1.extractErrorMessage)(e)}`);
         }
         return {

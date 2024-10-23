@@ -483,6 +483,7 @@ export class SecurityHubJiraSync {
         )
       }
     } catch (e: unknown) {
+      console.log(JSON.stringify(finding))
       throw new Error(
         `Error creating Jira issue from finding: ${extractErrorMessage(e)}`
       )
