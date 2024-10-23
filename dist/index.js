@@ -60806,8 +60806,14 @@ class SecurityHubJiraSync {
         for (let i = 0; i < uniqueSecurityHubFindings.length; i++) {
             const finding = uniqueSecurityHubFindings[i];
             if (!existingJiraIssueTitles.includes(`SecurityHub Finding - ${finding.title}`)) {
-                const update = await this.createJiraIssueFromFinding(finding, identifyingLabels);
-                updatesForReturn.push(update);
+                try {
+                    const update = await this.createJiraIssueFromFinding(finding, identifyingLabels);
+                    updatesForReturn.push(update);
+                }
+                catch (e) {
+                    console.log(e);
+                    console.log('Moving forward with next findings');
+                }
             }
         }
         return updatesForReturn;

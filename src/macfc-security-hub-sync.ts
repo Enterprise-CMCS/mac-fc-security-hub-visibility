@@ -512,11 +512,16 @@ export class SecurityHubJiraSync {
           `SecurityHub Finding - ${finding.title}`
         )
       ) {
-        const update = await this.createJiraIssueFromFinding(
-          finding,
-          identifyingLabels
-        )
-        updatesForReturn.push(update)
+        try {
+          const update = await this.createJiraIssueFromFinding(
+            finding,
+            identifyingLabels
+          )
+          updatesForReturn.push(update)
+        } catch (e) {
+          console.log(e)
+          console.log('Moving forward with next findings')
+        }
       }
     }
 
