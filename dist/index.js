@@ -60497,10 +60497,11 @@ class SecurityHubJiraSync {
         console.log('Getting active Security Hub Findings with severities: ' + this.severities);
         const shFindingsObj = await this.securityHub.getAllActiveFindings();
         const shFindings = Object.values(shFindingsObj).map(finding => {
-            if (finding.CompanyName) {
+            if (finding.ProductName?.toLowerCase().includes('default') &&
+                finding.CompanyName?.toLowerCase().includes('tenable')) {
                 return {
                     ...finding,
-                    ProductName: finding.ProductName
+                    ProductName: finding.CompanyName
                 };
             }
             return finding;

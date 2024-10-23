@@ -99,10 +99,13 @@ export class SecurityHubJiraSync {
     )
     const shFindingsObj = await this.securityHub.getAllActiveFindings()
     const shFindings = Object.values(shFindingsObj).map(finding => {
-      if (finding.CompanyName) {
+      if (
+        finding.ProductName?.toLowerCase().includes('default') &&
+        finding.CompanyName?.toLowerCase().includes('tenable')
+      ) {
         return {
           ...finding,
-          ProductName: finding.ProductName
+          ProductName: finding.CompanyName
         }
       }
       return finding
