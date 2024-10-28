@@ -60474,17 +60474,27 @@ class SecurityHubJiraSync {
             this.jiraConsolidateTickets = securityHubConfig.consolidateTickets;
         }
     }
-    removeDuplicateTitles(arr) {
-        const seen = new Set(); // Store unique titles
-        return arr.filter(obj => {
-            if (seen.has(obj.title)) {
-                return false; // Filter out duplicates
+    consolidateTickets(arr) {
+        const seen = {}; // Store unique titles
+        const finalList = [];
+        arr.forEach(finding => {
+            const title = finding.title ?? '';
+            if (seen[title]) {
+                const i = seen[title];
+                finalList[i] = {
+                    ...finalList,
+                    Resources: [
+                        ...(finalList[i].Resources ?? []),
+                        ...(finding.Resources ?? [])
+                    ]
+                };
             }
             else {
-                seen.add(obj.title); // Add new title to the set
-                return true; // Keep the object
+                const i = finalList.push(finding);
+                seen[title] = i;
             }
         });
+        return finalList;
     }
     async sync() {
         const updatesForReturn = [];
@@ -60511,7 +60521,7 @@ class SecurityHubJiraSync {
         updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings)));
         let consolidatedFindings = shFindings;
         if (this.jiraConsolidateTickets) {
-            consolidatedFindings = this.removeDuplicateTitles(shFindings);
+            consolidatedFindings = this.consolidateTickets(shFindings);
             console.log('consolidated findings', consolidatedFindings);
         }
         // Step 4. Create Jira issue for current findings that do not already have a Jira issue
@@ -60536,6 +60546,29 @@ class SecurityHubJiraSync {
         }
         return accountID;
     }
+    shouldCloseTicket(ticket, findings) {
+        return (findings
+            .filter(finding => {
+            const title = finding.title ?? '';
+            if (title) {
+                return ticket.fields.summary.includes(title.substring(0, 255));
+            }
+            return false;
+        })
+            .filter(finding => {
+            const resources = finding.Resources ?? [];
+            let bool = false;
+            resources.forEach(resource => {
+                const id = resource.Id ?? '';
+                if (id) {
+                    bool = (bool &&
+                        ticket.fields.description &&
+                        ticket.fields.description?.includes(id));
+                }
+            });
+            return bool;
+        }).length >= 1);
+    }
     async closeIssuesForResolvedFindings(jiraIssues, shFindings) {
         const updatesForReturn = [];
         const expectedJiraIssueTitles = Array.from(new Set(shFindings.map(finding => `SecurityHub Finding - ${finding.title}`)));
@@ -60544,7 +60577,7 @@ class SecurityHubJiraSync {
             // close all security-hub labeled Jira issues that do not have an active finding
             if (this.autoClose) {
                 for (let i = 0; i < jiraIssues.length; i++) {
-                    if (!expectedJiraIssueTitles.includes(jiraIssues[i].fields.summary)) {
+                    if (this.shouldCloseTicket(jiraIssues[i], shFindings)) {
                         await this.jira.closeIssue(jiraIssues[i].key);
                         updatesForReturn.push({
                             action: 'closed',
@@ -60558,7 +60591,7 @@ class SecurityHubJiraSync {
             else {
                 console.log('Skipping auto closing...');
                 for (let i = 0; i < jiraIssues.length; i++) {
-                    if (!expectedJiraIssueTitles.includes(jiraIssues[i].fields.summary) &&
+                    if (this.shouldCloseTicket(jiraIssues[i], shFindings) &&
                         !jiraIssues[i].fields.summary.includes('Resolved') // skip already resolved issues
                     ) {
                         try {
@@ -60800,15 +60833,29 @@ class SecurityHubJiraSync {
             summary: newIssueData.fields.summary
         };
     }
+    shouldCreateIssue(finding, jiraIssues) {
+        const potentialDuplicates = jiraIssues.filter(issue => issue.fields.summary.includes((finding.title ?? '').substring(0, 255)));
+        potentialDuplicates.filter(issue => {
+            const should = finding.Resources?.reduce((should, resource) => {
+                const id = resource.Id ?? '';
+                if (id) {
+                    return false;
+                }
+                return should && !issue.fields.description?.includes(id);
+            }, true);
+            return !should;
+        });
+        console.log('Potential Duplicates - ', JSON.stringify(potentialDuplicates));
+        return potentialDuplicates.length == 0;
+    }
     async createJiraIssuesForNewFindings(jiraIssues, shFindings, identifyingLabels) {
         const updatesForReturn = [];
-        const existingJiraIssueTitles = jiraIssues.map(i => i.fields.summary);
         const uniqueSecurityHubFindings = [
             ...new Set(shFindings.map(finding => JSON.stringify(finding)))
         ].map(finding => JSON.parse(finding));
         for (let i = 0; i < uniqueSecurityHubFindings.length; i++) {
             const finding = uniqueSecurityHubFindings[i];
-            if (!existingJiraIssueTitles.includes(`SecurityHub Finding - ${finding.title}`)) {
+            if (this.shouldCreateIssue(finding, jiraIssues)) {
                 try {
                     const update = await this.createJiraIssueFromFinding(finding, identifyingLabels);
                     updatesForReturn.push(update);

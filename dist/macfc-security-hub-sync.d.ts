@@ -41,9 +41,10 @@ export declare class SecurityHubJiraSync {
     private jiraAddLabels?;
     private jiraConsolidateTickets?;
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
-    removeDuplicateTitles(arr: SecurityHubFinding[]): SecurityHubFinding[];
+    consolidateTickets(arr: SecurityHubFinding[]): SecurityHubFinding[];
     sync(): Promise<void>;
     getAWSAccountID(): Promise<string>;
+    shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]): boolean;
     closeIssuesForResolvedFindings(jiraIssues: Issue[], shFindings: SecurityHubFinding[]): Promise<UpdateForReturn[]>;
     makeResourceList(resources: Resource[] | undefined): string;
     makeProductFieldSection(finding: SecurityHubFinding): string;
@@ -57,6 +58,7 @@ export declare class SecurityHubJiraSync {
         webUrl: string;
         summary: string;
     }>;
+    shouldCreateIssue(finding: SecurityHubFinding, jiraIssues: Issue[]): boolean;
     createJiraIssuesForNewFindings(jiraIssues: Issue[], shFindings: SecurityHubFinding[], identifyingLabels: string[]): Promise<UpdateForReturn[]>;
 }
 export {};
