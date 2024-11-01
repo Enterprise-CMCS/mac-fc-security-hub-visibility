@@ -60491,7 +60491,7 @@ class SecurityHubJiraSync {
             }
             else {
                 const i = finalList.push(finding);
-                seen[title] = i;
+                seen[title] = i - 1;
             }
         });
         return finalList;
