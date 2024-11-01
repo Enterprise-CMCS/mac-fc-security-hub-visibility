@@ -60482,7 +60482,7 @@ class SecurityHubJiraSync {
                 const i = seen[title];
                 console.log('Merging ', i, finding.Resources, finalList[i].Resources);
                 finalList[i] = {
-                    ...finalList,
+                    ...finalList[i],
                     Resources: [
                         ...(finalList[i].Resources ?? []),
                         ...(finding.Resources ?? [])
