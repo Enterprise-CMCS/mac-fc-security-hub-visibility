@@ -82,6 +82,14 @@ export class SecurityHubJiraSync {
       const title = finding.title ?? ''
       if (seen[title]) {
         const i = seen[title]
+        console.log(
+          'Have seen the finding ',
+          finding.title,
+          finding.Resources,
+          finalList,
+          i,
+          finalList[i]
+        )
         finalList[i] = {
           ...finalList,
           Resources: [
@@ -551,7 +559,14 @@ export class SecurityHubJiraSync {
       }, true)
       return !should
     })
-    console.log('Potential Duplicates - ', JSON.stringify(potentialDuplicates))
+    console.log(
+      `Potential Duplicates for ${finding.title} - `,
+      JSON.stringify(
+        potentialDuplicates.map(({fields}) => {
+          return fields.summary
+        })
+      )
+    )
     return potentialDuplicates.length == 0
   }
   async createJiraIssuesForNewFindings(
