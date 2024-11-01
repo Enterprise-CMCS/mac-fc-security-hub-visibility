@@ -60480,6 +60480,7 @@ class SecurityHubJiraSync {
             console.log(finding.title, seen);
             if (seen[title] >= 0) {
                 const i = seen[title];
+                console.log('Merging ', i, finding.Resources, finalList[i].Resources);
                 finalList[i] = {
                     ...finalList,
                     Resources: [
