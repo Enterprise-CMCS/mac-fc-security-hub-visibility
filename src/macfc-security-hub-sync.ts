@@ -80,7 +80,7 @@ export class SecurityHubJiraSync {
     const finalList: SecurityHubFinding[] = []
     arr.forEach(finding => {
       const title = finding.title ?? ''
-      if (seen[title]) {
+      if (seen[title] >= 0) {
         const i = seen[title]
         console.log(
           'Have seen the finding ',

@@ -60479,7 +60479,7 @@ class SecurityHubJiraSync {
         const finalList = [];
         arr.forEach(finding => {
             const title = finding.title ?? '';
-            if (seen[title]) {
+            if (seen[title] >= 0) {
                 const i = seen[title];
                 console.log('Have seen the finding ', finding.title, finding.Resources, finalList, i, finalList[i]);
                 finalList[i] = {
