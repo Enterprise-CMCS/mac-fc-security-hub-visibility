@@ -60480,7 +60480,6 @@ class SecurityHubJiraSync {
             console.log(finding.title, seen);
             if (seen[title] >= 0) {
                 const i = seen[title];
-                console.log('Merging ', i, finding.Resources, finalList[i].Resources);
                 finalList[i] = {
                     ...finalList[i],
                     Resources: [
@@ -60835,7 +60834,7 @@ class SecurityHubJiraSync {
     }
     shouldCreateIssue(finding, jiraIssues) {
         const potentialDuplicates = jiraIssues.filter(issue => issue.fields.summary.includes((finding.title ?? '').substring(0, 255)));
-        potentialDuplicates.filter(issue => {
+        const final = potentialDuplicates.filter(issue => {
             const should = finding.Resources?.reduce((should, resource) => {
                 const id = resource.Id ?? '';
                 if (id) {
@@ -60845,10 +60844,7 @@ class SecurityHubJiraSync {
             }, true);
             return !should;
         });
-        console.log(`Potential Duplicates for ${finding.title} - `, JSON.stringify(potentialDuplicates.map(({ fields }) => {
-            return fields.summary;
-        })));
-        return potentialDuplicates.length == 0;
+        return final.length == 0;
     }
     async createJiraIssuesForNewFindings(jiraIssues, shFindings, identifyingLabels) {
         const updatesForReturn = [];
