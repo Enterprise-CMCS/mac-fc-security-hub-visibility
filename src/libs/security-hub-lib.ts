@@ -99,8 +99,8 @@ export class SecurityHub {
           })
         })
       }
-      // use an object to store unique findings by title
-      const uniqueFindings: {[title: string]: SecurityHubFinding} = {}
+
+      const shFindings: SecurityHubFinding[] = []
 
       // use a variable to track pagination
       let nextToken: string | undefined = undefined
@@ -117,15 +117,14 @@ export class SecurityHub {
           for (const finding of response.Findings) {
             const findingForJira =
               this.awsSecurityFindingToSecurityHubFinding(finding)
-            if (findingForJira.title)
-              uniqueFindings[findingForJira.title] = findingForJira
+            shFindings.push(findingForJira)
           }
         }
         if (response && response.NextToken) nextToken = response.NextToken
         else nextToken = undefined
       } while (nextToken)
 
-      return Object.values(uniqueFindings).map(finding => {
+      return shFindings.map(finding => {
         return {
           accountAlias: this.accountAlias,
           ...finding

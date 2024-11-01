@@ -60364,8 +60364,7 @@ class SecurityHub {
                     });
                 });
             }
-            // use an object to store unique findings by title
-            const uniqueFindings = {};
+            const shFindings = [];
             // use a variable to track pagination
             let nextToken = undefined;
             do {
@@ -60377,8 +60376,7 @@ class SecurityHub {
                 if (response && response.Findings) {
                     for (const finding of response.Findings) {
                         const findingForJira = this.awsSecurityFindingToSecurityHubFinding(finding);
-                        if (findingForJira.title)
-                            uniqueFindings[findingForJira.title] = findingForJira;
+                        shFindings.push(findingForJira);
                     }
                 }
                 if (response && response.NextToken)
@@ -60386,7 +60384,7 @@ class SecurityHub {
                 else
                     nextToken = undefined;
             } while (nextToken);
-            return Object.values(uniqueFindings).map(finding => {
+            return shFindings.map(finding => {
                 return {
                     accountAlias: this.accountAlias,
                     ...finding
@@ -60482,7 +60480,6 @@ class SecurityHubJiraSync {
             console.log(finding.title, seen);
             if (seen[title] >= 0) {
                 const i = seen[title];
-                console.log('Have seen the finding ', finding.title, finding.Resources, finalList, i, finalList[i]);
                 finalList[i] = {
                     ...finalList,
                     Resources: [

@@ -83,14 +83,6 @@ export class SecurityHubJiraSync {
       console.log(finding.title, seen)
       if (seen[title] >= 0) {
         const i = seen[title]
-        console.log(
-          'Have seen the finding ',
-          finding.title,
-          finding.Resources,
-          finalList,
-          i,
-          finalList[i]
-        )
         finalList[i] = {
           ...finalList,
           Resources: [
