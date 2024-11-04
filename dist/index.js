@@ -60518,7 +60518,45 @@ class SecurityHubJiraSync {
         console.log(shFindings);
         // Step 3. Close existing Jira issues if their finding is no longer active/current
         updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings)));
-        let consolidatedFindings = shFindings;
+        const previousFindings = [];
+        jiraIssues.forEach(issue => {
+            const matchingFindings = shFindings.filter(f => f.title &&
+                issue.fields.summary
+                    .toLocaleLowerCase()
+                    .includes(f.title?.toLocaleLowerCase().substring(0, 255)));
+            if (matchingFindings.length == 1) {
+                previousFindings.push(matchingFindings[0]);
+            }
+            else if (matchingFindings.length >= 2) {
+                const consolidatedFinding = matchingFindings[0];
+                for (let i = 1; i < matchingFindings.length; i = i + 1) {
+                    const Resources = matchingFindings[i].Resources ?? [];
+                    const mapF = (shouldConsolidate, resource) => {
+                        return ((shouldConsolidate &&
+                            resource.Id &&
+                            issue.fields.description?.includes(resource.Id)) == true);
+                    };
+                    const shouldConsolidate = (Resources ?? []).reduce(mapF, true);
+                    if (shouldConsolidate) {
+                        const srcResources = consolidatedFinding.Resources ?? [];
+                        const trg = matchingFindings[i].Resources ?? [];
+                        consolidatedFinding.Resources = [...srcResources, ...trg];
+                    }
+                    else {
+                        previousFindings.push(matchingFindings[i]);
+                    }
+                }
+                previousFindings.push(consolidatedFinding);
+            }
+        });
+        shFindings.forEach(finding => {
+            if (finding.title &&
+                previousFindings.filter(f => f.title?.includes(finding.title ?? ''))
+                    .length == 0) {
+                previousFindings.push(finding);
+            }
+        });
+        let consolidatedFindings = previousFindings;
         if (this.jiraConsolidateTickets) {
             consolidatedFindings = this.consolidateTickets(shFindings);
             console.log('consolidated findings', consolidatedFindings);
