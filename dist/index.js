@@ -60562,11 +60562,12 @@ class SecurityHubJiraSync {
         });
         // Add new findings not found in previousFindings
         shFindings.forEach(finding => {
+            console.log(finding.title);
             if (finding.title && !existingTitles.has(finding.title)) {
                 newFindings.push(finding);
             }
         });
-        console.log('previous findings', previousFindings);
+        console.log('previous findings', previousFindings, existingTitles);
         updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, previousFindings)));
         console.log('new Findings', newFindings);
         let consolidationCandidates = newFindings;
