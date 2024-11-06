@@ -60601,7 +60601,7 @@ class SecurityHubJiraSync {
     shouldCloseTicket(ticket, findings) {
         return (findings
             .filter(finding => {
-            const title = finding.title ?? '';
+            const title = `SecurityHub Finding - ${finding.title ?? ''}`;
             if (title) {
                 return ticket.fields.summary.includes(title.substring(0, 255));
             }
@@ -60619,11 +60619,10 @@ class SecurityHubJiraSync {
                 }
             });
             return bool;
-        }).length >= 1);
+        }).length == 0);
     }
     async closeIssuesForResolvedFindings(jiraIssues, shFindings) {
         const updatesForReturn = [];
-        const expectedJiraIssueTitles = Array.from(new Set(shFindings.map(finding => `SecurityHub Finding - ${finding.title}`)));
         try {
             const makeComment = () => `As of ${new Date(Date.now()).toDateString()}, this Security Hub finding has been marked resolved`;
             // close all security-hub labeled Jira issues that do not have an active finding

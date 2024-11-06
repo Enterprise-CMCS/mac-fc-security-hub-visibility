@@ -241,7 +241,7 @@ export class SecurityHubJiraSync {
     return (
       findings
         .filter(finding => {
-          const title = finding.title ?? ''
+          const title = `SecurityHub Finding - ${finding.title ?? ''}`
           if (title) {
             return ticket.fields.summary.includes(title.substring(0, 255))
           }
@@ -259,7 +259,7 @@ export class SecurityHubJiraSync {
             }
           })
           return bool
-        }).length >= 1
+        }).length == 0
     )
   }
   async closeIssuesForResolvedFindings(
@@ -267,11 +267,6 @@ export class SecurityHubJiraSync {
     shFindings: SecurityHubFinding[]
   ) {
     const updatesForReturn: UpdateForReturn[] = []
-    const expectedJiraIssueTitles = Array.from(
-      new Set(
-        shFindings.map(finding => `SecurityHub Finding - ${finding.title}`)
-      )
-    )
     try {
       const makeComment = () =>
         `As of ${new Date(
