@@ -624,7 +624,7 @@ export class SecurityHubJiraSync {
       const duplicate = finding.Resources?.reduce(
         (should: boolean, resource: Resource): boolean => {
           const id = resource.Id ?? ''
-          if (id) {
+          if (!id) {
             return false
           }
           return should && issue.fields.description?.includes(id) == true

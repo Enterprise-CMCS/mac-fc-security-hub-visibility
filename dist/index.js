@@ -60898,7 +60898,7 @@ class SecurityHubJiraSync {
         const final = potentialDuplicates.filter(issue => {
             const duplicate = finding.Resources?.reduce((should, resource) => {
                 const id = resource.Id ?? '';
-                if (id) {
+                if (!id) {
                     return false;
                 }
                 return should && issue.fields.description?.includes(id) == true;
