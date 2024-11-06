@@ -60893,8 +60893,16 @@ class SecurityHubJiraSync {
         };
     }
     shouldCreateIssue(finding, jiraIssues) {
-        const potentialDuplicates = jiraIssues.filter(issue => issue.fields.summary.includes((finding.title ?? '').substring(0, 255)));
-        console.log('duplicates for this: ', potentialDuplicates);
+        const potentialDuplicates = jiraIssues.filter(issue => {
+            if (!finding.title) {
+                return false;
+            }
+            const title = `SecurityHub Finding - ${finding.title}`;
+            issue.fields.summary.includes(title.substring(0, 255));
+        });
+        if (potentialDuplicates.length == 0) {
+            return true;
+        }
         const final = potentialDuplicates.filter(issue => {
             const duplicate = finding.Resources?.reduce((should, resource) => {
                 const id = resource.Id ?? '';
@@ -60905,7 +60913,7 @@ class SecurityHubJiraSync {
             }, true);
             return !duplicate;
         });
-        return final.length == 0;
+        return final.length >= 1;
     }
     async createJiraIssuesForNewFindings(jiraIssues, shFindings, identifyingLabels) {
         const updatesForReturn = [];

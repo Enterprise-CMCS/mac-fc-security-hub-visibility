@@ -615,10 +615,16 @@ export class SecurityHubJiraSync {
     }
   }
   shouldCreateIssue(finding: SecurityHubFinding, jiraIssues: Issue[]) {
-    const potentialDuplicates = jiraIssues.filter(issue =>
-      issue.fields.summary.includes((finding.title ?? '').substring(0, 255))
-    )
-    console.log('duplicates for this: ', potentialDuplicates)
+    const potentialDuplicates = jiraIssues.filter(issue => {
+      if (!finding.title) {
+        return false
+      }
+      const title = `SecurityHub Finding - ${finding.title}`
+      issue.fields.summary.includes(title.substring(0, 255))
+    })
+    if (potentialDuplicates.length == 0) {
+      return true
+    }
 
     const final = potentialDuplicates.filter(issue => {
       const duplicate = finding.Resources?.reduce(
@@ -634,7 +640,7 @@ export class SecurityHubJiraSync {
       return !duplicate
     })
 
-    return final.length == 0
+    return final.length >= 1
   }
   async createJiraIssuesForNewFindings(
     jiraIssues: Issue[],
