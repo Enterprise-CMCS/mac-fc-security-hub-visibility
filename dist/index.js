@@ -60913,6 +60913,7 @@ class SecurityHubJiraSync {
             }, true);
             return !duplicate;
         });
+        console.log('final ', final);
         return final.length >= 1;
     }
     async createJiraIssuesForNewFindings(jiraIssues, shFindings, identifyingLabels) {

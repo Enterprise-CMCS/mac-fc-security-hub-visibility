@@ -639,7 +639,7 @@ export class SecurityHubJiraSync {
       )
       return !duplicate
     })
-
+    console.log('final ', final)
     return final.length >= 1
   }
   async createJiraIssuesForNewFindings(
