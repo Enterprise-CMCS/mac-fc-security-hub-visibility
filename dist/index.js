@@ -59695,6 +59695,7 @@ async function run() {
             jiraIgnoreStatuses: getDefaultInputOrEnv('jira-ignore-statuses', 'JIRA_IGNORE_STATUSES', 'Done, Closed, Resolved'),
             jiraWatchers: getDefaultInputOrEnv('jira-watchers', 'JIRA_WATCHERS', ''),
             jiraAddLabels: getDefaultInputOrEnv('jira-add-labels', 'JIRA_ADD_LABELS', ''),
+            testFindings: getDefaultInputOrEnv('test-findings', 'TEST_FINDINGS', ''),
             jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
             transitionMap: transitionMap,
             dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false),

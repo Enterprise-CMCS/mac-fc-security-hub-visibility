@@ -151,6 +151,7 @@ async function run(): Promise<void> {
         'JIRA_ADD_LABELS',
         ''
       ),
+      testFindings: getDefaultInputOrEnv('test-findings', 'TEST_FINDINGS', ''),
       jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
       transitionMap: transitionMap,
       dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false),

@@ -75,6 +75,9 @@ inputs:
   jira-consolidate-tickets:
     description: "True/False value to enable/disable the consolidation of tickets"
     required: false
+  test-findings:
+    description: "JSON string of findings list"
+    required: false
 runs:
   using: 'node20'
   main: 'dist/index.js'
