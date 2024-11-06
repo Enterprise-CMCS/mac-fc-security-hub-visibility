@@ -77,6 +77,7 @@ export class SecurityHubJiraSync {
     }
     if (jiraConfig.testFindings) {
       this.testFindings = JSON.parse(jiraConfig.testFindings)
+      console.log('parsed', this.testFindings)
     }
   }
   consolidateTickets(arr: SecurityHubFinding[]) {
