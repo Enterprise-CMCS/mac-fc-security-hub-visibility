@@ -60577,7 +60577,10 @@ class SecurityHubJiraSync {
             consolidationCandidates = this.consolidateTickets(consolidationCandidates);
             console.log('consolidated findings', consolidationCandidates);
         }
-        const consolidatedFindings = [...consolidationCandidates];
+        const consolidatedFindings = [
+            ...consolidationCandidates,
+            ...previousFindings
+        ];
         // Step 4. Create Jira issue for current findings that do not already have a Jira issue
         updatesForReturn.push(...(await this.createJiraIssuesForNewFindings(jiraIssues, consolidatedFindings, identifyingLabels)));
         console.log(JSON.stringify(updatesForReturn));
@@ -60891,15 +60894,16 @@ class SecurityHubJiraSync {
     }
     shouldCreateIssue(finding, jiraIssues) {
         const potentialDuplicates = jiraIssues.filter(issue => issue.fields.summary.includes((finding.title ?? '').substring(0, 255)));
+        console.log('duplicates for this: ', potentialDuplicates);
         const final = potentialDuplicates.filter(issue => {
-            const should = finding.Resources?.reduce((should, resource) => {
+            const duplicate = finding.Resources?.reduce((should, resource) => {
                 const id = resource.Id ?? '';
                 if (id) {
                     return false;
                 }
-                return should && !issue.fields.description?.includes(id);
+                return should && issue.fields.description?.includes(id) == true;
             }, true);
-            return !should;
+            return !duplicate;
         });
         return final.length == 0;
     }
