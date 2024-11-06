@@ -151,11 +151,7 @@ export class SecurityHubJiraSync {
           )
       )
 
-      if (matchingFindings.length === 1) {
-        // Direct match found, add to previousFindings
-        previousFindings.push(matchingFindings[0])
-        existingTitles.add(matchingFindings[0].title ?? '')
-      } else if (matchingFindings.length > 1) {
+      if (matchingFindings.length >= 1) {
         // Consolidate multiple findings
         let consolidatedFinding: SecurityHubFinding | undefined = undefined
 
