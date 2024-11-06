@@ -60900,6 +60900,7 @@ class SecurityHubJiraSync {
             const title = `SecurityHub Finding - ${finding.title}`;
             issue.fields.summary.includes(title.substring(0, 255));
         });
+        console.log('Potential Duplicates: ', potentialDuplicates.length);
         if (potentialDuplicates.length == 0) {
             return true;
         }
@@ -60913,7 +60914,6 @@ class SecurityHubJiraSync {
             }, true);
             return !duplicate;
         });
-        console.log('final ', final);
         return final.length >= 1;
     }
     async createJiraIssuesForNewFindings(jiraIssues, shFindings, identifyingLabels) {
