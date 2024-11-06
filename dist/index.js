@@ -60577,10 +60577,7 @@ class SecurityHubJiraSync {
             consolidationCandidates = this.consolidateTickets(consolidationCandidates);
             console.log('consolidated findings', consolidationCandidates);
         }
-        const consolidatedFindings = [
-            ...consolidationCandidates,
-            ...previousFindings
-        ];
+        const consolidatedFindings = [...consolidationCandidates];
         // Step 4. Create Jira issue for current findings that do not already have a Jira issue
         updatesForReturn.push(...(await this.createJiraIssuesForNewFindings(jiraIssues, consolidatedFindings, identifyingLabels)));
         console.log(JSON.stringify(updatesForReturn));
