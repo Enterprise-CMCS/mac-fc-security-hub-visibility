@@ -60673,6 +60673,7 @@ class SecurityHubJiraSync {
         return updatesForReturn;
     }
     makeResourceList(resources) {
+        console.log('Resources: ', resources?.length);
         if (!resources) {
             return `No Resources`;
         }

@@ -332,6 +332,7 @@ export class SecurityHubJiraSync {
     return updatesForReturn
   }
   makeResourceList(resources: Resource[] | undefined) {
+    console.log('Resources: ', resources?.length)
     if (!resources) {
       return `No Resources`
     }
