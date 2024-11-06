@@ -132,64 +132,68 @@ export class SecurityHubJiraSync {
     )
     const previousFindings: SecurityHubFinding[] = []
     const newFindings: SecurityHubFinding[] = []
+    const existingTitles = new Set<string>()
+
     jiraIssues.forEach(issue => {
+      const issueSummary = issue.fields.summary?.toLocaleLowerCase() ?? ''
+
+      // Find all matching Security Hub findings by title
       const matchingFindings = shFindings.filter(
         f =>
           f.title &&
-          issue.fields.summary
-            .toLocaleLowerCase()
-            .includes(
-              `SecurityHub Finding - ${f.title}`
-                ?.toLocaleLowerCase()
-                .substring(0, 255)
-            )
-      )
-      if (matchingFindings.length == 1) {
-        previousFindings.push(matchingFindings[0])
-      } else if (matchingFindings.length >= 2) {
-        let consolidatedFinding: SecurityHubFinding = {}
-        for (let i = 0; i < matchingFindings.length; i = i + 1) {
-          const Resources = matchingFindings[i].Resources ?? []
-          const mapF = (
-            shouldConsolidate: boolean,
-            resource: Resource
-          ): boolean => {
-            return (
-              (shouldConsolidate &&
-                resource.Id &&
-                issue.fields.description?.includes(resource.Id)) == true
-            )
-          }
-          const shouldConsolidate: boolean = (Resources ?? []).reduce(
-            mapF,
-            true
+          issueSummary.includes(
+            `securityhub finding - ${f.title}`
+              .toLocaleLowerCase()
+              .substring(0, 255)
           )
+      )
+
+      if (matchingFindings.length === 1) {
+        // Direct match found, add to previousFindings
+        previousFindings.push(matchingFindings[0])
+        existingTitles.add(matchingFindings[0].title ?? '')
+      } else if (matchingFindings.length > 1) {
+        // Consolidate multiple findings
+        let consolidatedFinding: SecurityHubFinding | undefined = undefined
+
+        matchingFindings.forEach(finding => {
+          const shouldConsolidate = (finding.Resources ?? []).every(
+            resource =>
+              resource.Id && issue.fields.description?.includes(resource.Id)
+          )
+
           if (shouldConsolidate) {
-            if (!consolidatedFinding.title) {
-              consolidatedFinding = {...matchingFindings[i]}
+            if (!consolidatedFinding) {
+              consolidatedFinding = {...finding}
             } else {
-              const srcResources = consolidatedFinding.Resources ?? []
-              const trg = matchingFindings[i].Resources ?? []
-              consolidatedFinding.Resources = [...srcResources, ...trg]
+              consolidatedFinding.Resources = [
+                ...(consolidatedFinding.Resources ?? []),
+                ...(finding.Resources ?? [])
+              ]
             }
           } else {
-            newFindings.push(matchingFindings[i])
+            newFindings.push(finding)
           }
-        }
-        if (consolidatedFinding.title) {
+        })
+
+        if (consolidatedFinding) {
           previousFindings.push(consolidatedFinding)
+          existingTitles.add(
+            (consolidatedFinding as unknown as SecurityHubFinding).title ?? ''
+          )
         }
       }
     })
+
+    // Add new findings not found in previousFindings
     shFindings.forEach(finding => {
-      if (
-        finding.title &&
-        previousFindings.filter(f => f.title?.includes(finding.title ?? ''))
-          .length == 0
-      ) {
+      if (finding.title && !existingTitles.has(finding.title)) {
         newFindings.push(finding)
       }
     })
+
+    console.log('previous findings', previousFindings)
+    console.log('new Findings', newFindings)
     let consolidationCandidates: SecurityHubFinding[] = newFindings
     if (this.jiraConsolidateTickets) {
       consolidationCandidates = this.consolidateTickets(consolidationCandidates)

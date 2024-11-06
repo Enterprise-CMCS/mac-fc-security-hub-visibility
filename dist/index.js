@@ -60520,52 +60520,53 @@ class SecurityHubJiraSync {
         updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings)));
         const previousFindings = [];
         const newFindings = [];
+        const existingTitles = new Set();
         jiraIssues.forEach(issue => {
+            const issueSummary = issue.fields.summary?.toLocaleLowerCase() ?? '';
+            // Find all matching Security Hub findings by title
             const matchingFindings = shFindings.filter(f => f.title &&
-                issue.fields.summary
+                issueSummary.includes(`securityhub finding - ${f.title}`
                     .toLocaleLowerCase()
-                    .includes(`SecurityHub Finding - ${f.title}`
-                    ?.toLocaleLowerCase()
                     .substring(0, 255)));
-            if (matchingFindings.length == 1) {
+            if (matchingFindings.length === 1) {
+                // Direct match found, add to previousFindings
                 previousFindings.push(matchingFindings[0]);
+                existingTitles.add(matchingFindings[0].title ?? '');
             }
-            else if (matchingFindings.length >= 2) {
-                let consolidatedFinding = {};
-                for (let i = 0; i < matchingFindings.length; i = i + 1) {
-                    const Resources = matchingFindings[i].Resources ?? [];
-                    const mapF = (shouldConsolidate, resource) => {
-                        return ((shouldConsolidate &&
-                            resource.Id &&
-                            issue.fields.description?.includes(resource.Id)) == true);
-                    };
-                    const shouldConsolidate = (Resources ?? []).reduce(mapF, true);
+            else if (matchingFindings.length > 1) {
+                // Consolidate multiple findings
+                let consolidatedFinding = undefined;
+                matchingFindings.forEach(finding => {
+                    const shouldConsolidate = (finding.Resources ?? []).every(resource => resource.Id && issue.fields.description?.includes(resource.Id));
                     if (shouldConsolidate) {
-                        if (!consolidatedFinding.title) {
-                            consolidatedFinding = { ...matchingFindings[i] };
+                        if (!consolidatedFinding) {
+                            consolidatedFinding = { ...finding };
                         }
                         else {
-                            const srcResources = consolidatedFinding.Resources ?? [];
-                            const trg = matchingFindings[i].Resources ?? [];
-                            consolidatedFinding.Resources = [...srcResources, ...trg];
+                            consolidatedFinding.Resources = [
+                                ...(consolidatedFinding.Resources ?? []),
+                                ...(finding.Resources ?? [])
+                            ];
                         }
                     }
                     else {
-                        newFindings.push(matchingFindings[i]);
+                        newFindings.push(finding);
                     }
-                }
-                if (consolidatedFinding.title) {
+                });
+                if (consolidatedFinding) {
                     previousFindings.push(consolidatedFinding);
+                    existingTitles.add(consolidatedFinding.title ?? '');
                 }
             }
         });
+        // Add new findings not found in previousFindings
         shFindings.forEach(finding => {
-            if (finding.title &&
-                previousFindings.filter(f => f.title?.includes(finding.title ?? ''))
-                    .length == 0) {
+            if (finding.title && !existingTitles.has(finding.title)) {
                 newFindings.push(finding);
             }
         });
+        console.log('previous findings', previousFindings);
+        console.log('new Findings', newFindings);
         let consolidationCandidates = newFindings;
         if (this.jiraConsolidateTickets) {
             consolidationCandidates = this.consolidateTickets(consolidationCandidates);
