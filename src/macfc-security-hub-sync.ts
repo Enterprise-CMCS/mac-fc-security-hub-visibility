@@ -191,7 +191,10 @@ export class SecurityHubJiraSync {
 
     console.log('previous findings', previousFindings)
     updatesForReturn.push(
-      ...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings))
+      ...(await this.closeIssuesForResolvedFindings(
+        jiraIssues,
+        previousFindings
+      ))
     )
     console.log('new Findings', newFindings)
     let consolidationCandidates: SecurityHubFinding[] = newFindings

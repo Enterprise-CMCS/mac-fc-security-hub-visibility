@@ -60565,7 +60565,7 @@ class SecurityHubJiraSync {
             }
         });
         console.log('previous findings', previousFindings);
-        updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings)));
+        updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, previousFindings)));
         console.log('new Findings', newFindings);
         let consolidationCandidates = newFindings;
         if (this.jiraConsolidateTickets) {
