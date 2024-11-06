@@ -2,7 +2,7 @@ import {extractErrorMessage} from 'index'
 import {Jira, SecurityHub, SecurityHubFinding} from './libs'
 import {Issue, NewIssueData, CustomFields, JiraConfig} from './libs/jira-lib'
 import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts'
-import {Resource} from '@aws-sdk/client-securityhub'
+import {AwsSecurityFinding, Resource} from '@aws-sdk/client-securityhub'
 
 interface UpdateForReturn {
   action: string
@@ -50,7 +50,7 @@ export class SecurityHubJiraSync {
   private jiraLabelsConfig?: LabelConfig[]
   private jiraAddLabels?: string[]
   private jiraConsolidateTickets?: boolean
-  private testFindings: SecurityHubFinding[] = []
+  private testFindings: AwsSecurityFinding[] = []
   constructor(
     jiraConfig: JiraConfig,
     securityHubConfig: SecurityHubJiraSyncConfig,
@@ -118,9 +118,12 @@ export class SecurityHubJiraSync {
       'Getting active Security Hub Findings with severities: ' + this.severities
     )
     const shFindingsObj = this.testFindings.length
-      ? this.testFindings
+      ? this.testFindings.map((finding: AwsSecurityFinding) =>
+          this.securityHub.awsSecurityFindingToSecurityHubFinding(finding)
+        )
       : await this.securityHub.getAllActiveFindings()
     const shFindings = Object.values(shFindingsObj).map(finding => {
+      console.log(finding)
       if (
         finding.ProductName?.toLowerCase().includes('default') &&
         finding.CompanyName?.toLowerCase().includes('tenable')

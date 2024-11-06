@@ -60511,9 +60511,10 @@ class SecurityHubJiraSync {
         // Step 2. Get all current findings from Security Hub
         console.log('Getting active Security Hub Findings with severities: ' + this.severities);
         const shFindingsObj = this.testFindings.length
-            ? this.testFindings
+            ? this.testFindings.map((finding) => this.securityHub.awsSecurityFindingToSecurityHubFinding(finding))
             : await this.securityHub.getAllActiveFindings();
         const shFindings = Object.values(shFindingsObj).map(finding => {
+            console.log(finding);
             if (finding.ProductName?.toLowerCase().includes('default') &&
                 finding.CompanyName?.toLowerCase().includes('tenable')) {
                 return {
