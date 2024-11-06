@@ -14,6 +14,7 @@ export interface JiraConfig {
   jiraAssignee?: string
   jiraWatchers?: string
   jiraAddLabels?: string
+  testFindings?: string
   transitionMap: Array<{status: string; transition: string}>
   dryRun: boolean
   jiraLinkId?: string

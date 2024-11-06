@@ -50,6 +50,7 @@ export class SecurityHubJiraSync {
   private jiraLabelsConfig?: LabelConfig[]
   private jiraAddLabels?: string[]
   private jiraConsolidateTickets?: boolean
+  private testFindings: SecurityHubFinding[] = []
   constructor(
     jiraConfig: JiraConfig,
     securityHubConfig: SecurityHubJiraSyncConfig,
@@ -73,6 +74,9 @@ export class SecurityHubJiraSync {
     }
     if (securityHubConfig.consolidateTickets) {
       this.jiraConsolidateTickets = securityHubConfig.consolidateTickets
+    }
+    if (jiraConfig.testFindings) {
+      this.testFindings = JSON.parse(jiraConfig.testFindings)
     }
   }
   consolidateTickets(arr: SecurityHubFinding[]) {
@@ -112,7 +116,9 @@ export class SecurityHubJiraSync {
     console.log(
       'Getting active Security Hub Findings with severities: ' + this.severities
     )
-    const shFindingsObj = await this.securityHub.getAllActiveFindings()
+    const shFindingsObj = this.testFindings.length
+      ? this.testFindings
+      : await this.securityHub.getAllActiveFindings()
     const shFindings = Object.values(shFindingsObj).map(finding => {
       if (
         finding.ProductName?.toLowerCase().includes('default') &&

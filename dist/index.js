@@ -60451,6 +60451,7 @@ class SecurityHubJiraSync {
     jiraLabelsConfig;
     jiraAddLabels;
     jiraConsolidateTickets;
+    testFindings = [];
     constructor(jiraConfig, securityHubConfig, autoClose) {
         this.securityHub = new libs_1.SecurityHub(securityHubConfig);
         this.region = securityHubConfig.region;
@@ -60470,6 +60471,9 @@ class SecurityHubJiraSync {
         }
         if (securityHubConfig.consolidateTickets) {
             this.jiraConsolidateTickets = securityHubConfig.consolidateTickets;
+        }
+        if (jiraConfig.testFindings) {
+            this.testFindings = JSON.parse(jiraConfig.testFindings);
         }
     }
     consolidateTickets(arr) {
@@ -60504,7 +60508,9 @@ class SecurityHubJiraSync {
         const jiraIssues = await this.jira.getAllSecurityHubIssuesInJiraProject(identifyingLabels);
         // Step 2. Get all current findings from Security Hub
         console.log('Getting active Security Hub Findings with severities: ' + this.severities);
-        const shFindingsObj = await this.securityHub.getAllActiveFindings();
+        const shFindingsObj = this.testFindings.length
+            ? this.testFindings
+            : await this.securityHub.getAllActiveFindings();
         const shFindings = Object.values(shFindingsObj).map(finding => {
             if (finding.ProductName?.toLowerCase().includes('default') &&
                 finding.CompanyName?.toLowerCase().includes('tenable')) {

@@ -40,6 +40,7 @@ export declare class SecurityHubJiraSync {
     private jiraLabelsConfig?;
     private jiraAddLabels?;
     private jiraConsolidateTickets?;
+    private testFindings;
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
     consolidateTickets(arr: SecurityHubFinding[]): SecurityHubFinding[];
     sync(): Promise<void>;
