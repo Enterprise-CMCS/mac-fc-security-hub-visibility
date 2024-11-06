@@ -619,8 +619,8 @@ export class SecurityHubJiraSync {
       if (!finding.title) {
         return false
       }
-      const title = `SecurityHub Finding - ${finding.title}`
-      issue.fields.summary.includes(title.substring(0, 255))
+      const title = `SecurityHub Finding - ${finding.title}`.substring(0, 255)
+      return issue.fields.summary.includes(title)
     })
     console.log('Potential Duplicates: ', potentialDuplicates.length)
     if (potentialDuplicates.length == 0) {
