@@ -127,9 +127,6 @@ export class SecurityHubJiraSync {
     })
     console.log(shFindings)
     // Step 3. Close existing Jira issues if their finding is no longer active/current
-    updatesForReturn.push(
-      ...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings))
-    )
     const previousFindings: SecurityHubFinding[] = []
     const newFindings: SecurityHubFinding[] = []
     const existingTitles = new Set<string>()
@@ -193,6 +190,9 @@ export class SecurityHubJiraSync {
     })
 
     console.log('previous findings', previousFindings)
+    updatesForReturn.push(
+      ...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings))
+    )
     console.log('new Findings', newFindings)
     let consolidationCandidates: SecurityHubFinding[] = newFindings
     if (this.jiraConsolidateTickets) {
