@@ -60599,17 +60599,19 @@ class SecurityHubJiraSync {
         return accountID;
     }
     shouldCloseTicket(ticket, findings) {
-        return (findings
-            .filter(finding => {
+        const matchingTitles = findings.filter(finding => {
             const title = `SecurityHub Finding - ${finding.title ?? ''}`;
             if (title) {
                 return ticket.fields.summary.includes(title.substring(0, 255));
             }
             return false;
-        })
-            .filter(finding => {
+        });
+        if (matchingTitles.length == 0) {
+            return true;
+        }
+        return (matchingTitles.filter(finding => {
             const resources = finding.Resources ?? [];
-            let bool = false;
+            let bool = true;
             resources.forEach(resource => {
                 const id = resource.Id ?? '';
                 if (id) {
@@ -60618,7 +60620,7 @@ class SecurityHubJiraSync {
                         ticket.fields.description?.includes(id));
                 }
             });
-            return bool;
+            return bool && resources.length;
         }).length == 0);
     }
     async closeIssuesForResolvedFindings(jiraIssues, shFindings) {

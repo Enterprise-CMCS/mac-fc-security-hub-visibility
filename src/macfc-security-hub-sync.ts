@@ -238,28 +238,30 @@ export class SecurityHubJiraSync {
     return accountID
   }
   shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]) {
+    const matchingTitles = findings.filter(finding => {
+      const title = `SecurityHub Finding - ${finding.title ?? ''}`
+      if (title) {
+        return ticket.fields.summary.includes(title.substring(0, 255))
+      }
+      return false
+    })
+    if (matchingTitles.length == 0) {
+      return true
+    }
     return (
-      findings
-        .filter(finding => {
-          const title = `SecurityHub Finding - ${finding.title ?? ''}`
-          if (title) {
-            return ticket.fields.summary.includes(title.substring(0, 255))
+      matchingTitles.filter(finding => {
+        const resources = finding.Resources ?? []
+        let bool: boolean = true
+        resources.forEach(resource => {
+          const id = resource.Id ?? ''
+          if (id) {
+            bool = (bool &&
+              ticket.fields.description &&
+              ticket.fields.description?.includes(id)) as unknown as boolean
           }
-          return false
         })
-        .filter(finding => {
-          const resources = finding.Resources ?? []
-          let bool: boolean = false
-          resources.forEach(resource => {
-            const id = resource.Id ?? ''
-            if (id) {
-              bool = (bool &&
-                ticket.fields.description &&
-                ticket.fields.description?.includes(id)) as unknown as boolean
-            }
-          })
-          return bool
-        }).length == 0
+        return bool && resources.length
+      }).length == 0
     )
   }
   async closeIssuesForResolvedFindings(
