@@ -102,7 +102,42 @@ export class SecurityHubJiraSync {
     })
     return finalList
   }
-
+  inAlreadyInNew(finding: SecurityHubFinding, List: SecurityHubFinding[]) {
+    const filtered = List.filter(
+      f => finding.title && f.title?.includes(finding.title)
+    )
+    if (!filtered.length) {
+      return false
+    }
+    let exists: boolean = false
+    filtered.forEach(f => {
+      exists =
+        exists ??
+        finding.Resources?.every(
+          r =>
+            r.Id &&
+            f.Resources &&
+            f.Resources?.filter(r2 => r2.Id && r.Id && r2.Id.includes(r.Id))
+              .length > 0
+        )
+    })
+    return exists
+  }
+  isNewFinding(finding: SecurityHubFinding, issues: Issue[]) {
+    const matchingIssues = issues.filter(
+      i => finding.title && i.fields.description?.includes(finding.title)
+    )
+    if (matchingIssues.length) {
+      return false
+    }
+    return (
+      matchingIssues.filter(i =>
+        finding.Resources?.every(
+          r => r.Id && i.fields.description?.includes(r.Id)
+        )
+      ).length == 0
+    )
+  }
   async sync() {
     const updatesForReturn: UpdateForReturn[] = []
     // Step 0. Gather and set some information that will be used throughout this function
@@ -169,7 +204,12 @@ export class SecurityHubJiraSync {
               ]
             }
           } else {
-            newFindings.push(finding)
+            if (
+              this.isNewFinding(finding, jiraIssues) &&
+              !this.inAlreadyInNew(finding, newFindings)
+            ) {
+              newFindings.push(finding)
+            }
           }
         })
 

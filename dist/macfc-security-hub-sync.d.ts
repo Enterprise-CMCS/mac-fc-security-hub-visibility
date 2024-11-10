@@ -43,6 +43,8 @@ export declare class SecurityHubJiraSync {
     private testFindings;
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
     consolidateTickets(arr: SecurityHubFinding[]): SecurityHubFinding[];
+    inAlreadyInNew(finding: SecurityHubFinding, List: SecurityHubFinding[]): boolean;
+    isNewFinding(finding: SecurityHubFinding, issues: Issue[]): boolean;
     sync(): Promise<void>;
     getAWSAccountID(): Promise<string>;
     shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]): boolean;
