@@ -60519,7 +60519,7 @@ class SecurityHubJiraSync {
     }
     isNewFinding(finding, issues) {
         const matchingIssues = issues.filter(i => finding.title && i.fields.description?.includes(finding.title));
-        if (matchingIssues.length) {
+        if (!matchingIssues.length) {
             return false;
         }
         return (matchingIssues.filter(i => finding.Resources?.every(r => r.Id && i.fields.description?.includes(r.Id))).length == 0);

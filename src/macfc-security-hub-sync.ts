@@ -127,7 +127,7 @@ export class SecurityHubJiraSync {
     const matchingIssues = issues.filter(
       i => finding.title && i.fields.description?.includes(finding.title)
     )
-    if (matchingIssues.length) {
+    if (!matchingIssues.length) {
       return false
     }
     return (
