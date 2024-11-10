@@ -142,17 +142,11 @@ export class SecurityHubJiraSync {
     const existingTitles = new Set<string>()
 
     jiraIssues.forEach(issue => {
-      const issueSummary = issue.fields.summary?.toLocaleLowerCase() ?? ''
+      const issueDesc = issue.fields.description?.toLocaleLowerCase() ?? ''
 
       // Find all matching Security Hub findings by title
       const matchingFindings = shFindings.filter(
-        f =>
-          f.title &&
-          issueSummary.includes(
-            `securityhub finding - ${f.title}`
-              .toLocaleLowerCase()
-              .substring(0, 255)
-          )
+        f => f.title && issueDesc.includes(f.title)
       )
 
       if (matchingFindings.length >= 1) {
@@ -243,9 +237,8 @@ export class SecurityHubJiraSync {
   }
   shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]) {
     const matchingTitles = findings.filter(finding => {
-      const title = `SecurityHub Finding - ${finding.title ?? ''}`
-      if (title) {
-        return ticket.fields.summary.includes(title.substring(0, 255))
+      if (finding.title) {
+        return ticket.fields.description?.includes(finding.title)
       }
       return false
     })
@@ -616,8 +609,8 @@ export class SecurityHubJiraSync {
       if (!finding.title) {
         return false
       }
-      const title = `SecurityHub Finding - ${finding.title}`.substring(0, 255)
-      return issue.fields.summary.includes(title)
+      const title = finding.title
+      return issue.fields.description?.includes(title)
     })
     console.log('Potential Duplicates: ', potentialDuplicates.length)
     if (potentialDuplicates.length == 0) {

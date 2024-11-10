@@ -60530,12 +60530,9 @@ class SecurityHubJiraSync {
         const newFindings = [];
         const existingTitles = new Set();
         jiraIssues.forEach(issue => {
-            const issueSummary = issue.fields.summary?.toLocaleLowerCase() ?? '';
+            const issueDesc = issue.fields.description?.toLocaleLowerCase() ?? '';
             // Find all matching Security Hub findings by title
-            const matchingFindings = shFindings.filter(f => f.title &&
-                issueSummary.includes(`securityhub finding - ${f.title}`
-                    .toLocaleLowerCase()
-                    .substring(0, 255)));
+            const matchingFindings = shFindings.filter(f => f.title && issueDesc.includes(f.title));
             if (matchingFindings.length >= 1) {
                 // Consolidate multiple findings
                 let consolidatedFinding = undefined;
@@ -60602,9 +60599,8 @@ class SecurityHubJiraSync {
     }
     shouldCloseTicket(ticket, findings) {
         const matchingTitles = findings.filter(finding => {
-            const title = `SecurityHub Finding - ${finding.title ?? ''}`;
-            if (title) {
-                return ticket.fields.summary.includes(title.substring(0, 255));
+            if (finding.title) {
+                return ticket.fields.description?.includes(finding.title);
             }
             return false;
         });
@@ -60894,8 +60890,8 @@ class SecurityHubJiraSync {
             if (!finding.title) {
                 return false;
             }
-            const title = `SecurityHub Finding - ${finding.title}`.substring(0, 255);
-            return issue.fields.summary.includes(title);
+            const title = finding.title;
+            return issue.fields.description?.includes(title);
         });
         console.log('Potential Duplicates: ', potentialDuplicates.length);
         if (potentialDuplicates.length == 0) {
