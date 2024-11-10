@@ -60530,7 +60530,7 @@ class SecurityHubJiraSync {
         const newFindings = [];
         const existingTitles = new Set();
         jiraIssues.forEach(issue => {
-            const issueDesc = issue.fields.description?.toLocaleLowerCase() ?? '';
+            const issueDesc = issue.fields.description ?? '';
             // Find all matching Security Hub findings by title
             const matchingFindings = shFindings.filter(f => f.title && issueDesc.includes(f.title));
             if (matchingFindings.length >= 1) {

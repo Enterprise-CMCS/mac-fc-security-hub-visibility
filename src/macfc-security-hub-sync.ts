@@ -142,7 +142,7 @@ export class SecurityHubJiraSync {
     const existingTitles = new Set<string>()
 
     jiraIssues.forEach(issue => {
-      const issueDesc = issue.fields.description?.toLocaleLowerCase() ?? ''
+      const issueDesc = issue.fields.description ?? ''
 
       // Find all matching Security Hub findings by title
       const matchingFindings = shFindings.filter(
