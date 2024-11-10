@@ -60501,6 +60501,22 @@ class SecurityHubJiraSync {
         });
         return finalList;
     }
+    areSameLists(A, B) {
+        if (A.length == B.length) {
+            let isSimilar = true;
+            for (let i = 0; i < A.length; i = i + 1) {
+                let same = false;
+                for (let j = 0; j < B.length && !same; j = j + 1) {
+                    const a = A[i].Id ?? '';
+                    const b = B[j].Id ?? '';
+                    same = (a && b && a.includes(b));
+                }
+                isSimilar = isSimilar && same;
+            }
+            return isSimilar;
+        }
+        return false;
+    }
     inAlreadyInNew(finding, List) {
         const filtered = List.filter(f => finding.title && f.title?.includes(finding.title));
         if (!filtered.length) {
@@ -60508,12 +60524,8 @@ class SecurityHubJiraSync {
         }
         let exists = false;
         filtered.forEach(f => {
-            exists =
-                exists ??
-                    finding.Resources?.every(r => r.Id &&
-                        f.Resources &&
-                        f.Resources?.filter(r2 => r2.Id && r.Id && r2.Id.includes(r.Id))
-                            .length > 0);
+            exists = (exists ||
+                this.areSameLists(finding.Resources ?? [], f.Resources ?? []));
         });
         return exists;
     }
@@ -60588,7 +60600,9 @@ class SecurityHubJiraSync {
         // Add new findings not found in previousFindings
         shFindings.forEach(finding => {
             console.log(finding.title);
-            if (finding.title && !existingTitles.has(finding.title)) {
+            if (finding.title &&
+                !existingTitles.has(finding.title) &&
+                !this.inAlreadyInNew(finding, newFindings)) {
                 newFindings.push(finding);
             }
         });
