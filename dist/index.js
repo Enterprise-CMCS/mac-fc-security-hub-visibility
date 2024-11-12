@@ -60483,7 +60483,6 @@ class SecurityHubJiraSync {
         const finalList = [];
         arr.forEach(finding => {
             const title = finding.title ?? '';
-            console.log(finding.title, seen);
             if (seen[title] >= 0) {
                 const i = seen[title];
                 finalList[i] = {
@@ -60549,7 +60548,6 @@ class SecurityHubJiraSync {
             ? this.testFindings.map((finding) => this.securityHub.awsSecurityFindingToSecurityHubFinding(finding))
             : await this.securityHub.getAllActiveFindings();
         const shFindings = Object.values(shFindingsObj).map(finding => {
-            console.log(finding);
             if (finding.ProductName?.toLowerCase().includes('default') &&
                 finding.CompanyName?.toLowerCase().includes('tenable')) {
                 return {
@@ -60559,7 +60557,6 @@ class SecurityHubJiraSync {
             }
             return finding;
         });
-        console.log(shFindings);
         // Step 3. Close existing Jira issues if their finding is no longer active/current
         const previousFindings = [];
         const newFindings = [];
@@ -60599,7 +60596,6 @@ class SecurityHubJiraSync {
         });
         // Add new findings not found in previousFindings
         shFindings.forEach(finding => {
-            console.log(finding.title);
             if (finding.title &&
                 !existingTitles.has(finding.title) &&
                 !this.inAlreadyInNew(finding, newFindings)) {
