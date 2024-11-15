@@ -15,10 +15,9 @@
 
   
 
--  **To avoid duplicate issues**, the search criteria use default settings for three primary identifiers: region, AWS account ID, and "security-hub," along with any custom label configurations provided (Note that modifications or deletions of labels may lead to duplicate issue creation). Additionally, a comparison of the Jira issue description and finding title is made against the findings list. If there is a title match, the decision is based on the Resources list. 
+-  **To avoid duplicate issues**, the search criteria use default settings for three primary label identifiers: region label, AWS account ID label, and a label "security-hub" along with any custom label configurations provided (see jira-labels-config for example). Additionally, a comparison of the Jira issue description and finding title is made against the findings list. If there is a title match, the decision is based on the Resources list. 
+***Note that modifications or deletions of labels may lead to duplicate issue creation***
 - For example, if a Jira ticket T1 already exists for a finding with title T1, and a new finding appears with the same title T1 but a different Resources list, the implementation treats these as distinct, resulting in two tickets with the same title but different resources. 
-
-  
 
 3. Closes existing Jira issues in the target project if their associated findings are no longer active. For findings with the same title, closure is determined based on the resources’ presence. For example, if there are two tickets for finding T2 with different resources, `r1` and `r2`, and `r1` is no longer present, then only the T2 ticket with `r1` will be closed
 
@@ -527,6 +526,9 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
 **Description:** Specifies a stringified configuration for labels to be applied to the Jira issue. Labels are used to categorize and tag issues, making them easier to search and filter.
 
+Example: `jira-labels-config:` `"[{\"labelField\":\"ProductName\",\"labelPrefix\":\"product\",\"labelDelimiter\":\":\"},{\"labelField\":\"severity\"},{\"labelField\":\"accountId\",\"labelDelimiter\":\":\",\"labelPrefix\":\"account\"},{\"labelField\":\"region\"}]"`
+
+Result of the custom labeling above the labels on the issues created will be: "product:Tenable" "High" "account:abc123" "us-east-1"
   
 
 ### `jira-watchers`
@@ -545,7 +547,7 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
   
 
-### `jira-watchers`
+### `jira-add-labels`
 
   
 
@@ -559,18 +561,20 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
 **Description:** Comma separated list of Labels to be added on newly created issues.
 
-## jira-consolidate-tickets
+
+## `jira-consolidate-tickets`
+
 **Required: No**
 
   
 
 **Default Value: false**
 
-  
-
 **Description:** a boolean (true/false) to enable/disable the ticket consolidation per run
   
-  ## test-findings
+
+## `test-findings`
+
 **Required: No**  
 
 **Default Value: ''**
@@ -578,7 +582,5 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 **Description:** JSON string of raw findings list 
 
 ## Local Testing
-
-  
 
 See test-infrastructure/jira-container/README.md for instructions on how to run against local Jira container
