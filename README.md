@@ -17,7 +17,8 @@
 
 -  **To avoid duplicate issues**, the search criteria use default settings for three primary label identifiers: region label, AWS account ID label, and a label "security-hub" along with any custom label configurations provided (see jira-labels-config for example). Additionally, a comparison of the Jira issue description and finding title is made against the findings list. If there is a title match, the decision is based on the Resources list. 
 
-``***Note that modifications or deletions of labels may lead to duplicate issue creation***``
+***Note that modifications or deletions of labels may lead to duplicate issue creation***
+
 - For example, if a Jira ticket T1 already exists for a finding with title T1, and a new finding appears with the same title T1 but a different Resources list, the implementation treats these as distinct, resulting in two tickets with the same title but different resources. 
 
 3. Closes existing Jira issues in the target project if their associated findings are no longer active. For findings with the same title, closure is determined based on the resources’ presence. For example, if there are two tickets for finding T2 with different resources, `r1` and `r2`, and `r1` is no longer present, then only the T2 ticket with `r1` will be closed
