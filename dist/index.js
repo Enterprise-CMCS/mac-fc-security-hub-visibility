@@ -60602,7 +60602,7 @@ class SecurityHubJiraSync {
                 newFindings.push(finding);
             }
         });
-        console.log('previous findings', previousFindings, existingTitles);
+        console.log('previous findings', previousFindings);
         updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, previousFindings)));
         console.log('new Findings', newFindings);
         let consolidationCandidates = newFindings;
@@ -60702,7 +60702,6 @@ class SecurityHubJiraSync {
         return updatesForReturn;
     }
     makeResourceList(resources) {
-        console.log('Resources: ', resources?.length);
         if (!resources) {
             return `No Resources`;
         }
@@ -60904,7 +60903,6 @@ class SecurityHubJiraSync {
         }
         let newIssueInfo;
         try {
-            console.log(newIssueData);
             newIssueInfo = await this.jira.createNewIssue(newIssueData);
             const issue_id = this.jiraLinkId;
             if (issue_id) {
@@ -60914,7 +60912,6 @@ class SecurityHubJiraSync {
             }
         }
         catch (e) {
-            console.log(JSON.stringify(finding));
             throw new Error(`Error creating Jira issue from finding: ${(0, index_1.extractErrorMessage)(e)}`);
         }
         return {

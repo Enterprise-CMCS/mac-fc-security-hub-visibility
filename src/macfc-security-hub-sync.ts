@@ -242,7 +242,7 @@ export class SecurityHubJiraSync {
       }
     })
 
-    console.log('previous findings', previousFindings, existingTitles)
+    console.log('previous findings', previousFindings)
     updatesForReturn.push(
       ...(await this.closeIssuesForResolvedFindings(
         jiraIssues,
@@ -374,7 +374,6 @@ export class SecurityHubJiraSync {
     return updatesForReturn
   }
   makeResourceList(resources: Resource[] | undefined) {
-    console.log('Resources: ', resources?.length)
     if (!resources) {
       return `No Resources`
     }
@@ -633,7 +632,6 @@ export class SecurityHubJiraSync {
     }
     let newIssueInfo
     try {
-      console.log(newIssueData)
       newIssueInfo = await this.jira.createNewIssue(newIssueData)
       const issue_id = this.jiraLinkId
       if (issue_id) {
@@ -647,7 +645,6 @@ export class SecurityHubJiraSync {
         )
       }
     } catch (e: unknown) {
-      console.log(JSON.stringify(finding))
       throw new Error(
         `Error creating Jira issue from finding: ${extractErrorMessage(e)}`
       )
