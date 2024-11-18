@@ -270,24 +270,7 @@ The **Full Transition Handling** feature operates automatically when the `jira-t
 
 For example If there's a workflow which has following transition rules
 
-  
-
-```
-
-Cancel <---
-
-|
-
-To-Do -> Progress -> Worked
-
-^ |
-
-| |
-
----------------------
-
-```
-
+![Workflow](image.png)
   
 
 In this example:
