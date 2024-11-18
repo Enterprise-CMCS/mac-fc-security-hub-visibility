@@ -117,7 +117,7 @@ export class SecurityHubJiraSync {
     }
     return false
   }
-  inAlreadyInNew(finding: SecurityHubFinding, List: SecurityHubFinding[]) {
+  isAlreadyInNew(finding: SecurityHubFinding, List: SecurityHubFinding[]) {
     const filtered = List.filter(
       f => finding.title && f.title?.includes(finding.title)
     )
@@ -215,7 +215,7 @@ export class SecurityHubJiraSync {
           } else {
             if (
               this.isNewFinding(finding, jiraIssues) &&
-              !this.inAlreadyInNew(finding, newFindings)
+              !this.isAlreadyInNew(finding, newFindings)
             ) {
               newFindings.push(finding)
             }
@@ -236,7 +236,7 @@ export class SecurityHubJiraSync {
       if (
         finding.title &&
         !existingTitles.has(finding.title) &&
-        !this.inAlreadyInNew(finding, newFindings)
+        !this.isAlreadyInNew(finding, newFindings)
       ) {
         newFindings.push(finding)
       }

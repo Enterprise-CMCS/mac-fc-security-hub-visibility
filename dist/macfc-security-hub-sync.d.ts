@@ -44,7 +44,7 @@ export declare class SecurityHubJiraSync {
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
     consolidateTickets(arr: SecurityHubFinding[]): SecurityHubFinding[];
     areSameLists(A: Resource[], B: Resource[]): boolean;
-    inAlreadyInNew(finding: SecurityHubFinding, List: SecurityHubFinding[]): boolean;
+    isAlreadyInNew(finding: SecurityHubFinding, List: SecurityHubFinding[]): boolean;
     isNewFinding(finding: SecurityHubFinding, issues: Issue[]): boolean;
     sync(): Promise<void>;
     getAWSAccountID(): Promise<string>;

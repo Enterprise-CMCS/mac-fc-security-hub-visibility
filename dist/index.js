@@ -60516,7 +60516,7 @@ class SecurityHubJiraSync {
         }
         return false;
     }
-    inAlreadyInNew(finding, List) {
+    isAlreadyInNew(finding, List) {
         const filtered = List.filter(f => finding.title && f.title?.includes(finding.title));
         if (!filtered.length) {
             return false;
@@ -60583,7 +60583,7 @@ class SecurityHubJiraSync {
                     }
                     else {
                         if (this.isNewFinding(finding, jiraIssues) &&
-                            !this.inAlreadyInNew(finding, newFindings)) {
+                            !this.isAlreadyInNew(finding, newFindings)) {
                             newFindings.push(finding);
                         }
                     }
@@ -60598,7 +60598,7 @@ class SecurityHubJiraSync {
         shFindings.forEach(finding => {
             if (finding.title &&
                 !existingTitles.has(finding.title) &&
-                !this.inAlreadyInNew(finding, newFindings)) {
+                !this.isAlreadyInNew(finding, newFindings)) {
                 newFindings.push(finding);
             }
         });
