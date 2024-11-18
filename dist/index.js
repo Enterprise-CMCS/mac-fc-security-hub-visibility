@@ -60960,8 +60960,7 @@ class SecurityHubJiraSync {
                     updatesForReturn.push(update);
                 }
                 catch (e) {
-                    console.log(e);
-                    console.log('Moving forward with next findings');
+                    console.log('Moving forward with next findings', e);
                 }
             }
         }
