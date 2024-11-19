@@ -8,12 +8,12 @@ export interface JiraConfig {
     jiraAssignee?: string;
     jiraWatchers?: string;
     jiraAddLabels?: string;
-    testFindings?: string;
+    testFindingsData?: string;
     transitionMap: Array<{
         status: string;
         transition: string;
     }>;
-    dryRun: boolean;
+    dryRunTestData: boolean;
     jiraLinkId?: string;
     jiraLinkType?: string;
     jiraLinkDirection?: string;

@@ -50,8 +50,8 @@ inputs:
     description: 'a boolean to support auto closing for issue'
     required: false
     # Application Default - true
-  dry-run:
-    description: 'a boolean to support dry run'
+  dry-run-test-data:
+    description: 'a boolean to support dry run of tickets creation'
     required: false
     # Application Default - false
   jira-link-id:
@@ -75,7 +75,7 @@ inputs:
   jira-consolidate-tickets:
     description: "True/False value to enable/disable the consolidation of tickets"
     required: false
-  test-findings:
+  test-findings-data:
     description: "JSON string of findings list"
     required: false
 runs:

@@ -59695,10 +59695,10 @@ async function run() {
             jiraIgnoreStatuses: getDefaultInputOrEnv('jira-ignore-statuses', 'JIRA_IGNORE_STATUSES', 'Done, Closed, Resolved'),
             jiraWatchers: getDefaultInputOrEnv('jira-watchers', 'JIRA_WATCHERS', ''),
             jiraAddLabels: getDefaultInputOrEnv('jira-add-labels', 'JIRA_ADD_LABELS', ''),
-            testFindings: getDefaultInputOrEnv('test-findings', 'TEST_FINDINGS', ''),
+            testFindingsData: getDefaultInputOrEnv('test-findings-data', 'TEST_FINDINGS_DATA', ''),
             jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
             transitionMap: transitionMap,
-            dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false),
+            dryRunTestData: getInputOrEnvAndConvertToBool('dry-run-test-data', 'DRY_RUN_TEST_DATA', false),
             jiraLinkId: getInputOrEnv('jira-link-id', 'JIRA_LINK_ID'),
             jiraLinkType: getDefaultInputOrEnv('jira-link-type', 'JIRA_LINK_TYPE', 'Relates'),
             jiraLinkDirection: getDefaultInputOrEnv('jira-link-direction', 'JIRA_LINK_DIRECTION', 'inward'),
@@ -59837,7 +59837,7 @@ class Jira {
         this.jiraWatchers = jiraConfig.jiraWatchers
             ?.split(',')
             .map(watcher => watcher.trim());
-        this.isDryRun = jiraConfig.dryRun;
+        this.isDryRun = jiraConfig.dryRunTestData;
         if (jiraConfig.jiraLabelsConfig) {
             this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
         }
@@ -60537,8 +60537,8 @@ class SecurityHubJiraSync {
         if (securityHubConfig.consolidateTickets) {
             this.jiraConsolidateTickets = securityHubConfig.consolidateTickets;
         }
-        if (jiraConfig.testFindings) {
-            this.testFindings = JSON.parse(jiraConfig.testFindings);
+        if (jiraConfig.testFindingsData) {
+            this.testFindings = JSON.parse(jiraConfig.testFindingsData);
             console.log('parsed', this.testFindings);
         }
     }

@@ -14,9 +14,9 @@ export interface JiraConfig {
   jiraAssignee?: string
   jiraWatchers?: string
   jiraAddLabels?: string
-  testFindings?: string
+  testFindingsData?: string
   transitionMap: Array<{status: string; transition: string}>
-  dryRun: boolean
+  dryRunTestData: boolean
   jiraLinkId?: string
   jiraLinkType?: string
   jiraLinkDirection?: string
@@ -116,7 +116,7 @@ export class Jira {
     this.jiraWatchers = jiraConfig.jiraWatchers
       ?.split(',')
       .map(watcher => watcher.trim())
-    this.isDryRun = jiraConfig.dryRun
+    this.isDryRun = jiraConfig.dryRunTestData
     if (jiraConfig.jiraLabelsConfig) {
       this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig)
     }

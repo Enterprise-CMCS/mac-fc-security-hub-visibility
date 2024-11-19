@@ -558,13 +558,13 @@ Result of the custom labeling above the labels on the issues created will be: "p
 **Description:** a boolean (true/false) to enable/disable the ticket consolidation per run
   
 
-## `test-findings`
+## `test-findings-data`
 
 **Required: No**  
 
 **Default Value: ''**
 
-**Description:** JSON string of raw findings list 
+**Description:** JSON string of raw findings list to test security hub jira sync
 
 ## Local Testing
 

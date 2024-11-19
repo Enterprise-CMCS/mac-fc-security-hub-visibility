@@ -151,10 +151,18 @@ async function run(): Promise<void> {
         'JIRA_ADD_LABELS',
         ''
       ),
-      testFindings: getDefaultInputOrEnv('test-findings', 'TEST_FINDINGS', ''),
+      testFindingsData: getDefaultInputOrEnv(
+        'test-findings-data',
+        'TEST_FINDINGS_DATA',
+        ''
+      ),
       jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
       transitionMap: transitionMap,
-      dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false),
+      dryRunTestData: getInputOrEnvAndConvertToBool(
+        'dry-run-test-data',
+        'DRY_RUN_TEST_DATA',
+        false
+      ),
       jiraLinkId: getInputOrEnv('jira-link-id', 'JIRA_LINK_ID'),
       jiraLinkType: getDefaultInputOrEnv(
         'jira-link-type',
