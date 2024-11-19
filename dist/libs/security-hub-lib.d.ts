@@ -28,23 +28,10 @@ export declare class SecurityHub {
     private skipProducts?;
     constructor(securityHubJiraSyncConfig: SecurityHubJiraSyncConfig);
     private getAccountAlias;
-    getAllActiveFindings(): Promise<{
-        id?: string;
-        title?: string;
-        region?: string;
-        accountAlias: string;
-        awsAccountId?: string;
-        severity?: string;
-        description?: string;
-        standardsControlArn?: string;
-        remediation?: Remediation;
-        ProductName?: string;
-        Resources?: Resource[];
-        Type?: string;
-        CompanyName?: string;
-        ProviderName?: string;
-        ProviderVersion?: string;
-        CVE?: string;
-    }[]>;
+    private querySecurityHubFindings;
+    private buildActiveFindingsFilters;
+    private buildSkipProductsFilter;
+    private fetchPaginatedFindings;
+    getAllActiveFindings(): Promise<SecurityHubFinding[]>;
     awsSecurityFindingToSecurityHubFinding(finding: AwsSecurityFinding): SecurityHubFinding;
 }

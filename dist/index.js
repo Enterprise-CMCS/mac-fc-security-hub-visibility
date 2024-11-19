@@ -60304,7 +60304,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SecurityHub = void 0;
 const client_iam_1 = __nccwpck_require__(26276);
 const client_securityhub_1 = __nccwpck_require__(93978);
-const index_1 = __nccwpck_require__(6144);
 class SecurityHub {
     region;
     severityLabels;
@@ -60330,70 +60329,135 @@ class SecurityHub {
         const response = await iamClient.send(new client_iam_1.ListAccountAliasesCommand({}));
         this.accountAlias = response.AccountAliases?.[0] || '';
     }
-    async getAllActiveFindings() {
+    async querySecurityHubFindings(filters, maxResults = 100, nextToken = undefined) {
         try {
             const securityHubClient = new client_securityhub_1.SecurityHubClient({ region: this.region });
-            const currentTime = new Date();
-            // delay for filtering out ephemeral issues
-            const delayForNewIssues = +this.newIssueDelay;
-            const maxDatetime = new Date(currentTime.getTime() - delayForNewIssues);
-            const filters = {
-                RecordState: [{ Comparison: 'EQUALS', Value: 'ACTIVE' }],
-                WorkflowStatus: [
-                    { Comparison: 'EQUALS', Value: 'NEW' },
-                    { Comparison: 'EQUALS', Value: 'NOTIFIED' }
-                ],
-                SeverityLabel: this.severityLabels,
-                CreatedAt: [
-                    {
-                        Start: '1970-01-01T00:00:00Z',
-                        End: maxDatetime.toISOString()
-                    }
-                ]
-            };
+            // Send the query to Security Hub
+            const response = await securityHubClient.send(new client_securityhub_1.GetFindingsCommand({
+                Filters: filters,
+                MaxResults: maxResults,
+                NextToken: nextToken
+            }));
+            // Map the findings using awsSecurityFindingToSecurityHubFinding function
+            const findings = response.Findings
+                ? response.Findings.map(this.awsSecurityFindingToSecurityHubFinding.bind(this))
+                : [];
+            // Return findings and the next token for pagination
+            return { findings, nextToken: response.NextToken };
+        }
+        catch (error) {
+            throw new Error(`Error querying Security Hub findings: ${error.message}`);
+        }
+    }
+    buildActiveFindingsFilters() {
+        const currentTime = new Date();
+        const maxDatetime = new Date(currentTime.getTime() - (parseInt(this.newIssueDelay) ?? 0)); // Adjust for ephemeral issues
+        return {
+            RecordState: [{ Comparison: 'EQUALS', Value: 'ACTIVE' }],
+            WorkflowStatus: [
+                { Comparison: 'EQUALS', Value: 'NEW' },
+                { Comparison: 'EQUALS', Value: 'NOTIFIED' }
+            ],
+            SeverityLabel: this.severityLabels,
+            CreatedAt: [
+                {
+                    Start: '1970-01-01T00:00:00Z',
+                    End: maxDatetime.toISOString()
+                }
+            ]
+        };
+    }
+    buildSkipProductsFilter() {
+        const skipFilters = [];
+        let skipDefault = false;
+        let skipTenable = false;
+        this.skipProducts?.forEach(product => {
+            if (['Default', 'Tenable'].includes(product)) {
+                if (product == 'Default') {
+                    skipDefault = true;
+                }
+                if (product == 'Tenable') {
+                    skipTenable = true;
+                }
+            }
+            else {
+                skipFilters.push({ Comparison: 'NOT_EQUALS', Value: product });
+            }
+        });
+        // Apply the logic to exclude products as per the original requirements
+        if (skipDefault && skipTenable) {
+            skipFilters.push({ Comparison: 'NOT_EQUALS', Value: 'Default' });
+        }
+        return { skipDefault, skipTenable, skipFilters };
+    }
+    async fetchPaginatedFindings(filters) {
+        let allFindings = [];
+        let nextToken;
+        // Loop to handle pagination
+        do {
+            const { findings, nextToken: token } = await this.querySecurityHubFindings(filters, 100, nextToken);
+            allFindings = allFindings.concat(findings);
+            nextToken = token;
+        } while (nextToken);
+        return allFindings;
+    }
+    async getAllActiveFindings() {
+        try {
+            // Build the base filters for active findings
+            const filters = this.buildActiveFindingsFilters();
+            const skipConfig = { default: false, tenable: false };
+            // Apply the skip products filter if needed
+            if (this.skipProducts && this.skipProducts.length > 0) {
+                const { skipDefault, skipTenable, skipFilters } = this.buildSkipProductsFilter();
+                skipConfig.default = skipDefault;
+                skipConfig.tenable = skipTenable;
+                filters.ProductName = skipFilters;
+            }
+            // Apply the "Security Hub" product filter if includeAllProducts is not true
             if (this.includeAllProducts !== true) {
                 filters.ProductName = [{ Comparison: 'EQUALS', Value: 'Security Hub' }];
             }
-            if (this.skipProducts) {
-                this.skipProducts.forEach((product) => {
-                    if (!filters.ProductName) {
-                        filters.ProductName = [];
-                    }
-                    filters.ProductName?.push({
-                        Comparison: 'NOT_EQUALS',
-                        Value: product
-                    });
-                });
-            }
-            const shFindings = [];
-            // use a variable to track pagination
-            let nextToken = undefined;
-            do {
-                const response = await securityHubClient.send(new client_securityhub_1.GetFindingsCommand({
-                    Filters: filters,
-                    MaxResults: 100, // this is the maximum allowed per page
-                    NextToken: nextToken
-                }));
-                if (response && response.Findings) {
-                    for (const finding of response.Findings) {
-                        const findingForJira = this.awsSecurityFindingToSecurityHubFinding(finding);
-                        shFindings.push(findingForJira);
-                    }
+            // Fetch all findings across multiple pages
+            let allFindings = await this.fetchPaginatedFindings(filters);
+            if (!(skipConfig.default && skipConfig.tenable) &&
+                !skipConfig.default &&
+                !skipConfig.tenable) {
+                if (skipConfig.default) {
+                    filters.ProductName = [
+                        {
+                            Value: 'Default',
+                            Comparison: 'EQUALS'
+                        }
+                    ];
+                    filters.ProductFields = [
+                        {
+                            Key: 'CompanyName',
+                            Value: 'Tenable',
+                            Comparison: 'NOT_EQUALS'
+                        }
+                    ];
                 }
-                if (response && response.NextToken)
-                    nextToken = response.NextToken;
-                else
-                    nextToken = undefined;
-            } while (nextToken);
-            return shFindings.map(finding => {
-                return {
-                    accountAlias: this.accountAlias,
-                    ...finding
-                };
-            });
+                else {
+                    filters.ProductName = [];
+                    filters.ProductFields = [
+                        {
+                            Key: 'CompanyName',
+                            Value: 'Tenable',
+                            Comparison: 'EQUALS'
+                        }
+                    ];
+                }
+                const extFindings = await this.fetchPaginatedFindings(filters);
+                allFindings = [...extFindings, ...allFindings];
+            }
+            // Return findings with account alias and any additional information
+            return allFindings.map(finding => ({
+                accountAlias: this.accountAlias,
+                ...finding
+            }));
         }
         catch (error) {
-            throw new Error(`Error getting Security Hub findings: ${(0, index_1.extractErrorMessage)(error)}`);
+            throw new Error(`Error getting active findings: ${error.message}`);
         }
     }
     awsSecurityFindingToSecurityHubFinding(finding) {
