@@ -187,8 +187,7 @@ export class SecurityHub {
 
       if (
         !(skipConfig.default && skipConfig.tenable) &&
-        !skipConfig.default &&
-        !skipConfig.tenable
+        !(!skipConfig.default && !skipConfig.tenable)
       ) {
         if (skipConfig.default) {
           filters.ProductName = [

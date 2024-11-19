@@ -60420,8 +60420,7 @@ class SecurityHub {
             // Fetch all findings across multiple pages
             let allFindings = await this.fetchPaginatedFindings(filters);
             if (!(skipConfig.default && skipConfig.tenable) &&
-                !skipConfig.default &&
-                !skipConfig.tenable) {
+                !(!skipConfig.default && !skipConfig.tenable)) {
                 if (skipConfig.default) {
                     filters.ProductName = [
                         {
