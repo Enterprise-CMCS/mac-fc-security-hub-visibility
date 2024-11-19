@@ -185,7 +185,7 @@ export class SecurityHub {
       // Fetch all findings across multiple pages
       let allFindings = await this.fetchPaginatedFindings(filters)
 
-      if (skipConfig.default && !skipConfig.tenable) {
+      if (!skipConfig.default && skipConfig.tenable) {
         filters.ProductName = [
           {
             Value: 'Default',
@@ -199,7 +199,7 @@ export class SecurityHub {
             Comparison: 'NOT_EQUALS'
           }
         ]
-      } else if (skipConfig.tenable && !skipConfig.default) {
+      } else if (!skipConfig.tenable && skipConfig.default) {
         filters.ProductName = []
         filters.ProductFields = [
           {
