@@ -136,7 +136,7 @@ export class SecurityHub {
     })
 
     // Apply the logic to exclude products as per the original requirements
-    if (skipDefault && skipTenable) {
+    if (skipDefault || skipTenable) {
       skipFilters.push({Comparison: 'NOT_EQUALS', Value: 'Default'})
     }
 
@@ -185,37 +185,32 @@ export class SecurityHub {
       // Fetch all findings across multiple pages
       let allFindings = await this.fetchPaginatedFindings(filters)
 
-      if (
-        !(skipConfig.default && skipConfig.tenable) &&
-        !(!skipConfig.default && !skipConfig.tenable)
-      ) {
-        if (skipConfig.default) {
-          filters.ProductName = [
-            {
-              Value: 'Default',
-              Comparison: 'EQUALS'
-            }
-          ]
-          filters.ProductFields = [
-            {
-              Key: 'CompanyName',
-              Value: 'Tenable',
-              Comparison: 'NOT_EQUALS'
-            }
-          ]
-        } else {
-          filters.ProductName = []
-          filters.ProductFields = [
-            {
-              Key: 'CompanyName',
-              Value: 'Tenable',
-              Comparison: 'EQUALS'
-            }
-          ]
-        }
-        const extFindings = await this.fetchPaginatedFindings(filters)
-        allFindings = [...extFindings, ...allFindings]
+      if (skipConfig.default && !skipConfig.tenable) {
+        filters.ProductName = [
+          {
+            Value: 'Default',
+            Comparison: 'EQUALS'
+          }
+        ]
+        filters.ProductFields = [
+          {
+            Key: 'CompanyName',
+            Value: 'Tenable',
+            Comparison: 'NOT_EQUALS'
+          }
+        ]
+      } else if (skipConfig.tenable && !skipConfig.default) {
+        filters.ProductName = []
+        filters.ProductFields = [
+          {
+            Key: 'CompanyName',
+            Value: 'Tenable',
+            Comparison: 'EQUALS'
+          }
+        ]
       }
+      const extFindings = await this.fetchPaginatedFindings(filters)
+      allFindings = [...extFindings, ...allFindings]
 
       // Return findings with account alias and any additional information
       return allFindings.map(finding => ({
