@@ -23,6 +23,11 @@ export interface SecurityHubFinding {
   remediation?: Remediation
   ProductName?: string
   Resources?: Resource[]
+  Type?: string
+  CompanyName?: string
+  ProviderName?: string
+  ProviderVersion?: string
+  CVE?: string
   [key: string]: string | unknown
 }
 
@@ -55,80 +60,166 @@ export class SecurityHub {
     const response = await iamClient.send(new ListAccountAliasesCommand({}))
     this.accountAlias = response.AccountAliases?.[0] || ''
   }
-
-  async getAllActiveFindings() {
+  private async querySecurityHubFindings(
+    filters: AwsSecurityFindingFilters,
+    maxResults: number = 100,
+    nextToken: string | undefined = undefined
+  ): Promise<{findings: SecurityHubFinding[]; nextToken: string | undefined}> {
     try {
       const securityHubClient = new SecurityHubClient({region: this.region})
 
-      const currentTime = new Date()
+      // Send the query to Security Hub
+      const response: GetFindingsCommandOutput = await securityHubClient.send(
+        new GetFindingsCommand({
+          Filters: filters,
+          MaxResults: maxResults,
+          NextToken: nextToken
+        })
+      )
 
-      // delay for filtering out ephemeral issues
-      const delayForNewIssues = +this.newIssueDelay
-      const maxDatetime = new Date(currentTime.getTime() - delayForNewIssues)
+      // Map the findings using awsSecurityFindingToSecurityHubFinding function
+      const findings = response.Findings
+        ? response.Findings.map(
+            this.awsSecurityFindingToSecurityHubFinding.bind(this)
+          )
+        : []
 
-      const filters: AwsSecurityFindingFilters = {
-        RecordState: [{Comparison: 'EQUALS', Value: 'ACTIVE'}],
-        WorkflowStatus: [
-          {Comparison: 'EQUALS', Value: 'NEW'},
-          {Comparison: 'EQUALS', Value: 'NOTIFIED'}
-        ],
-        SeverityLabel: this.severityLabels,
-        CreatedAt: [
-          {
-            Start: '1970-01-01T00:00:00Z',
-            End: maxDatetime.toISOString()
-          }
-        ]
+      // Return findings and the next token for pagination
+      return {findings, nextToken: response.NextToken}
+    } catch (error) {
+      throw new Error(
+        `Error querying Security Hub findings: ${(error as Error).message}`
+      )
+    }
+  }
+  private buildActiveFindingsFilters(): AwsSecurityFindingFilters {
+    const currentTime = new Date()
+    const maxDatetime = new Date(
+      currentTime.getTime() - (parseInt(this.newIssueDelay) ?? 0)
+    ) // Adjust for ephemeral issues
+
+    return {
+      RecordState: [{Comparison: 'EQUALS', Value: 'ACTIVE'}],
+      WorkflowStatus: [
+        {Comparison: 'EQUALS', Value: 'NEW'},
+        {Comparison: 'EQUALS', Value: 'NOTIFIED'}
+      ],
+      SeverityLabel: this.severityLabels,
+      CreatedAt: [
+        {
+          Start: '1970-01-01T00:00:00Z',
+          End: maxDatetime.toISOString()
+        }
+      ]
+    }
+  }
+  private buildSkipProductsFilter(): {
+    skipDefault: boolean
+    skipTenable: boolean
+    skipFilters: {Comparison: string; Value: string}[]
+  } {
+    const skipFilters: {Comparison: string; Value: string}[] = []
+    let skipDefault = false
+    let skipTenable = false
+
+    this.skipProducts?.forEach(product => {
+      if (['Default', 'Tenable'].includes(product)) {
+        if (product == 'Default') {
+          skipDefault = true
+        }
+        if (product == 'Tenable') {
+          skipTenable = true
+        }
+      } else {
+        skipFilters.push({Comparison: 'NOT_EQUALS', Value: product})
       }
+    })
+
+    // Apply the logic to exclude products as per the original requirements
+    if (skipDefault || skipTenable) {
+      skipFilters.push({Comparison: 'NOT_EQUALS', Value: 'Default'})
+    }
+
+    return {skipDefault, skipTenable, skipFilters}
+  }
+
+  private async fetchPaginatedFindings(
+    filters: AwsSecurityFindingFilters
+  ): Promise<SecurityHubFinding[]> {
+    let allFindings: SecurityHubFinding[] = []
+    let nextToken: string | undefined
+
+    // Loop to handle pagination
+    do {
+      const {findings, nextToken: token} = await this.querySecurityHubFindings(
+        filters,
+        100,
+        nextToken
+      )
+      allFindings = allFindings.concat(findings)
+      nextToken = token
+    } while (nextToken)
+
+    return allFindings
+  }
+
+  public async getAllActiveFindings(): Promise<SecurityHubFinding[]> {
+    try {
+      // Build the base filters for active findings
+      const filters = this.buildActiveFindingsFilters()
+      const skipConfig = {default: false, tenable: false}
+      // Apply the skip products filter if needed
+      if (this.skipProducts && this.skipProducts.length > 0) {
+        const {skipDefault, skipTenable, skipFilters} =
+          this.buildSkipProductsFilter()
+        skipConfig.default = skipDefault
+        skipConfig.tenable = skipTenable
+        filters.ProductName = skipFilters
+      }
+
+      // Apply the "Security Hub" product filter if includeAllProducts is not true
       if (this.includeAllProducts !== true) {
         filters.ProductName = [{Comparison: 'EQUALS', Value: 'Security Hub'}]
       }
-      if (this.skipProducts) {
-        this.skipProducts.forEach((product: string) => {
-          if (!filters.ProductName) {
-            filters.ProductName = []
+
+      // Fetch all findings across multiple pages
+      let allFindings = await this.fetchPaginatedFindings(filters)
+
+      if (!skipConfig.default && skipConfig.tenable) {
+        filters.ProductName = [
+          {
+            Value: 'Default',
+            Comparison: 'EQUALS'
           }
-          filters.ProductName?.push({
-            Comparison: 'NOT_EQUALS',
-            Value: product
-          })
-        })
+        ]
+        filters.ProductFields = [
+          {
+            Key: 'CompanyName',
+            Value: 'Tenable',
+            Comparison: 'NOT_EQUALS'
+          }
+        ]
+      } else if (!skipConfig.tenable && skipConfig.default) {
+        filters.ProductName = []
+        filters.ProductFields = [
+          {
+            Key: 'CompanyName',
+            Value: 'Tenable',
+            Comparison: 'EQUALS'
+          }
+        ]
       }
-      // use an object to store unique findings by title
-      const uniqueFindings: {[title: string]: SecurityHubFinding} = {}
+      const extFindings = await this.fetchPaginatedFindings(filters)
+      allFindings = [...extFindings, ...allFindings]
 
-      // use a variable to track pagination
-      let nextToken: string | undefined = undefined
-
-      do {
-        const response: GetFindingsCommandOutput = await securityHubClient.send(
-          new GetFindingsCommand({
-            Filters: filters,
-            MaxResults: 100, // this is the maximum allowed per page
-            NextToken: nextToken
-          })
-        )
-        if (response && response.Findings) {
-          for (const finding of response.Findings) {
-            const findingForJira =
-              this.awsSecurityFindingToSecurityHubFinding(finding)
-            if (findingForJira.title)
-              uniqueFindings[findingForJira.title] = findingForJira
-          }
-        }
-        if (response && response.NextToken) nextToken = response.NextToken
-        else nextToken = undefined
-      } while (nextToken)
-
-      return Object.values(uniqueFindings).map(finding => {
-        return {
-          accountAlias: this.accountAlias,
-          ...finding
-        }
-      })
-    } catch (error: unknown) {
+      // Return findings with account alias and any additional information
+      return allFindings.map(finding => ({
+        accountAlias: this.accountAlias,
+        ...finding
+      }))
+    } catch (error) {
       throw new Error(
-        `Error getting Security Hub findings: ${extractErrorMessage(error)}`
+        `Error getting active findings: ${(error as Error).message}`
       )
     }
   }
@@ -154,7 +245,12 @@ export class SecurityHub {
           : '',
       remediation: finding.Remediation,
       ProductName: finding.ProductName,
-      Resources: finding.Resources
+      Resources: finding.Resources,
+      Type: finding.ProductFields?.Type,
+      ProviderName: finding.ProductFields?.ProviderName,
+      ProviderVersion: finding.ProductFields?.ProviderVersion,
+      CompanyName: finding.ProductFields?.CompanyName,
+      CVE: finding.ProductFields?.CVE
     }
   }
 }

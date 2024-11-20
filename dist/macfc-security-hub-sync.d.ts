@@ -18,6 +18,7 @@ export interface SecurityHubJiraSyncConfig {
     newIssueDelay: string;
     skipProducts?: string;
     includeAllProducts: boolean;
+    consolidateTickets: boolean;
 }
 export interface SecurityHubJiraSyncConfig {
     region: string;
@@ -38,11 +39,19 @@ export declare class SecurityHubJiraSync {
     private jiraLinkDirection?;
     private jiraLabelsConfig?;
     private jiraAddLabels?;
+    private jiraConsolidateTickets?;
+    private testFindings;
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
+    consolidateTickets(arr: SecurityHubFinding[]): SecurityHubFinding[];
+    areSameLists(A: Resource[], B: Resource[]): boolean;
+    isAlreadyInNew(finding: SecurityHubFinding, List: SecurityHubFinding[]): boolean;
+    isNewFinding(finding: SecurityHubFinding, issues: Issue[]): boolean;
     sync(): Promise<void>;
     getAWSAccountID(): Promise<string>;
+    shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]): boolean;
     closeIssuesForResolvedFindings(jiraIssues: Issue[], shFindings: SecurityHubFinding[]): Promise<UpdateForReturn[]>;
     makeResourceList(resources: Resource[] | undefined): string;
+    makeProductFieldSection(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrlThroughFilters(findingId: string): string;
     createIssueBody(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrl(standardsControlArn?: string): string;
@@ -53,6 +62,7 @@ export declare class SecurityHubJiraSync {
         webUrl: string;
         summary: string;
     }>;
+    shouldCreateIssue(finding: SecurityHubFinding, jiraIssues: Issue[]): boolean;
     createJiraIssuesForNewFindings(jiraIssues: Issue[], shFindings: SecurityHubFinding[], identifyingLabels: string[]): Promise<UpdateForReturn[]>;
 }
 export {};

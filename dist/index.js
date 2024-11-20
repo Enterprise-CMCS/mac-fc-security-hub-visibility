@@ -59695,9 +59695,10 @@ async function run() {
             jiraIgnoreStatuses: getDefaultInputOrEnv('jira-ignore-statuses', 'JIRA_IGNORE_STATUSES', 'Done, Closed, Resolved'),
             jiraWatchers: getDefaultInputOrEnv('jira-watchers', 'JIRA_WATCHERS', ''),
             jiraAddLabels: getDefaultInputOrEnv('jira-add-labels', 'JIRA_ADD_LABELS', ''),
+            testFindingsData: getDefaultInputOrEnv('test-findings-data', 'TEST_FINDINGS_DATA', ''),
             jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
             transitionMap: transitionMap,
-            dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false),
+            dryRunTestData: getInputOrEnvAndConvertToBool('dry-run-test-data', 'DRY_RUN_TEST_DATA', false),
             jiraLinkId: getInputOrEnv('jira-link-id', 'JIRA_LINK_ID'),
             jiraLinkType: getDefaultInputOrEnv('jira-link-type', 'JIRA_LINK_TYPE', 'Relates'),
             jiraLinkDirection: getDefaultInputOrEnv('jira-link-direction', 'JIRA_LINK_DIRECTION', 'inward'),
@@ -59712,7 +59713,8 @@ async function run() {
             newIssueDelay: getDefaultInputOrEnv('security-hub-new-issue-delay', 'SECURITY_HUB_NEW_ISSUE_DELAY', '86400000'), //
             customJiraFields: customJiraFields,
             includeAllProducts: getInputOrEnvAndConvertToBool('include-all-products', 'INCLUDE_ALL_PRODUCTS', false),
-            skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS')
+            skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
+            consolidateTickets: getInputOrEnvAndConvertToBool('jira-consolidate-tickets', 'JIRA_CONSOLIDATE_TICKETS')
         };
         const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true);
         core.info('Syncing Security Hub and Jira');
@@ -59835,7 +59837,7 @@ class Jira {
         this.jiraWatchers = jiraConfig.jiraWatchers
             ?.split(',')
             .map(watcher => watcher.trim());
-        this.isDryRun = jiraConfig.dryRun;
+        this.isDryRun = jiraConfig.dryRunTestData;
         if (jiraConfig.jiraLabelsConfig) {
             this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
         }
@@ -60302,7 +60304,6 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SecurityHub = void 0;
 const client_iam_1 = __nccwpck_require__(26276);
 const client_securityhub_1 = __nccwpck_require__(93978);
-const index_1 = __nccwpck_require__(6144);
 class SecurityHub {
     region;
     severityLabels;
@@ -60328,72 +60329,131 @@ class SecurityHub {
         const response = await iamClient.send(new client_iam_1.ListAccountAliasesCommand({}));
         this.accountAlias = response.AccountAliases?.[0] || '';
     }
-    async getAllActiveFindings() {
+    async querySecurityHubFindings(filters, maxResults = 100, nextToken = undefined) {
         try {
             const securityHubClient = new client_securityhub_1.SecurityHubClient({ region: this.region });
-            const currentTime = new Date();
-            // delay for filtering out ephemeral issues
-            const delayForNewIssues = +this.newIssueDelay;
-            const maxDatetime = new Date(currentTime.getTime() - delayForNewIssues);
-            const filters = {
-                RecordState: [{ Comparison: 'EQUALS', Value: 'ACTIVE' }],
-                WorkflowStatus: [
-                    { Comparison: 'EQUALS', Value: 'NEW' },
-                    { Comparison: 'EQUALS', Value: 'NOTIFIED' }
-                ],
-                SeverityLabel: this.severityLabels,
-                CreatedAt: [
-                    {
-                        Start: '1970-01-01T00:00:00Z',
-                        End: maxDatetime.toISOString()
-                    }
-                ]
-            };
+            // Send the query to Security Hub
+            const response = await securityHubClient.send(new client_securityhub_1.GetFindingsCommand({
+                Filters: filters,
+                MaxResults: maxResults,
+                NextToken: nextToken
+            }));
+            // Map the findings using awsSecurityFindingToSecurityHubFinding function
+            const findings = response.Findings
+                ? response.Findings.map(this.awsSecurityFindingToSecurityHubFinding.bind(this))
+                : [];
+            // Return findings and the next token for pagination
+            return { findings, nextToken: response.NextToken };
+        }
+        catch (error) {
+            throw new Error(`Error querying Security Hub findings: ${error.message}`);
+        }
+    }
+    buildActiveFindingsFilters() {
+        const currentTime = new Date();
+        const maxDatetime = new Date(currentTime.getTime() - (parseInt(this.newIssueDelay) ?? 0)); // Adjust for ephemeral issues
+        return {
+            RecordState: [{ Comparison: 'EQUALS', Value: 'ACTIVE' }],
+            WorkflowStatus: [
+                { Comparison: 'EQUALS', Value: 'NEW' },
+                { Comparison: 'EQUALS', Value: 'NOTIFIED' }
+            ],
+            SeverityLabel: this.severityLabels,
+            CreatedAt: [
+                {
+                    Start: '1970-01-01T00:00:00Z',
+                    End: maxDatetime.toISOString()
+                }
+            ]
+        };
+    }
+    buildSkipProductsFilter() {
+        const skipFilters = [];
+        let skipDefault = false;
+        let skipTenable = false;
+        this.skipProducts?.forEach(product => {
+            if (['Default', 'Tenable'].includes(product)) {
+                if (product == 'Default') {
+                    skipDefault = true;
+                }
+                if (product == 'Tenable') {
+                    skipTenable = true;
+                }
+            }
+            else {
+                skipFilters.push({ Comparison: 'NOT_EQUALS', Value: product });
+            }
+        });
+        // Apply the logic to exclude products as per the original requirements
+        if (skipDefault || skipTenable) {
+            skipFilters.push({ Comparison: 'NOT_EQUALS', Value: 'Default' });
+        }
+        return { skipDefault, skipTenable, skipFilters };
+    }
+    async fetchPaginatedFindings(filters) {
+        let allFindings = [];
+        let nextToken;
+        // Loop to handle pagination
+        do {
+            const { findings, nextToken: token } = await this.querySecurityHubFindings(filters, 100, nextToken);
+            allFindings = allFindings.concat(findings);
+            nextToken = token;
+        } while (nextToken);
+        return allFindings;
+    }
+    async getAllActiveFindings() {
+        try {
+            // Build the base filters for active findings
+            const filters = this.buildActiveFindingsFilters();
+            const skipConfig = { default: false, tenable: false };
+            // Apply the skip products filter if needed
+            if (this.skipProducts && this.skipProducts.length > 0) {
+                const { skipDefault, skipTenable, skipFilters } = this.buildSkipProductsFilter();
+                skipConfig.default = skipDefault;
+                skipConfig.tenable = skipTenable;
+                filters.ProductName = skipFilters;
+            }
+            // Apply the "Security Hub" product filter if includeAllProducts is not true
             if (this.includeAllProducts !== true) {
                 filters.ProductName = [{ Comparison: 'EQUALS', Value: 'Security Hub' }];
             }
-            if (this.skipProducts) {
-                this.skipProducts.forEach((product) => {
-                    if (!filters.ProductName) {
-                        filters.ProductName = [];
+            // Fetch all findings across multiple pages
+            let allFindings = await this.fetchPaginatedFindings(filters);
+            if (!skipConfig.default && skipConfig.tenable) {
+                filters.ProductName = [
+                    {
+                        Value: 'Default',
+                        Comparison: 'EQUALS'
                     }
-                    filters.ProductName?.push({
-                        Comparison: 'NOT_EQUALS',
-                        Value: product
-                    });
-                });
+                ];
+                filters.ProductFields = [
+                    {
+                        Key: 'CompanyName',
+                        Value: 'Tenable',
+                        Comparison: 'NOT_EQUALS'
+                    }
+                ];
             }
-            // use an object to store unique findings by title
-            const uniqueFindings = {};
-            // use a variable to track pagination
-            let nextToken = undefined;
-            do {
-                const response = await securityHubClient.send(new client_securityhub_1.GetFindingsCommand({
-                    Filters: filters,
-                    MaxResults: 100, // this is the maximum allowed per page
-                    NextToken: nextToken
-                }));
-                if (response && response.Findings) {
-                    for (const finding of response.Findings) {
-                        const findingForJira = this.awsSecurityFindingToSecurityHubFinding(finding);
-                        if (findingForJira.title)
-                            uniqueFindings[findingForJira.title] = findingForJira;
+            else if (!skipConfig.tenable && skipConfig.default) {
+                filters.ProductName = [];
+                filters.ProductFields = [
+                    {
+                        Key: 'CompanyName',
+                        Value: 'Tenable',
+                        Comparison: 'EQUALS'
                     }
-                }
-                if (response && response.NextToken)
-                    nextToken = response.NextToken;
-                else
-                    nextToken = undefined;
-            } while (nextToken);
-            return Object.values(uniqueFindings).map(finding => {
-                return {
-                    accountAlias: this.accountAlias,
-                    ...finding
-                };
-            });
+                ];
+            }
+            const extFindings = await this.fetchPaginatedFindings(filters);
+            allFindings = [...extFindings, ...allFindings];
+            // Return findings with account alias and any additional information
+            return allFindings.map(finding => ({
+                accountAlias: this.accountAlias,
+                ...finding
+            }));
         }
         catch (error) {
-            throw new Error(`Error getting Security Hub findings: ${(0, index_1.extractErrorMessage)(error)}`);
+            throw new Error(`Error getting active findings: ${error.message}`);
         }
     }
     awsSecurityFindingToSecurityHubFinding(finding) {
@@ -60414,7 +60474,12 @@ class SecurityHub {
                 : '',
             remediation: finding.Remediation,
             ProductName: finding.ProductName,
-            Resources: finding.Resources
+            Resources: finding.Resources,
+            Type: finding.ProductFields?.Type,
+            ProviderName: finding.ProductFields?.ProviderName,
+            ProviderVersion: finding.ProductFields?.ProviderVersion,
+            CompanyName: finding.ProductFields?.CompanyName,
+            CVE: finding.ProductFields?.CVE
         };
     }
 }
@@ -60446,6 +60511,8 @@ class SecurityHubJiraSync {
     jiraLinkDirection;
     jiraLabelsConfig;
     jiraAddLabels;
+    jiraConsolidateTickets;
+    testFindings = [];
     constructor(jiraConfig, securityHubConfig, autoClose) {
         this.securityHub = new libs_1.SecurityHub(securityHubConfig);
         this.region = securityHubConfig.region;
@@ -60463,6 +60530,70 @@ class SecurityHubJiraSync {
         if (jiraConfig.jiraLabelsConfig) {
             this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
         }
+        if (securityHubConfig.consolidateTickets) {
+            this.jiraConsolidateTickets = securityHubConfig.consolidateTickets;
+        }
+        if (jiraConfig.testFindingsData) {
+            this.testFindings = JSON.parse(jiraConfig.testFindingsData);
+            console.log('parsed', this.testFindings);
+        }
+    }
+    consolidateTickets(arr) {
+        const seen = {}; // Store unique titles
+        const finalList = [];
+        arr.forEach(finding => {
+            const title = finding.title ?? '';
+            if (seen[title] >= 0) {
+                const i = seen[title];
+                finalList[i] = {
+                    ...finalList[i],
+                    Resources: [
+                        ...(finalList[i].Resources ?? []),
+                        ...(finding.Resources ?? [])
+                    ]
+                };
+            }
+            else {
+                const i = finalList.push(finding);
+                seen[title] = i - 1;
+            }
+        });
+        return finalList;
+    }
+    areSameLists(A, B) {
+        if (A.length == B.length) {
+            let isSimilar = true;
+            for (let i = 0; i < A.length; i = i + 1) {
+                let same = false;
+                for (let j = 0; j < B.length && !same; j = j + 1) {
+                    const a = A[i].Id ?? '';
+                    const b = B[j].Id ?? '';
+                    same = (a && b && a.includes(b));
+                }
+                isSimilar = isSimilar && same;
+            }
+            return isSimilar;
+        }
+        return false;
+    }
+    isAlreadyInNew(finding, List) {
+        const filtered = List.filter(f => finding.title && f.title?.includes(finding.title));
+        if (!filtered.length) {
+            return false;
+        }
+        let exists = false;
+        filtered.forEach(f => {
+            exists = (exists ||
+                this.areSameLists(finding.Resources ?? [], f.Resources ?? []));
+        });
+        return exists;
+    }
+    isNewFinding(finding, issues) {
+        const matchingIssues = issues.filter(i => finding.title && i.fields.description?.includes(finding.title));
+        if (!matchingIssues.length) {
+            return false;
+        }
+        return (matchingIssues.filter(i => finding.Resources?.every(r => r.Id && i.fields.description?.includes(r.Id))).length == 0);
     }
     async sync() {
         const updatesForReturn = [];
@@ -60473,13 +60604,75 @@ class SecurityHubJiraSync {
         const jiraIssues = await this.jira.getAllSecurityHubIssuesInJiraProject(identifyingLabels);
         // Step 2. Get all current findings from Security Hub
         console.log('Getting active Security Hub Findings with severities: ' + this.severities);
-        const shFindingsObj = await this.securityHub.getAllActiveFindings();
-        const shFindings = Object.values(shFindingsObj);
-        console.log(shFindings);
+        const shFindingsObj = this.testFindings.length
+            ? this.testFindings.map((finding) => this.securityHub.awsSecurityFindingToSecurityHubFinding(finding))
+            : await this.securityHub.getAllActiveFindings();
+        const shFindings = Object.values(shFindingsObj).map(finding => {
+            if (finding.ProductName?.toLowerCase().includes('default') &&
+                finding.CompanyName?.toLowerCase().includes('tenable')) {
+                return {
+                    ...finding,
+                    ProductName: finding.CompanyName
+                };
+            }
+            return finding;
+        });
         // Step 3. Close existing Jira issues if their finding is no longer active/current
-        updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, shFindings)));
+        const previousFindings = [];
+        const newFindings = [];
+        const existingTitles = new Set();
+        jiraIssues.forEach(issue => {
+            const issueDesc = issue.fields.description ?? '';
+            // Find all matching Security Hub findings by title
+            const matchingFindings = shFindings.filter(f => f.title && issueDesc.includes(f.title));
+            if (matchingFindings.length >= 1) {
+                // Consolidate multiple findings
+                let consolidatedFinding = undefined;
+                matchingFindings.forEach(finding => {
+                    const shouldConsolidate = (finding.Resources ?? []).every(resource => resource.Id && issue.fields.description?.includes(resource.Id));
+                    if (shouldConsolidate) {
+                        if (!consolidatedFinding) {
+                            consolidatedFinding = { ...finding };
+                        }
+                        else {
+                            consolidatedFinding.Resources = [
+                                ...(consolidatedFinding.Resources ?? []),
+                                ...(finding.Resources ?? [])
+                            ];
+                        }
+                    }
+                    else {
+                        if (this.isNewFinding(finding, jiraIssues) &&
+                            !this.isAlreadyInNew(finding, newFindings)) {
+                            newFindings.push(finding);
+                        }
+                    }
+                });
+                if (consolidatedFinding) {
+                    previousFindings.push(consolidatedFinding);
+                    existingTitles.add(consolidatedFinding.title ?? '');
+                }
+            }
+        });
+        // Add new findings not found in previousFindings
+        shFindings.forEach(finding => {
+            if (finding.title &&
+                !existingTitles.has(finding.title) &&
+                !this.isAlreadyInNew(finding, newFindings)) {
+                newFindings.push(finding);
+            }
+        });
+        console.log('previous findings', previousFindings);
+        updatesForReturn.push(...(await this.closeIssuesForResolvedFindings(jiraIssues, previousFindings)));
+        console.log('new Findings', newFindings);
+        let consolidationCandidates = newFindings;
+        if (this.jiraConsolidateTickets) {
+            consolidationCandidates = this.consolidateTickets(consolidationCandidates);
+            console.log('consolidated findings', consolidationCandidates);
+        }
+        const consolidatedFindings = [...consolidationCandidates];
         // Step 4. Create Jira issue for current findings that do not already have a Jira issue
-        updatesForReturn.push(...(await this.createJiraIssuesForNewFindings(jiraIssues, shFindings, identifyingLabels)));
+        updatesForReturn.push(...(await this.createJiraIssuesForNewFindings(jiraIssues, consolidatedFindings, identifyingLabels)));
         console.log(JSON.stringify(updatesForReturn));
     }
     async getAWSAccountID() {
@@ -60500,15 +60693,38 @@ class SecurityHubJiraSync {
         }
         return accountID;
     }
+    shouldCloseTicket(ticket, findings) {
+        const matchingTitles = findings.filter(finding => {
+            if (finding.title) {
+                return ticket.fields.description?.includes(finding.title);
+            }
+            return false;
+        });
+        if (matchingTitles.length == 0) {
+            return true;
+        }
+        return (matchingTitles.filter(finding => {
+            const resources = finding.Resources ?? [];
+            let bool = true;
+            resources.forEach(resource => {
+                const id = resource.Id ?? '';
+                if (id) {
+                    bool = (bool &&
+                        ticket.fields.description &&
+                        ticket.fields.description?.includes(id));
+                }
+            });
+            return bool && resources.length;
+        }).length == 0);
+    }
     async closeIssuesForResolvedFindings(jiraIssues, shFindings) {
         const updatesForReturn = [];
-        const expectedJiraIssueTitles = Array.from(new Set(shFindings.map(finding => `SecurityHub Finding - ${finding.title}`)));
         try {
             const makeComment = () => `As of ${new Date(Date.now()).toDateString()}, this Security Hub finding has been marked resolved`;
             // close all security-hub labeled Jira issues that do not have an active finding
             if (this.autoClose) {
                 for (let i = 0; i < jiraIssues.length; i++) {
-                    if (!expectedJiraIssueTitles.includes(jiraIssues[i].fields.summary)) {
+                    if (this.shouldCloseTicket(jiraIssues[i], shFindings)) {
                         await this.jira.closeIssue(jiraIssues[i].key);
                         updatesForReturn.push({
                             action: 'closed',
@@ -60522,7 +60738,7 @@ class SecurityHubJiraSync {
             else {
                 console.log('Skipping auto closing...');
                 for (let i = 0; i < jiraIssues.length; i++) {
-                    if (!expectedJiraIssueTitles.includes(jiraIssues[i].fields.summary) &&
+                    if (this.shouldCloseTicket(jiraIssues[i], shFindings) &&
                         !jiraIssues[i].fields.summary.includes('Resolved') // skip already resolved issues
                     ) {
                         try {
@@ -60557,6 +60773,18 @@ class SecurityHubJiraSync {
         });
         Table += `------------------------------------------------------------------------------------------------`;
         return Table;
+    }
+    makeProductFieldSection(finding) {
+        return `
+    h2. Product Fields:
+    Type                     |    ${finding.Type ?? 'N/A'}
+    Product Name:            |    ${finding.ProductName ?? 'N/A'}
+    Provider Name:           |    ${finding.ProviderName ?? 'N/A'}
+    Provider Version:        |    ${finding.ProviderVersion ?? 'N/A'}
+    Company Name:            |    ${finding.CompanyName ?? 'N/A'}
+    CVE:                     |    ${finding.CVE ?? 'N/A'}
+    --------------------------------------------------------
+    `;
     }
     createSecurityHubFindingUrlThroughFilters(findingId) {
         let region;
@@ -60637,7 +60865,8 @@ class SecurityHubJiraSync {
       h2. Severity:
       ${severity}
 
- h2. SecurityHubFindingUrl:
+      ${this.makeProductFieldSection(finding)}
+      h2. SecurityHubFindingUrl:
       ${standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
       h2. Resources:
@@ -60701,7 +60930,9 @@ class SecurityHubJiraSync {
         }
         const newIssueData = {
             fields: {
-                summary: `SecurityHub Finding - ${finding.title}`.substring(0, 255),
+                summary: `SecurityHub Finding - ${finding.title}`
+                    .substring(0, 255)
+                    .replaceAll('\n', ''),
                 description: this.createIssueBody(finding),
                 issuetype: { name: 'Task' },
                 labels: [
@@ -60749,17 +60980,45 @@ class SecurityHubJiraSync {
             summary: newIssueData.fields.summary
         };
     }
+    shouldCreateIssue(finding, jiraIssues) {
+        const potentialDuplicates = jiraIssues.filter(issue => {
+            if (!finding.title) {
+                return false;
+            }
+            const title = finding.title;
+            return issue.fields.description?.includes(title);
+        });
+        console.log('Potential Duplicates: ', potentialDuplicates.length);
+        if (potentialDuplicates.length == 0) {
+            return true;
+        }
+        const final = potentialDuplicates.filter(issue => {
+            const duplicate = finding.Resources?.reduce((should, resource) => {
+                const id = resource.Id ?? '';
+                if (!id) {
+                    return false;
+                }
+                return should && issue.fields.description?.includes(id) == true;
+            }, true);
+            return !duplicate;
+        });
+        return final.length >= 1;
+    }
     async createJiraIssuesForNewFindings(jiraIssues, shFindings, identifyingLabels) {
         const updatesForReturn = [];
-        const existingJiraIssueTitles = jiraIssues.map(i => i.fields.summary);
         const uniqueSecurityHubFindings = [
             ...new Set(shFindings.map(finding => JSON.stringify(finding)))
         ].map(finding => JSON.parse(finding));
         for (let i = 0; i < uniqueSecurityHubFindings.length; i++) {
             const finding = uniqueSecurityHubFindings[i];
-            if (!existingJiraIssueTitles.includes(`SecurityHub Finding - ${finding.title}`)) {
-                const update = await this.createJiraIssueFromFinding(finding, identifyingLabels);
-                updatesForReturn.push(update);
+            if (this.shouldCreateIssue(finding, jiraIssues)) {
+                try {
+                    const update = await this.createJiraIssueFromFinding(finding, identifyingLabels);
+                    updatesForReturn.push(update);
+                }
+                catch (e) {
+                    console.log('Moving forward with next findings', e);
+                }
             }
         }
         return updatesForReturn;

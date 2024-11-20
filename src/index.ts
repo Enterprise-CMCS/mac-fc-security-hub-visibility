@@ -151,9 +151,18 @@ async function run(): Promise<void> {
         'JIRA_ADD_LABELS',
         ''
       ),
+      testFindingsData: getDefaultInputOrEnv(
+        'test-findings-data',
+        'TEST_FINDINGS_DATA',
+        ''
+      ),
       jiraAssignee: getInputOrEnv('jira-assignee', 'JIRA_ASSIGNEE'),
       transitionMap: transitionMap,
-      dryRun: getInputOrEnvAndConvertToBool('dry-run', 'DRY_RUN', false),
+      dryRunTestData: getInputOrEnvAndConvertToBool(
+        'dry-run-test-data',
+        'DRY_RUN_TEST_DATA',
+        false
+      ),
       jiraLinkId: getInputOrEnv('jira-link-id', 'JIRA_LINK_ID'),
       jiraLinkType: getDefaultInputOrEnv(
         'jira-link-type',
@@ -197,7 +206,11 @@ async function run(): Promise<void> {
         'INCLUDE_ALL_PRODUCTS',
         false
       ),
-      skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS')
+      skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
+      consolidateTickets: getInputOrEnvAndConvertToBool(
+        'jira-consolidate-tickets',
+        'JIRA_CONSOLIDATE_TICKETS'
+      )
     }
 
     const autoClose = getInputOrEnvAndConvertToBool(
