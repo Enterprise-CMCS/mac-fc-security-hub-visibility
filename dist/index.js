@@ -60821,7 +60821,7 @@ class SecurityHubJiraSync {
         }
         // Encode the findingId and operator for URL
         const idPart = encodeURIComponent('Id=');
-        const operator = encodeURIComponent('\\operator\\:EQUALS\\:');
+        const operator = encodeURIComponent(encodeURIComponent('\\operator\\:EQUALS\\:'));
         const searchParam = `${idPart}${operator}${encodeURIComponent(findingId)}`;
         // Construct the URL
         const baseUrl = `https://${region}.console.aws.amazon.com/securityhub/home?region=${region}`;
