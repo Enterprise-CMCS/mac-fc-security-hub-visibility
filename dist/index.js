@@ -60803,23 +60803,28 @@ class SecurityHubJiraSync {
                 return false;
             }
         }
+        // Extract region from findingId
         if (findingId.startsWith('arn:')) {
-            // Extract region from the ARN
+            // Extract region from the ARN format
             const arnParts = findingId.split(':');
             region = arnParts[3];
         }
         else {
-            // Extract region from the non-ARN format
+            // Extract region from non-ARN format (e.g., "us-west-2/finding-id")
             const parts = findingId.split('/');
-            region = parts[1];
+            region = parts[0];
         }
         // Validate the extracted region
         if (!isAwsRegion(region)) {
             console.error(`Invalid AWS region: ${region}`);
-            region = 'us-east-1';
+            region = 'us-east-1'; // Fallback to default region
         }
+        // Encode the findingId and operator for URL
+        const idPart = encodeURIComponent('Id=');
+        const operator = encodeURIComponent(encodeURIComponent('\\operator\\:EQUALS\\:'));
+        const searchParam = `${idPart}${operator}${encodeURIComponent(findingId)}`;
+        // Construct the URL
         const baseUrl = `https://${region}.console.aws.amazon.com/securityhub/home?region=${region}`;
-        const searchParam = `Id%3D%255Coperator%255C%253AEQUALS%255C%253A${findingId}`;
         const url = `${baseUrl}#/findings?search=${searchParam}`;
         // Validate the constructed URL
         if (!isValidUrl(url)) {
