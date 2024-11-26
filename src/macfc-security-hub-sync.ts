@@ -92,7 +92,7 @@ export class SecurityHubJiraSync {
           consolidated: true,
           Ids: [
             ...(finalList[i].Ids ?? []),
-            ...([finding.Id ?? ''] as unknown as string[])
+            ...([finding.id ?? ''] as unknown as string[])
           ],
           Resources: [
             ...(finalList[i].Resources ?? []),
@@ -462,12 +462,12 @@ export class SecurityHubJiraSync {
     return url
   }
   createFindingUrlSection(Ids: string[]) {
-    let sectionText = `Finding Id                                               | Finding Url                                         \n `
+    let sectionText = `\nFinding Id                                               | Finding Url                                         \n `
     Ids.forEach(
       id =>
-        (sectionText += `${id}                         |   ${this.createSecurityHubFindingUrlThroughFilters(id)} \n`)
+        (sectionText += `\n${id}                         |   ${this.createSecurityHubFindingUrlThroughFilters(id)} \n`)
     )
-    sectionText += `---------------------------------------------------------------------------------------------------------------------\n`
+    sectionText += `\n---------------------------------------------------------------------------------------------------------------------\n`
     return sectionText
   }
   createIssueBody(finding: SecurityHubFinding) {

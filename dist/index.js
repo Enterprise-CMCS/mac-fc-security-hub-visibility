@@ -60550,7 +60550,7 @@ class SecurityHubJiraSync {
                     consolidated: true,
                     Ids: [
                         ...(finalList[i].Ids ?? []),
-                        ...[finding.Id ?? '']
+                        ...[finding.id ?? '']
                     ],
                     Resources: [
                         ...(finalList[i].Resources ?? []),
@@ -60839,9 +60839,9 @@ class SecurityHubJiraSync {
         return url;
     }
     createFindingUrlSection(Ids) {
-        let sectionText = `Finding Id                                               | Finding Url                                         \n `;
-        Ids.forEach(id => (sectionText += `${id}                         |   ${this.createSecurityHubFindingUrlThroughFilters(id)} \n`));
-        sectionText += `---------------------------------------------------------------------------------------------------------------------\n`;
+        let sectionText = `\nFinding Id                                               | Finding Url                                         \n `;
+        Ids.forEach(id => (sectionText += `\n${id}                         |   ${this.createSecurityHubFindingUrlThroughFilters(id)} \n`));
+        sectionText += `\n---------------------------------------------------------------------------------------------------------------------\n`;
         return sectionText;
     }
     createIssueBody(finding) {
