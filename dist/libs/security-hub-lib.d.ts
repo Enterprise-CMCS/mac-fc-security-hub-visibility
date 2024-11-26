@@ -2,6 +2,7 @@ import { Remediation, AwsSecurityFinding, Resource } from '@aws-sdk/client-secur
 import { SecurityHubJiraSyncConfig } from '../macfc-security-hub-sync';
 export interface SecurityHubFinding {
     id?: string;
+    Ids?: string[];
     title?: string;
     region?: string;
     accountAlias?: string;
@@ -16,6 +17,7 @@ export interface SecurityHubFinding {
     CompanyName?: string;
     ProviderName?: string;
     ProviderVersion?: string;
+    consolidated?: boolean;
     CVE?: string;
     [key: string]: string | unknown;
 }

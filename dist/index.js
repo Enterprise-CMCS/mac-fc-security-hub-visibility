@@ -60547,6 +60547,11 @@ class SecurityHubJiraSync {
                 const i = seen[title];
                 finalList[i] = {
                     ...finalList[i],
+                    consolidated: true,
+                    Ids: [
+                        ...(finalList[i].Ids ?? []),
+                        ...[finding.Id ?? '']
+                    ],
                     Resources: [
                         ...(finalList[i].Resources ?? []),
                         ...(finding.Resources ?? [])
@@ -60833,8 +60838,14 @@ class SecurityHubJiraSync {
         }
         return url;
     }
+    createFindingUrlSection(Ids) {
+        let sectionText = `Finding Id                                               | Finding Url                                          `;
+        Ids.forEach(id => (sectionText += `${id}                         |   ${this.createSecurityHubFindingUrlThroughFilters(id)}`));
+        sectionText += `---------------------------------------------------------------------------------------------------------------------`;
+        return sectionText;
+    }
     createIssueBody(finding) {
-        const { remediation: { Recommendation: { Url: remediationUrl = '', Text: remediationText = '' } = {} } = {}, id = '', title = '', description = '', accountAlias = '', awsAccountId = '', severity = '', standardsControlArn = '' } = finding;
+        const { remediation: { Recommendation: { Url: remediationUrl = '', Text: remediationText = '' } = {} } = {}, id = '', title = '', description = '', accountAlias = '', awsAccountId = '', severity = '', standardsControlArn = '', consolidated = false } = finding;
         return `----
 
       *This issue was generated from Security Hub data and is managed through automation.*
@@ -60871,8 +60882,8 @@ class SecurityHubJiraSync {
       ${severity}
 
       ${this.makeProductFieldSection(finding)}
-      h2. SecurityHubFindingUrl:
-      ${standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
+      h2. SecurityHubFindingUrl(s):
+      ${consolidated ? this.createFindingUrlSection(finding.Ids ?? []) : standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
       h2. Resources:
       Following are the resources those were non-compliant at the time of the issue creation

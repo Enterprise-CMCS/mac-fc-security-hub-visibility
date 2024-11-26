@@ -89,6 +89,11 @@ export class SecurityHubJiraSync {
         const i = seen[title]
         finalList[i] = {
           ...finalList[i],
+          consolidated: true,
+          Ids: [
+            ...(finalList[i].Ids ?? []),
+            ...([finding.Id ?? ''] as unknown as string[])
+          ],
           Resources: [
             ...(finalList[i].Resources ?? []),
             ...(finding.Resources ?? [])
@@ -456,7 +461,15 @@ export class SecurityHubJiraSync {
 
     return url
   }
-
+  createFindingUrlSection(Ids: string[]) {
+    let sectionText = `Finding Id                                               | Finding Url                                          `
+    Ids.forEach(
+      id =>
+        (sectionText += `${id}                         |   ${this.createSecurityHubFindingUrlThroughFilters(id)}`)
+    )
+    sectionText += `---------------------------------------------------------------------------------------------------------------------`
+    return sectionText
+  }
   createIssueBody(finding: SecurityHubFinding) {
     const {
       remediation: {
@@ -471,7 +484,8 @@ export class SecurityHubJiraSync {
       accountAlias = '',
       awsAccountId = '',
       severity = '',
-      standardsControlArn = ''
+      standardsControlArn = '',
+      consolidated = false
     } = finding
 
     return `----
@@ -512,8 +526,8 @@ export class SecurityHubJiraSync {
       ${severity}
 
       ${this.makeProductFieldSection(finding)}
-      h2. SecurityHubFindingUrl:
-      ${standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
+      h2. SecurityHubFindingUrl(s):
+      ${consolidated ? this.createFindingUrlSection(finding.Ids ?? []) : standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
       h2. Resources:
       Following are the resources those were non-compliant at the time of the issue creation

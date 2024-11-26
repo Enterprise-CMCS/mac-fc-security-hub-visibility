@@ -53,6 +53,7 @@ export declare class SecurityHubJiraSync {
     makeResourceList(resources: Resource[] | undefined): string;
     makeProductFieldSection(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrlThroughFilters(findingId: string): string;
+    createFindingUrlSection(Ids: string[]): string;
     createIssueBody(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrl(standardsControlArn?: string): string;
     getSeverityMappingToJiraPriority: (severity: string) => "Lowest" | "Low" | "Medium" | "High" | "Critical";
