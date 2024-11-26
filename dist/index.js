@@ -60839,9 +60839,9 @@ class SecurityHubJiraSync {
         return url;
     }
     createFindingUrlSection(Ids) {
-        let sectionText = `Finding Id                                               | Finding Url                                          `;
-        Ids.forEach(id => (sectionText += `${id}                         |   ${this.createSecurityHubFindingUrlThroughFilters(id)}`));
-        sectionText += `---------------------------------------------------------------------------------------------------------------------`;
+        let sectionText = `Finding Id                                               | Finding Url                                         \n `;
+        Ids.forEach(id => (sectionText += `${id}                         |   ${this.createSecurityHubFindingUrlThroughFilters(id)} \n`));
+        sectionText += `---------------------------------------------------------------------------------------------------------------------\n`;
         return sectionText;
     }
     createIssueBody(finding) {

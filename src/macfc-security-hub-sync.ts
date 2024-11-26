@@ -462,12 +462,12 @@ export class SecurityHubJiraSync {
     return url
   }
   createFindingUrlSection(Ids: string[]) {
-    let sectionText = `Finding Id                                               | Finding Url                                          `
+    let sectionText = `Finding Id                                               | Finding Url                                         \n `
     Ids.forEach(
       id =>
-        (sectionText += `${id}                         |   ${this.createSecurityHubFindingUrlThroughFilters(id)}`)
+        (sectionText += `${id}                         |   ${this.createSecurityHubFindingUrlThroughFilters(id)} \n`)
     )
-    sectionText += `---------------------------------------------------------------------------------------------------------------------`
+    sectionText += `---------------------------------------------------------------------------------------------------------------------\n`
     return sectionText
   }
   createIssueBody(finding: SecurityHubFinding) {
