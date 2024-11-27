@@ -60613,6 +60613,9 @@ class SecurityHubJiraSync {
             ? this.testFindings.map((finding) => this.securityHub.awsSecurityFindingToSecurityHubFinding(finding))
             : await this.securityHub.getAllActiveFindings();
         const shFindings = Object.values(shFindingsObj).map(finding => {
+            finding.Resources = (finding.Resources ?? []).map(r => {
+                return { ...r, link: finding.id };
+            });
             if (finding.ProductName?.toLowerCase().includes('default') &&
                 finding.CompanyName?.toLowerCase().includes('tenable')) {
                 return {
@@ -60773,8 +60776,8 @@ class SecurityHubJiraSync {
         const maxLength = Math.max(...resources.map(({ Id }) => Id?.length || 0));
         const title = 'Resource Id'.padEnd(maxLength + maxLength / 2 + 4);
         let Table = `${title}| Partition   | Region     | Type    \n`;
-        resources.forEach(({ Id, Partition, Region, Type }) => {
-            Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} \n`;
+        resources.forEach(({ Id, Partition, Region, Type, link }) => {
+            Table += `[${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} | ${link} ] \n`;
         });
         Table += `------------------------------------------------------------------------------------------------`;
         return Table;
@@ -60839,8 +60842,8 @@ class SecurityHubJiraSync {
         return url;
     }
     createFindingUrlSection(Ids) {
-        let sectionText = `\nFinding Id                                               | Finding Url                                         \n `;
-        Ids.forEach(id => (sectionText += `\n${id}                         |   [link|${this.createSecurityHubFindingUrlThroughFilters(id)}] \n`));
+        let sectionText = `\n---------------------------------------------------------------------------------------------------------------------\n`;
+        Ids.forEach((id, i) => (sectionText += `\n ${i + 1}. [${id}|${this.createSecurityHubFindingUrlThroughFilters(id)}] \n`));
         sectionText += `\n---------------------------------------------------------------------------------------------------------------------\n`;
         return sectionText;
     }

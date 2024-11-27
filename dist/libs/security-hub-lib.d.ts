@@ -1,5 +1,20 @@
-import { Remediation, AwsSecurityFinding, Resource } from '@aws-sdk/client-securityhub';
+import { Remediation, AwsSecurityFinding } from '@aws-sdk/client-securityhub';
 import { SecurityHubJiraSyncConfig } from '../macfc-security-hub-sync';
+export interface Resource {
+    Type: string | undefined;
+    /**
+     * @public
+     * <p>The canonical identifier for the given resource type.</p>
+     */
+    Id: string | undefined;
+    /**
+     * @public
+     * <p>The canonical Amazon Web Services partition name that the Region is assigned to.</p>
+     */
+    Partition?: string;
+    Region?: string;
+    link?: string;
+}
 export interface SecurityHubFinding {
     id?: string;
     Ids?: string[];
