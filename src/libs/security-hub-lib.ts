@@ -12,15 +12,9 @@ import {extractErrorMessage} from '../index'
 
 export interface Resource {
   Type: string | undefined
-  /**
-   * @public
-   * <p>The canonical identifier for the given resource type.</p>
-   */
+
   Id: string | undefined
-  /**
-   * @public
-   * <p>The canonical Amazon Web Services partition name that the Region is assigned to.</p>
-   */
+
   Partition?: string
 
   Region?: string
