@@ -60892,7 +60892,7 @@ class SecurityHubJiraSync {
       ${this.makeProductFieldSection(finding)}
 
       h2. Resources:
-      Following are the resources those were non-compliant at the time of the issue creation
+      Following are the resources with their corresponding finding url that were non-compliant at the time of the issue creation
       ${this.makeResourceList(finding.Resources)}
 
       To check the latest list of resources, kindly refer to the finding url
