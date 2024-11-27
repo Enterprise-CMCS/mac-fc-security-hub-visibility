@@ -2,14 +2,14 @@ import {extractErrorMessage} from 'index'
 import {Jira, SecurityHub, SecurityHubFinding} from './libs'
 import {Issue, NewIssueData, CustomFields, JiraConfig} from './libs/jira-lib'
 import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts'
-import {AwsSecurityFinding, Resource} from '@aws-sdk/client-securityhub'
+import {AwsSecurityFinding} from '@aws-sdk/client-securityhub'
+import {Resource} from './libs'
 
 interface UpdateForReturn {
   action: string
   webUrl: string
   summary: string
 }
-
 interface GeneralObj {
   [key: string]: number
 }
@@ -89,6 +89,11 @@ export class SecurityHubJiraSync {
         const i = seen[title]
         finalList[i] = {
           ...finalList[i],
+          consolidated: true,
+          Ids: [
+            ...(finalList[i].Ids ?? []),
+            ...([finding.id ?? ''] as unknown as string[])
+          ],
           Resources: [
             ...(finalList[i].Resources ?? []),
             ...(finding.Resources ?? [])
@@ -169,6 +174,14 @@ export class SecurityHubJiraSync {
         )
       : await this.securityHub.getAllActiveFindings()
     const shFindings = Object.values(shFindingsObj).map(finding => {
+      finding.Resources = (finding.Resources ?? []).map(r => {
+        return {
+          ...r,
+          link: this.createSecurityHubFindingUrlThroughFilters(finding.id ?? '')
+        }
+      })
+      const id = finding.id ?? ''
+      finding.Ids = [id]
       if (
         finding.ProductName?.toLowerCase().includes('default') &&
         finding.CompanyName?.toLowerCase().includes('tenable')
@@ -381,8 +394,8 @@ export class SecurityHubJiraSync {
     const title = 'Resource Id'.padEnd(maxLength + maxLength / 2 + 4)
 
     let Table = `${title}| Partition   | Region     | Type    \n`
-    resources.forEach(({Id, Partition, Region, Type}) => {
-      Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} \n`
+    resources.forEach(({Id, Partition, Region, Type, link}) => {
+      Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} | [FindingURL | ${link}] \n`
     })
 
     Table += `------------------------------------------------------------------------------------------------`
@@ -456,7 +469,15 @@ export class SecurityHubJiraSync {
 
     return url
   }
-
+  createFindingUrlSection(Ids: string[]) {
+    let sectionText = `\n---------------------------------------------------------------------------------------------------------------------\n`
+    Ids.forEach(
+      (id, i) =>
+        (sectionText += `\n ${i + 1}. [${id}|${this.createSecurityHubFindingUrlThroughFilters(id)}] \n`)
+    )
+    sectionText += `\n---------------------------------------------------------------------------------------------------------------------\n`
+    return sectionText
+  }
   createIssueBody(finding: SecurityHubFinding) {
     const {
       remediation: {
@@ -471,7 +492,8 @@ export class SecurityHubJiraSync {
       accountAlias = '',
       awsAccountId = '',
       severity = '',
-      standardsControlArn = ''
+      standardsControlArn = '',
+      consolidated = false
     } = finding
 
     return `----
@@ -512,8 +534,8 @@ export class SecurityHubJiraSync {
       ${severity}
 
       ${this.makeProductFieldSection(finding)}
-      h2. SecurityHubFindingUrl:
-      ${standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
+      h2. SecurityHubFindingUrl(s):
+      ${consolidated ? this.createFindingUrlSection(finding.Ids ?? []) : standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
       h2. Resources:
       Following are the resources those were non-compliant at the time of the issue creation

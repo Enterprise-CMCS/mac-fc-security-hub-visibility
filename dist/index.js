@@ -60547,6 +60547,11 @@ class SecurityHubJiraSync {
                 const i = seen[title];
                 finalList[i] = {
                     ...finalList[i],
+                    consolidated: true,
+                    Ids: [
+                        ...(finalList[i].Ids ?? []),
+                        ...[finding.id ?? '']
+                    ],
                     Resources: [
                         ...(finalList[i].Resources ?? []),
                         ...(finding.Resources ?? [])
@@ -60608,6 +60613,14 @@ class SecurityHubJiraSync {
             ? this.testFindings.map((finding) => this.securityHub.awsSecurityFindingToSecurityHubFinding(finding))
             : await this.securityHub.getAllActiveFindings();
         const shFindings = Object.values(shFindingsObj).map(finding => {
+            finding.Resources = (finding.Resources ?? []).map(r => {
+                return {
+                    ...r,
+                    link: this.createSecurityHubFindingUrlThroughFilters(finding.id ?? '')
+                };
+            });
+            const id = finding.id ?? '';
+            finding.Ids = [id];
             if (finding.ProductName?.toLowerCase().includes('default') &&
                 finding.CompanyName?.toLowerCase().includes('tenable')) {
                 return {
@@ -60768,8 +60781,8 @@ class SecurityHubJiraSync {
         const maxLength = Math.max(...resources.map(({ Id }) => Id?.length || 0));
         const title = 'Resource Id'.padEnd(maxLength + maxLength / 2 + 4);
         let Table = `${title}| Partition   | Region     | Type    \n`;
-        resources.forEach(({ Id, Partition, Region, Type }) => {
-            Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} \n`;
+        resources.forEach(({ Id, Partition, Region, Type, link }) => {
+            Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} | [FindingURL | ${link}] \n`;
         });
         Table += `------------------------------------------------------------------------------------------------`;
         return Table;
@@ -60833,8 +60846,14 @@ class SecurityHubJiraSync {
         }
         return url;
     }
+    createFindingUrlSection(Ids) {
+        let sectionText = `\n---------------------------------------------------------------------------------------------------------------------\n`;
+        Ids.forEach((id, i) => (sectionText += `\n ${i + 1}. [${id}|${this.createSecurityHubFindingUrlThroughFilters(id)}] \n`));
+        sectionText += `\n---------------------------------------------------------------------------------------------------------------------\n`;
+        return sectionText;
+    }
     createIssueBody(finding) {
-        const { remediation: { Recommendation: { Url: remediationUrl = '', Text: remediationText = '' } = {} } = {}, id = '', title = '', description = '', accountAlias = '', awsAccountId = '', severity = '', standardsControlArn = '' } = finding;
+        const { remediation: { Recommendation: { Url: remediationUrl = '', Text: remediationText = '' } = {} } = {}, id = '', title = '', description = '', accountAlias = '', awsAccountId = '', severity = '', standardsControlArn = '', consolidated = false } = finding;
         return `----
 
       *This issue was generated from Security Hub data and is managed through automation.*
@@ -60871,8 +60890,8 @@ class SecurityHubJiraSync {
       ${severity}
 
       ${this.makeProductFieldSection(finding)}
-      h2. SecurityHubFindingUrl:
-      ${standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
+      h2. SecurityHubFindingUrl(s):
+      ${consolidated ? this.createFindingUrlSection(finding.Ids ?? []) : standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
       h2. Resources:
       Following are the resources those were non-compliant at the time of the issue creation

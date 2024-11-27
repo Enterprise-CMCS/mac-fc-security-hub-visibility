@@ -1,7 +1,15 @@
-import { Remediation, AwsSecurityFinding, Resource } from '@aws-sdk/client-securityhub';
+import { Remediation, AwsSecurityFinding } from '@aws-sdk/client-securityhub';
 import { SecurityHubJiraSyncConfig } from '../macfc-security-hub-sync';
+export interface Resource {
+    Type: string | undefined;
+    Id: string | undefined;
+    Partition?: string;
+    Region?: string;
+    link?: string;
+}
 export interface SecurityHubFinding {
     id?: string;
+    Ids?: string[];
     title?: string;
     region?: string;
     accountAlias?: string;
@@ -16,6 +24,7 @@ export interface SecurityHubFinding {
     CompanyName?: string;
     ProviderName?: string;
     ProviderVersion?: string;
+    consolidated?: boolean;
     CVE?: string;
     [key: string]: string | unknown;
 }

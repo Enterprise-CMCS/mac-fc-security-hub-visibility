@@ -1,6 +1,6 @@
 import { SecurityHubFinding } from './libs';
 import { Issue, CustomFields, JiraConfig } from './libs/jira-lib';
-import { Resource } from '@aws-sdk/client-securityhub';
+import { Resource } from './libs';
 interface UpdateForReturn {
     action: string;
     webUrl: string;
@@ -53,6 +53,7 @@ export declare class SecurityHubJiraSync {
     makeResourceList(resources: Resource[] | undefined): string;
     makeProductFieldSection(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrlThroughFilters(findingId: string): string;
+    createFindingUrlSection(Ids: string[]): string;
     createIssueBody(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrl(standardsControlArn?: string): string;
     getSeverityMappingToJiraPriority: (severity: string) => "Lowest" | "Low" | "Medium" | "High" | "Critical";
