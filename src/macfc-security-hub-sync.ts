@@ -393,7 +393,7 @@ export class SecurityHubJiraSync {
 
     let Table = `${title}| Partition   | Region     | Type    \n`
     resources.forEach(({Id, Partition, Region, Type, link}) => {
-      Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} | [See Finding | ${link}] \n`
+      Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} | [FindingURL | ${link}] \n`
     })
 
     Table += `------------------------------------------------------------------------------------------------`
