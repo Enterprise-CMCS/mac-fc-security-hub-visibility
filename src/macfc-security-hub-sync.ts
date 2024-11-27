@@ -2,8 +2,8 @@ import {extractErrorMessage} from 'index'
 import {Jira, SecurityHub, SecurityHubFinding} from './libs'
 import {Issue, NewIssueData, CustomFields, JiraConfig} from './libs/jira-lib'
 import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts'
-import {AwsSecurityFinding } from '@aws-sdk/client-securityhub'
-import { Resource } from './libs'
+import {AwsSecurityFinding} from '@aws-sdk/client-securityhub'
+import {Resource} from './libs'
 
 interface UpdateForReturn {
   action: string
@@ -175,7 +175,10 @@ export class SecurityHubJiraSync {
       : await this.securityHub.getAllActiveFindings()
     const shFindings = Object.values(shFindingsObj).map(finding => {
       finding.Resources = (finding.Resources ?? []).map(r => {
-        return {...r, link: finding.id}
+        return {
+          ...r,
+          link: this.createSecurityHubFindingUrlThroughFilters(finding.id ?? '')
+        }
       })
       if (
         finding.ProductName?.toLowerCase().includes('default') &&
@@ -390,7 +393,7 @@ export class SecurityHubJiraSync {
 
     let Table = `${title}| Partition   | Region     | Type    \n`
     resources.forEach(({Id, Partition, Region, Type, link}) => {
-      Table += `[${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} | ${link} ] \n`
+      Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} | [See Finding | ${link}] \n`
     })
 
     Table += `------------------------------------------------------------------------------------------------`

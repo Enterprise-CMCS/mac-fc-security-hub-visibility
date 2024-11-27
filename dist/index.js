@@ -60614,7 +60614,10 @@ class SecurityHubJiraSync {
             : await this.securityHub.getAllActiveFindings();
         const shFindings = Object.values(shFindingsObj).map(finding => {
             finding.Resources = (finding.Resources ?? []).map(r => {
-                return { ...r, link: finding.id };
+                return {
+                    ...r,
+                    link: this.createSecurityHubFindingUrlThroughFilters(finding.id ?? '')
+                };
             });
             if (finding.ProductName?.toLowerCase().includes('default') &&
                 finding.CompanyName?.toLowerCase().includes('tenable')) {
@@ -60777,7 +60780,7 @@ class SecurityHubJiraSync {
         const title = 'Resource Id'.padEnd(maxLength + maxLength / 2 + 4);
         let Table = `${title}| Partition   | Region     | Type    \n`;
         resources.forEach(({ Id, Partition, Region, Type, link }) => {
-            Table += `[${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} | ${link} ] \n`;
+            Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} | [See Finding | ${link}] \n`;
         });
         Table += `------------------------------------------------------------------------------------------------`;
         return Table;
