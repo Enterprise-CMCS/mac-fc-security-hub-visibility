@@ -60619,6 +60619,8 @@ class SecurityHubJiraSync {
                     link: this.createSecurityHubFindingUrlThroughFilters(finding.id ?? '')
                 };
             });
+            const id = finding.id ?? '';
+            finding.Ids = [id];
             if (finding.ProductName?.toLowerCase().includes('default') &&
                 finding.CompanyName?.toLowerCase().includes('tenable')) {
                 return {
