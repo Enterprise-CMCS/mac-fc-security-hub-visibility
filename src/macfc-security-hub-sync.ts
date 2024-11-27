@@ -465,7 +465,7 @@ export class SecurityHubJiraSync {
     let sectionText = `\nFinding Id                                               | Finding Url                                         \n `
     Ids.forEach(
       id =>
-        (sectionText += `\n${id}                         |   [link](${this.createSecurityHubFindingUrlThroughFilters(id)}) \n`)
+        (sectionText += `\n${id}                         |   [link|${this.createSecurityHubFindingUrlThroughFilters(id)}] \n`)
     )
     sectionText += `\n---------------------------------------------------------------------------------------------------------------------\n`
     return sectionText

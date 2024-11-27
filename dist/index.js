@@ -60840,7 +60840,7 @@ class SecurityHubJiraSync {
     }
     createFindingUrlSection(Ids) {
         let sectionText = `\nFinding Id                                               | Finding Url                                         \n `;
-        Ids.forEach(id => (sectionText += `\n${id}                         |   [link](${this.createSecurityHubFindingUrlThroughFilters(id)}) \n`));
+        Ids.forEach(id => (sectionText += `\n${id}                         |   [link|${this.createSecurityHubFindingUrlThroughFilters(id)}] \n`));
         sectionText += `\n---------------------------------------------------------------------------------------------------------------------\n`;
         return sectionText;
     }
