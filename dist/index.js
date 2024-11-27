@@ -60890,8 +60890,6 @@ class SecurityHubJiraSync {
       ${severity}
 
       ${this.makeProductFieldSection(finding)}
-      h2. SecurityHubFindingUrl(s):
-      ${consolidated ? this.createFindingUrlSection(finding.Ids ?? []) : standardsControlArn ? this.createSecurityHubFindingUrl(standardsControlArn) : this.createSecurityHubFindingUrlThroughFilters(id)}
 
       h2. Resources:
       Following are the resources those were non-compliant at the time of the issue creation
