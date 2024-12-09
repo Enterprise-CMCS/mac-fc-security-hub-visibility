@@ -220,11 +220,12 @@ async function run(): Promise<void> {
     )
 
     core.info('Syncing Security Hub and Jira')
-    await new SecurityHubJiraSync(
+    const resultUpdates = await new SecurityHubJiraSync(
       jiraConfig,
       securityHubConfig,
       autoClose
     ).sync()
+    core.setOutput('updates', JSON.stringify(resultUpdates))
   } catch (error: unknown) {
     core.setFailed(`Sync failed: ${extractErrorMessage(error)}`)
   }

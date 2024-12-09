@@ -46,7 +46,7 @@ export declare class SecurityHubJiraSync {
     areSameLists(A: Resource[], B: Resource[]): boolean;
     isAlreadyInNew(finding: SecurityHubFinding, List: SecurityHubFinding[]): boolean;
     isNewFinding(finding: SecurityHubFinding, issues: Issue[]): boolean;
-    sync(): Promise<void>;
+    sync(): Promise<UpdateForReturn[]>;
     getAWSAccountID(): Promise<string>;
     shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]): boolean;
     closeIssuesForResolvedFindings(jiraIssues: Issue[], shFindings: SecurityHubFinding[]): Promise<UpdateForReturn[]>;

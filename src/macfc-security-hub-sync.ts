@@ -279,6 +279,7 @@ export class SecurityHubJiraSync {
     )
 
     console.log(JSON.stringify(updatesForReturn))
+    return updatesForReturn
   }
 
   async getAWSAccountID() {

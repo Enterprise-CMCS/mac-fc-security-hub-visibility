@@ -78,6 +78,9 @@ inputs:
   test-findings-data:
     description: "JSON string of findings list"
     required: false
+outputs:
+  updates:
+    description: "A stringified JSON List of updates where each update is {action: closed/created, webUrl: url of the issue, Summary: summary of the jira issue}"
 runs:
   using: 'node20'
   main: 'dist/index.js'

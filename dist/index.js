@@ -59718,7 +59718,8 @@ async function run() {
         };
         const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true);
         core.info('Syncing Security Hub and Jira');
-        await new macfc_security_hub_sync_1.SecurityHubJiraSync(jiraConfig, securityHubConfig, autoClose).sync();
+        const resultUpdates = await new macfc_security_hub_sync_1.SecurityHubJiraSync(jiraConfig, securityHubConfig, autoClose).sync();
+        core.setOutput('updates', JSON.stringify(resultUpdates));
     }
     catch (error) {
         core.setFailed(`Sync failed: ${extractErrorMessage(error)}`);
@@ -60687,6 +60688,7 @@ class SecurityHubJiraSync {
         // Step 4. Create Jira issue for current findings that do not already have a Jira issue
         updatesForReturn.push(...(await this.createJiraIssuesForNewFindings(jiraIssues, consolidatedFindings, identifyingLabels)));
         console.log(JSON.stringify(updatesForReturn));
+        return updatesForReturn;
     }
     async getAWSAccountID() {
         const client = new client_sts_1.STSClient({
