@@ -81,6 +81,12 @@ inputs:
 outputs:
   updates:
     description: "A stringified JSON List of updates where each update is {action: closed/created, webUrl: url of the issue, Summary: summary of the jira issue}"
+  total:
+    description: "count of updates"
+  created:
+    description: "count of created issues"
+  closed:
+    description: "count of closed issues"
 runs:
   using: 'node20'
   main: 'dist/index.js'

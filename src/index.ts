@@ -226,6 +226,15 @@ async function run(): Promise<void> {
       autoClose
     ).sync()
     core.setOutput('updates', JSON.stringify(resultUpdates))
+    core.setOutput('total', resultUpdates.length)
+    core.setOutput(
+      'created',
+      resultUpdates.filter(update => update.action == 'created').length
+    )
+    core.setOutput(
+      'closed',
+      resultUpdates.filter(update => update.action == 'closed').length
+    )
   } catch (error: unknown) {
     core.setFailed(`Sync failed: ${extractErrorMessage(error)}`)
   }

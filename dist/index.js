@@ -59720,6 +59720,9 @@ async function run() {
         core.info('Syncing Security Hub and Jira');
         const resultUpdates = await new macfc_security_hub_sync_1.SecurityHubJiraSync(jiraConfig, securityHubConfig, autoClose).sync();
         core.setOutput('updates', JSON.stringify(resultUpdates));
+        core.setOutput('total', resultUpdates.length);
+        core.setOutput('created', resultUpdates.filter(update => update.action == 'created').length);
+        core.setOutput('closed', resultUpdates.filter(update => update.action == 'closed').length);
     }
     catch (error) {
         core.setFailed(`Sync failed: ${extractErrorMessage(error)}`);
