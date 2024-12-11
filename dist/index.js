@@ -60836,7 +60836,7 @@ class SecurityHubJiraSync {
         }
         // Validate the extracted region
         if (!isAwsRegion(region)) {
-            console.error(`Invalid AWS region: ${region}`);
+            //console.error(`Invalid AWS region: ${region}`)
             region = 'us-east-1'; // Fallback to default region
         }
         // Encode the findingId and operator for URL
