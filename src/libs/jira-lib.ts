@@ -462,12 +462,14 @@ export class Jira {
       if (this.jiraWatchers && this.jiraWatchers.length >= 1) {
         try {
           await Promise.all(
-            this.jiraWatchers.map((watcher: string) =>
-              this.addUserAsWatcher(
-                newIssue.key,
-                watcher,
-                this.jiraBaseURI.includes('atlassian') == false
-              )
+            this.jiraWatchers.map(
+              (watcher: string) =>
+                watcher &&
+                this.addUserAsWatcher(
+                  newIssue.key,
+                  watcher,
+                  this.jiraBaseURI.includes('atlassian') == false
+                )
             )
           )
         } catch (error: unknown) {

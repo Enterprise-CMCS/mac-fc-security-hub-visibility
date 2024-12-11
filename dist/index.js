@@ -60091,7 +60091,8 @@ class Jira {
             await this.removeCurrentUserAsWatcher(newIssue.key);
             if (this.jiraWatchers && this.jiraWatchers.length >= 1) {
                 try {
-                    await Promise.all(this.jiraWatchers.map((watcher) => this.addUserAsWatcher(newIssue.key, watcher, this.jiraBaseURI.includes('atlassian') == false)));
+                    await Promise.all(this.jiraWatchers.map((watcher) => watcher &&
+                        this.addUserAsWatcher(newIssue.key, watcher, this.jiraBaseURI.includes('atlassian') == false)));
                 }
                 catch (error) {
                     console.log('Error: could not add watchers', this.jiraWatchers);
