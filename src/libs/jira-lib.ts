@@ -459,16 +459,23 @@ export class Jira {
       // Construct the webUrl for the new issue
       newIssue['webUrl'] = `${this.jiraBaseURI}/browse/${newIssue.key}`
       await this.removeCurrentUserAsWatcher(newIssue.key)
-      if (this.jiraWatchers) {
-        await Promise.all(
-          this.jiraWatchers.map((watcher: string) =>
-            this.addUserAsWatcher(
-              newIssue.key,
-              watcher,
-              this.jiraBaseURI.includes('atlassian') == false
+      if (this.jiraWatchers && this.jiraWatchers.length >= 1) {
+        try {
+          await Promise.all(
+            this.jiraWatchers.map(
+              (watcher: string) =>
+                watcher &&
+                this.addUserAsWatcher(
+                  newIssue.key,
+                  watcher,
+                  this.jiraBaseURI.includes('atlassian') == false
+                )
             )
           )
-        )
+        } catch (error: unknown) {
+          console.log('Error: could not add watchers', this.jiraWatchers)
+          return newIssue
+        }
       }
       return newIssue
     } catch (error: unknown) {
