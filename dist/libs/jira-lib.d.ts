@@ -78,6 +78,7 @@ export declare class Jira {
     addUserAsWatcher(issueId: string, watcher: string, isEnterprise?: boolean): Promise<void>;
     removeCurrentUserAsWatcher(issueId: string): Promise<void>;
     private static formatLabelQuery;
+    static createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
     createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
     getAllSecurityHubIssuesInJiraProject(identifyingLabels: string[]): Promise<Issue[]>;
     createNewIssue(issue: NewIssueData): Promise<Issue>;

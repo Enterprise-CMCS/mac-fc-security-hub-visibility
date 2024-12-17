@@ -333,6 +333,32 @@ export class Jira {
   private static formatLabelQuery(label: string): string {
     return `labels = '${label}'`
   }
+  public static createSearchLabels(
+    identifyingLabels: string[],
+    config: LabelConfig[]
+  ): string[] {
+    const labels: string[] = []
+    const fields = ['accountId', 'region', 'identify']
+    const values = [...identifyingLabels, 'security-hub']
+
+    config.forEach(
+      ({labelField: field, labelDelimiter: delim, labelPrefix: prefix}) => {
+        const delimiter = delim ?? ''
+        const labelPrefix = prefix ?? ''
+
+        if (fields.includes(field)) {
+          const index = fields.indexOf(field)
+          if (index >= 0) {
+            labels.push(
+              `${labelPrefix}${delimiter}${values[index]?.trim().replace(/ /g, '')}`
+            )
+          }
+        }
+      }
+    )
+
+    return labels
+  }
   createSearchLabels(
     identifyingLabels: string[],
     config: LabelConfig[]

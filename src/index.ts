@@ -3,7 +3,7 @@ import {
   SecurityHubJiraSync,
   SecurityHubJiraSyncConfig
 } from './macfc-security-hub-sync'
-import {JiraConfig, CustomFields} from './libs/jira-lib'
+import {JiraConfig, CustomFields, Jira} from './libs/jira-lib'
 
 export function extractErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -220,11 +220,48 @@ async function run(): Promise<void> {
     )
 
     core.info('Syncing Security Hub and Jira')
-    await new SecurityHubJiraSync(
+    const secHub = new SecurityHubJiraSync(
       jiraConfig,
       securityHubConfig,
       autoClose
-    ).sync()
+    )
+    const resultUpdates = await secHub.sync()
+
+    // Construct the JQL
+    const jqlQuery = `issueKey in ( ${resultUpdates
+      .map(({webUrl: url}) => {
+        const regex = /\/browse\/([A-Z]+-\d+)/
+        const match = url.match(regex)
+        return match ? match[1] : '' // Returns the issue key or an empty string
+      })
+      .filter(url => url)
+      .join(',')} )`
+
+    // Jira base URL and the search endpoint
+    const jiraBaseUrl = jiraConfig.jiraBaseURI
+    const jqlEncoded = encodeURIComponent(jqlQuery)
+
+    // Complete Jira URL
+    const jiraUrl = `${jiraBaseUrl}/issues/?jql=${jqlEncoded}`
+    core.setOutput('jql', jiraUrl)
+    core.setOutput(
+      'updates',
+      resultUpdates
+        .filter(update => update.action == 'created')
+        .map(({webUrl}) => {
+          return webUrl
+        })
+        .join(',')
+    )
+    core.setOutput('total', resultUpdates.length)
+    core.setOutput(
+      'created',
+      resultUpdates.filter(update => update.action == 'created').length
+    )
+    core.setOutput(
+      'closed',
+      resultUpdates.filter(update => update.action == 'closed').length
+    )
   } catch (error: unknown) {
     core.setFailed(`Sync failed: ${extractErrorMessage(error)}`)
   }

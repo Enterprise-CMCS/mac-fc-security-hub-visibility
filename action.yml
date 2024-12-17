@@ -78,6 +78,17 @@ inputs:
   test-findings-data:
     description: "JSON string of findings list"
     required: false
+outputs:
+  updates:
+    description: "List of urls of created issues"
+  total:
+    description: "count of updates"
+  created:
+    description: "count of created issues"
+  closed:
+    description: "count of closed issues"
+  jql:
+    description: "the jql query for new updates"
 runs:
   using: 'node20'
   main: 'dist/index.js'

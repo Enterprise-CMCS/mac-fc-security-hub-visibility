@@ -59718,7 +59718,32 @@ async function run() {
         };
         const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true);
         core.info('Syncing Security Hub and Jira');
-        await new macfc_security_hub_sync_1.SecurityHubJiraSync(jiraConfig, securityHubConfig, autoClose).sync();
+        const secHub = new macfc_security_hub_sync_1.SecurityHubJiraSync(jiraConfig, securityHubConfig, autoClose);
+        const resultUpdates = await secHub.sync();
+        // Construct the JQL
+        const jqlQuery = `issueKey in ( ${resultUpdates
+            .map(({ webUrl: url }) => {
+            const regex = /\/browse\/([A-Z]+-\d+)/;
+            const match = url.match(regex);
+            return match ? match[1] : ''; // Returns the issue key or an empty string
+        })
+            .filter(url => url)
+            .join(',')} )`;
+        // Jira base URL and the search endpoint
+        const jiraBaseUrl = jiraConfig.jiraBaseURI;
+        const jqlEncoded = encodeURIComponent(jqlQuery);
+        // Complete Jira URL
+        const jiraUrl = `${jiraBaseUrl}/issues/?jql=${jqlEncoded}`;
+        core.setOutput('jql', jiraUrl);
+        core.setOutput('updates', resultUpdates
+            .filter(update => update.action == 'created')
+            .map(({ webUrl }) => {
+            return webUrl;
+        })
+            .join(','));
+        core.setOutput('total', resultUpdates.length);
+        core.setOutput('created', resultUpdates.filter(update => update.action == 'created').length);
+        core.setOutput('closed', resultUpdates.filter(update => update.action == 'closed').length);
     }
     catch (error) {
         core.setFailed(`Sync failed: ${extractErrorMessage(error)}`);
@@ -59991,6 +60016,22 @@ class Jira {
     }
     static formatLabelQuery(label) {
         return `labels = '${label}'`;
+    }
+    static createSearchLabels(identifyingLabels, config) {
+        const labels = [];
+        const fields = ['accountId', 'region', 'identify'];
+        const values = [...identifyingLabels, 'security-hub'];
+        config.forEach(({ labelField: field, labelDelimiter: delim, labelPrefix: prefix }) => {
+            const delimiter = delim ?? '';
+            const labelPrefix = prefix ?? '';
+            if (fields.includes(field)) {
+                const index = fields.indexOf(field);
+                if (index >= 0) {
+                    labels.push(`${labelPrefix}${delimiter}${values[index]?.trim().replace(/ /g, '')}`);
+                }
+            }
+        });
+        return labels;
     }
     createSearchLabels(identifyingLabels, config) {
         const labels = [];
@@ -60694,6 +60735,7 @@ class SecurityHubJiraSync {
         // Step 4. Create Jira issue for current findings that do not already have a Jira issue
         updatesForReturn.push(...(await this.createJiraIssuesForNewFindings(jiraIssues, consolidatedFindings, identifyingLabels)));
         console.log(JSON.stringify(updatesForReturn));
+        return updatesForReturn;
     }
     async getAWSAccountID() {
         const client = new client_sts_1.STSClient({
