@@ -60130,8 +60130,15 @@ class Jira {
             // Construct the webUrl for the new issue
             newIssue['webUrl'] = `${this.jiraBaseURI}/browse/${newIssue.key}`;
             await this.removeCurrentUserAsWatcher(newIssue.key);
-            if (this.jiraWatchers) {
-                await Promise.all(this.jiraWatchers.map((watcher) => this.addUserAsWatcher(newIssue.key, watcher, this.jiraBaseURI.includes('atlassian') == false)));
+            if (this.jiraWatchers && this.jiraWatchers.length >= 1) {
+                try {
+                    await Promise.all(this.jiraWatchers.map((watcher) => watcher &&
+                        this.addUserAsWatcher(newIssue.key, watcher, this.jiraBaseURI.includes('atlassian') == false)));
+                }
+                catch (error) {
+                    console.log('Error: could not add watchers', this.jiraWatchers);
+                    return newIssue;
+                }
             }
             return newIssue;
         }
@@ -60871,7 +60878,7 @@ class SecurityHubJiraSync {
         }
         // Validate the extracted region
         if (!isAwsRegion(region)) {
-            console.error(`Invalid AWS region: ${region}`);
+            //console.error(`Invalid AWS region: ${region}`)
             region = 'us-east-1'; // Fallback to default region
         }
         // Encode the findingId and operator for URL
