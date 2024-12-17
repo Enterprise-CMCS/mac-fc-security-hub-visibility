@@ -3,7 +3,7 @@ import {
   SecurityHubJiraSync,
   SecurityHubJiraSyncConfig
 } from './macfc-security-hub-sync'
-import {JiraConfig, CustomFields} from './libs/jira-lib'
+import {JiraConfig, CustomFields, Jira} from './libs/jira-lib'
 
 export function extractErrorMessage(error: unknown): string {
   if (error instanceof Error) {
@@ -220,18 +220,69 @@ async function run(): Promise<void> {
     )
 
     core.info('Syncing Security Hub and Jira')
-    const resultUpdates = await new SecurityHubJiraSync(
+    const startDateTime = new Date()
+    const secHub = new SecurityHubJiraSync(
       jiraConfig,
       securityHubConfig,
       autoClose
-    ).sync()
+    )
+    const resultUpdates = await secHub.sync()
+    const endDateTime = new Date()
+    const startFormatted = startDateTime
+      .toISOString()
+      .replace('T', ' ')
+      .substring(0, 19) // "2024-12-17 12:00:00"
+    const endFormatted = endDateTime
+      .toISOString()
+      .replace('T', ' ')
+      .substring(0, 19) // "2024-12-17 12:05:00"
+    const accountId = await secHub.getAWSAccountID()
+    const identifyingLabels: string[] = [accountId, secHub.region]
+    const labelQueries = [...identifyingLabels, 'security-hub']
+      .map(label => {
+        return `labels = '${label}'`
+      })
+      .join(' AND ')
+    let finalLabelQuery = labelQueries
+    if (secHub.jiraLabelsConfig) {
+      const config = secHub.jiraLabelsConfig
+      const configLabels = Jira.createSearchLabels(identifyingLabels, config)
+      const searchQuery = configLabels
+        .map(label => {
+          return `labels = '${label}'`
+        })
+        .join(' AND ')
+      if (searchQuery) {
+        finalLabelQuery = `((${finalLabelQuery}) OR (${searchQuery}))`
+      }
+    }
+    const projectQuery = `project = '${jiraConfig.jiraProjectKey}'`
+    const statusQuery = `status not in ('${jiraConfig.jiraIgnoreStatuses
+      .split(',')
+      .map(status => status.trim())
+      .join(
+        "','" // wrap each closed status in single quotes
+      )}')`
+    const fullQuery = [finalLabelQuery, projectQuery, statusQuery].join(' AND ')
+
+    // Construct the JQL
+    const jqlQuery = `${fullQuery} AND created >= "${startFormatted}" AND created <= "${endFormatted}"`
+
+    // Jira base URL and the search endpoint
+    const jiraBaseUrl = jiraConfig.jiraBaseURI
+    const jqlEncoded = encodeURIComponent(jqlQuery)
+
+    // Complete Jira URL
+    const jiraUrl = `${jiraBaseUrl}/issues/?jql=${jqlEncoded}`
+    core.setOutput('jql', jiraUrl)
     core.setOutput(
       'updates',
       resultUpdates
         .filter(update => update.action == 'created')
         .map(({webUrl}) => {
           return webUrl
-        }).join(',')
+        })
+        .join(',')
     )
     core.setOutput('total', resultUpdates.length)
     core.setOutput(

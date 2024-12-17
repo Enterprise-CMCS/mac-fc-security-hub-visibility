@@ -40,14 +40,14 @@ export class SecurityHubJiraSync {
   private readonly jira: Jira
   private readonly securityHub: SecurityHub
   private readonly customJiraFields
-  private readonly region
+  public readonly region
   private readonly severities
   private readonly autoClose: boolean
   private readonly jiraBaseURI: string
   private jiraLinkId?: string
   private jiraLinkType?: string
   private jiraLinkDirection?: string
-  private jiraLabelsConfig?: LabelConfig[]
+  public jiraLabelsConfig?: LabelConfig[]
   private jiraAddLabels?: string[]
   private jiraConsolidateTickets?: boolean
   private testFindings: AwsSecurityFinding[] = []

@@ -30,14 +30,14 @@ export declare class SecurityHubJiraSync {
     private readonly jira;
     private readonly securityHub;
     private readonly customJiraFields;
-    private readonly region;
+    readonly region: string;
     private readonly severities;
     private readonly autoClose;
     private readonly jiraBaseURI;
     private jiraLinkId?;
     private jiraLinkType?;
     private jiraLinkDirection?;
-    private jiraLabelsConfig?;
+    jiraLabelsConfig?: LabelConfig[];
     private jiraAddLabels?;
     private jiraConsolidateTickets?;
     private testFindings;

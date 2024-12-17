@@ -59605,6 +59605,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.extractErrorMessage = extractErrorMessage;
 const core = __importStar(__nccwpck_require__(42186));
 const macfc_security_hub_sync_1 = __nccwpck_require__(39465);
+const jira_lib_1 = __nccwpck_require__(46461);
 function extractErrorMessage(error) {
     if (error instanceof Error) {
         return error.message;
@@ -59718,12 +59719,59 @@ async function run() {
         };
         const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true);
         core.info('Syncing Security Hub and Jira');
-        const resultUpdates = await new macfc_security_hub_sync_1.SecurityHubJiraSync(jiraConfig, securityHubConfig, autoClose).sync();
+        const startDateTime = new Date();
+        const secHub = new macfc_security_hub_sync_1.SecurityHubJiraSync(jiraConfig, securityHubConfig, autoClose);
+        const resultUpdates = await secHub.sync();
+        const endDateTime = new Date();
+        const startFormatted = startDateTime
+            .toISOString()
+            .replace('T', ' ')
+            .substring(0, 19); // "2024-12-17 12:00:00"
+        const endFormatted = endDateTime
+            .toISOString()
+            .replace('T', ' ')
+            .substring(0, 19); // "2024-12-17 12:05:00"
+        const accountId = await secHub.getAWSAccountID();
+        const identifyingLabels = [accountId, secHub.region];
+        const labelQueries = [...identifyingLabels, 'security-hub']
+            .map(label => {
+            return `labels = '${label}'`;
+        })
+            .join(' AND ');
+        let finalLabelQuery = labelQueries;
+        if (secHub.jiraLabelsConfig) {
+            const config = secHub.jiraLabelsConfig;
+            const configLabels = jira_lib_1.Jira.createSearchLabels(identifyingLabels, config);
+            const searchQuery = configLabels
+                .map(label => {
+                return `labels = '${label}'`;
+            })
+                .join(' AND ');
+            if (searchQuery) {
+                finalLabelQuery = `((${finalLabelQuery}) OR (${searchQuery}))`;
+            }
+        }
+        const projectQuery = `project = '${jiraConfig.jiraProjectKey}'`;
+        const statusQuery = `status not in ('${jiraConfig.jiraIgnoreStatuses
+            .split(',')
+            .map(status => status.trim())
+            .join("','" // wrap each closed status in single quotes
+        )}')`;
+        const fullQuery = [finalLabelQuery, projectQuery, statusQuery].join(' AND ');
+        // Construct the JQL
+        const jqlQuery = `${fullQuery} AND created >= "${startFormatted}" AND created <= "${endFormatted}"`;
+        // Jira base URL and the search endpoint
+        const jiraBaseUrl = jiraConfig.jiraBaseURI;
+        const jqlEncoded = encodeURIComponent(jqlQuery);
+        // Complete Jira URL
+        const jiraUrl = `${jiraBaseUrl}/issues/?jql=${jqlEncoded}`;
+        core.setOutput('jql', jiraUrl);
         core.setOutput('updates', resultUpdates
             .filter(update => update.action == 'created')
             .map(({ webUrl }) => {
             return webUrl;
-        }).join(','));
+        })
+            .join(','));
         core.setOutput('total', resultUpdates.length);
         core.setOutput('created', resultUpdates.filter(update => update.action == 'created').length);
         core.setOutput('closed', resultUpdates.filter(update => update.action == 'closed').length);
@@ -59999,6 +60047,22 @@ class Jira {
     }
     static formatLabelQuery(label) {
         return `labels = '${label}'`;
+    }
+    static createSearchLabels(identifyingLabels, config) {
+        const labels = [];
+        const fields = ['accountId', 'region', 'identify'];
+        const values = [...identifyingLabels, 'security-hub'];
+        config.forEach(({ labelField: field, labelDelimiter: delim, labelPrefix: prefix }) => {
+            const delimiter = delim ?? '';
+            const labelPrefix = prefix ?? '';
+            if (fields.includes(field)) {
+                const index = fields.indexOf(field);
+                if (index >= 0) {
+                    labels.push(`${labelPrefix}${delimiter}${values[index]?.trim().replace(/ /g, '')}`);
+                }
+            }
+        });
+        return labels;
     }
     createSearchLabels(identifyingLabels, config) {
         const labels = [];
