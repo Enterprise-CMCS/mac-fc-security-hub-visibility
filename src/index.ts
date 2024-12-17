@@ -227,11 +227,11 @@ async function run(): Promise<void> {
     ).sync()
     core.setOutput(
       'updates',
-      JSON.stringify(
-        resultUpdates.map(({webUrl}) => {
-          return [webUrl]
+      resultUpdates
+        .filter(update => update.action == 'created')
+        .map(({webUrl}) => {
+          return webUrl
         })
-      )
     )
     core.setOutput('total', resultUpdates.length)
     core.setOutput(

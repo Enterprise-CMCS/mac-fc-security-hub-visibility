@@ -80,7 +80,7 @@ inputs:
     required: false
 outputs:
   updates:
-    description: "A stringified JSON List of updates where each update is {action: closed/created, webUrl: url of the issue, Summary: summary of the jira issue}"
+    description: "List of urls of created issues"
   total:
     description: "count of updates"
   created:
