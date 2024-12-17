@@ -59723,14 +59723,15 @@ async function run() {
         const secHub = new macfc_security_hub_sync_1.SecurityHubJiraSync(jiraConfig, securityHubConfig, autoClose);
         const resultUpdates = await secHub.sync();
         const endDateTime = new Date();
+        endDateTime.setMinutes(endDateTime.getMinutes() + 10);
         const startFormatted = startDateTime
             .toISOString()
             .replace('T', ' ')
-            .substring(0, 19); // "2024-12-17 12:00:00"
+            .substring(0, 16); // "2024-12-17 12:00"
         const endFormatted = endDateTime
             .toISOString()
             .replace('T', ' ')
-            .substring(0, 19); // "2024-12-17 12:05:00"
+            .substring(0, 16); // "2024-12-17 12:10"
         const accountId = await secHub.getAWSAccountID();
         const identifyingLabels = [accountId, secHub.region];
         const labelQueries = [...identifyingLabels, 'security-hub']
