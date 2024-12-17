@@ -225,7 +225,17 @@ async function run(): Promise<void> {
       securityHubConfig,
       autoClose
     ).sync()
-    core.setOutput('updates', JSON.stringify(resultUpdates))
+    core.setOutput(
+      'updates',
+      JSON.stringify(
+        resultUpdates.map(({action, webUrl}) => {
+          return {
+            action,
+            webUrl
+          }
+        })
+      )
+    )
     core.setOutput('total', resultUpdates.length)
     core.setOutput(
       'created',
