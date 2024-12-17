@@ -59723,7 +59723,7 @@ async function run() {
             .filter(update => update.action == 'created')
             .map(({ webUrl }) => {
             return webUrl;
-        }));
+        }).join(','));
         core.setOutput('total', resultUpdates.length);
         core.setOutput('created', resultUpdates.filter(update => update.action == 'created').length);
         core.setOutput('closed', resultUpdates.filter(update => update.action == 'closed').length);

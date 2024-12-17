@@ -231,7 +231,7 @@ async function run(): Promise<void> {
         .filter(update => update.action == 'created')
         .map(({webUrl}) => {
           return webUrl
-        })
+        }).join(',')
     )
     core.setOutput('total', resultUpdates.length)
     core.setOutput(
