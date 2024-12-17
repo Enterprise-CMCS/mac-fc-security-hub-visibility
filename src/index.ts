@@ -220,54 +220,22 @@ async function run(): Promise<void> {
     )
 
     core.info('Syncing Security Hub and Jira')
-    const startDateTime = new Date()
     const secHub = new SecurityHubJiraSync(
       jiraConfig,
       securityHubConfig,
       autoClose
     )
     const resultUpdates = await secHub.sync()
-    const endDateTime = new Date()
-    endDateTime.setMinutes(endDateTime.getMinutes() + 10)
-    const startFormatted = startDateTime
-      .toISOString()
-      .replace('T', ' ')
-      .substring(0, 16) // "2024-12-17 12:00"
-    const endFormatted = endDateTime
-      .toISOString()
-      .replace('T', ' ')
-      .substring(0, 16) // "2024-12-17 12:10"
-    const accountId = await secHub.getAWSAccountID()
-    const identifyingLabels: string[] = [accountId, secHub.region]
-    const labelQueries = [...identifyingLabels, 'security-hub']
-      .map(label => {
-        return `labels = '${label}'`
-      })
-      .join(' AND ')
-    let finalLabelQuery = labelQueries
-    if (secHub.jiraLabelsConfig) {
-      const config = secHub.jiraLabelsConfig
-      const configLabels = Jira.createSearchLabels(identifyingLabels, config)
-      const searchQuery = configLabels
-        .map(label => {
-          return `labels = '${label}'`
-        })
-        .join(' AND ')
-      if (searchQuery) {
-        finalLabelQuery = `((${finalLabelQuery}) OR (${searchQuery}))`
-      }
-    }
-    const projectQuery = `project = '${jiraConfig.jiraProjectKey}'`
-    const statusQuery = `status not in ('${jiraConfig.jiraIgnoreStatuses
-      .split(',')
-      .map(status => status.trim())
-      .join(
-        "','" // wrap each closed status in single quotes
-      )}')`
-    const fullQuery = [finalLabelQuery, projectQuery, statusQuery].join(' AND ')
 
     // Construct the JQL
-    const jqlQuery = `${fullQuery} AND created >= "${startFormatted}" AND created <= "${endFormatted}"`
+    const jqlQuery = `issueKey in ( ${resultUpdates
+      .map(({webUrl: url}) => {
+        const regex = /\/browse\/([A-Z]+-\d+)/
+        const match = url.match(regex)
+        return match ? match[1] : '' // Returns the issue key or an empty string
+      })
+      .filter(url => url)
+      .join(',')} )`
 
     // Jira base URL and the search endpoint
     const jiraBaseUrl = jiraConfig.jiraBaseURI
