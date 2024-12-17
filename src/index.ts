@@ -228,11 +228,8 @@ async function run(): Promise<void> {
     core.setOutput(
       'updates',
       JSON.stringify(
-        resultUpdates.map(({action, webUrl}) => {
-          return {
-            action,
-            webUrl
-          }
+        resultUpdates.map(({webUrl}) => {
+          return [webUrl]
         })
       )
     )

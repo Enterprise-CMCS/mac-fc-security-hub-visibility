@@ -59719,11 +59719,8 @@ async function run() {
         const autoClose = getInputOrEnvAndConvertToBool('auto-close', 'AUTO_CLOSE', true);
         core.info('Syncing Security Hub and Jira');
         const resultUpdates = await new macfc_security_hub_sync_1.SecurityHubJiraSync(jiraConfig, securityHubConfig, autoClose).sync();
-        core.setOutput('updates', JSON.stringify(resultUpdates.map(({ action, webUrl }) => {
-            return {
-                action,
-                webUrl
-            };
+        core.setOutput('updates', JSON.stringify(resultUpdates.map(({ webUrl }) => {
+            return [webUrl];
         })));
         core.setOutput('total', resultUpdates.length);
         core.setOutput('created', resultUpdates.filter(update => update.action == 'created').length);
