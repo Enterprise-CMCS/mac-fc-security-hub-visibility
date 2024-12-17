@@ -87,6 +87,8 @@ outputs:
     description: "count of created issues"
   closed:
     description: "count of closed issues"
+  jql:
+    description: "the jql query for new updates"
 runs:
   using: 'node20'
   main: 'dist/index.js'
