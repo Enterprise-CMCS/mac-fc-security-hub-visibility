@@ -32,6 +32,20 @@ The closure of consolidated tickets depends on the resolution of all the resourc
 ## Tenable Recognition
 If Tenable findings are reported under the "Default" product name, this implementation will identify the findings based on the product fields and treat them as if they are under the product name "Tenable."
 
+## Outputs
+
+The action provides the following outputs:
+
+- **updates**: List of URLs of created issues.
+- **total**: Count of updates made during the run.
+- **created**: Count of newly created issues.
+- **closed**: Count of issues closed during the run.
+- **jql**: The JQL query used for retrieving new updates.
+
+You can utilize the outputs to extend the security hub functionalities. This is especially useful for real-time updates on your security findings and issue tracking.
+
+For example, You can refer to this [Slack Alert Example](https://github.com/Enterprise-CMCS/mac-fc-security-hub-visibility/blob/v2/.github/workflows/test.yml) for a working implementation of Slack notifications in your Security Hub integration workflow.
+
 ## Inputs
 
   

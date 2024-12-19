@@ -24,6 +24,7 @@ jobs:
           aws-region: us-east-1
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_TO_ASSUME }}
       - name: Sync Security Hub and Jira
+        id: sync_step
         uses: Enterprise-CMCS/mac-fc-security-hub-visibility@v2.0.8
         with:
           jira-token: ${{ secrets.JIRA_TEST_TOKEN }}
@@ -37,3 +38,60 @@ jobs:
           jira-link-direction: 'outward'
           jira-labels-config: "[{\"labelField\":\"ProductName\",\"labelPrefix\":\"product\",\"labelDelimiter\":\":\"},{\"labelField\":\"severity\"},{\"labelField\":\"accountId\",\"labelDelimiter\":\":\",\"labelPrefix\":\"account\"},{\"labelField\":\"region\"},{\"labelField\":\"accountAlias\"}]"
          #skip-products: Health, Default 
+      - name: Capture and process outputs
+        run: |
+          # Define total, created, closed, and updates from the sync step outputs
+          total="${{ steps.sync_step.outputs.total }}"
+          created="${{ steps.sync_step.outputs.created }}"
+          closed="${{ steps.sync_step.outputs.closed }}"
+          updates="${{ steps.sync_step.outputs.updates }}"
+
+          # Define a limit for how many URLs to show
+          limit=5  # You can change this to show more or fewer URLs
+
+          # Print counts
+          echo "Total updates: $total"
+          echo "Created issues: $created"
+          echo "Closed issues: $closed"
+
+          # Process updates (updates is a string containing URLs separated by commas)
+          webUrls=""
+          updates=$(echo "$updates" | tr -d '[]"')  # Remove the square brackets and quotes
+          IFS=',' read -ra urlArray <<< "$updates"  # Split the string into an array using a comma as delimiter
+
+          # Loop through and process each URL, but stop at the 'limit' number of URLs
+          count=0
+          for url in "${urlArray[@]}"; do
+            if [ "$count" -ge "$limit" ]; then
+              break
+            fi
+            
+            # Clean up each URL by removing any extra spaces or quotes
+            cleanUrl=$(echo "$url" | tr -d '"')
+            webUrls+="- $cleanUrl "
+            count=$((count + 1))
+          done
+
+          # Print the final processed list of URLs (limited by the 'limit' variable)
+          echo -e "Processed URLs (showing first $limit):\n$webUrls"
+
+          # Escape the newlines to prevent issues with environment variables
+          escapedWebUrls=$(echo -e "$webUrls" | sed ':a;N;$!ba;s/\n/\\n/g')
+
+          if [ "$created" -gt 0 ]; then
+            echo "SLACK_MESSAGE=Total updates: $total, Created issues: $created, Closed issues: $closed. URLs of created issues: $escapedWebUrls . - <${{ steps.sync_step.outputs.jql }}|View Full List>" >> $GITHUB_ENV
+            echo "NEW_ISSUES_CREATED=true" >> $GITHUB_ENV
+          else
+            echo "NEW_ISSUES_CREATED=false" >> $GITHUB_ENV
+          fi
+      - name: Alert Slack On Success
+        uses: rtCamp/action-slack-notify@v2
+        if: env.NEW_ISSUES_CREATED == 'true' && success()
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_USERNAME: Deploy Alerts
+          SLACK_ICON_EMOJI: ':white_check_mark:'
+          SLACK_COLOR: good
+          SLACK_FOOTER: ''
+          SLACK_MESSAGE: ${{ env.SLACK_MESSAGE }}
+          MSG_MINIMAL: actions url
