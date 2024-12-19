@@ -42,7 +42,7 @@ The action provides the following outputs:
 - **closed**: Count of issues closed during the run.
 - **jql**: The JQL query used for retrieving new updates.
 
-You can utilize the outputs to trigger a Slack message. This is especially useful for real-time updates on your security findings and issue tracking.
+You can utilize the outputs to extend the security hub functionalities. This is especially useful for real-time updates on your security findings and issue tracking.
 
 For example, You can refer to this [Slack Alert Example](https://github.com/Enterprise-CMCS/mac-fc-embedded/blob/zarate-sechub-v2-enterprise/.github/workflows/jira-sync-v2-test.yaml) for a working implementation of Slack notifications in your Security Hub integration workflow.
 
