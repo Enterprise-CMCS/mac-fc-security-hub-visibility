@@ -32,6 +32,16 @@ The closure of consolidated tickets depends on the resolution of all the resourc
 ## Tenable Recognition
 If Tenable findings are reported under the "Default" product name, this implementation will identify the findings based on the product fields and treat them as if they are under the product name "Tenable."
 
+## Outputs
+
+The action provides the following outputs:
+
+- **updates**: List of URLs of created issues.
+- **total**: Count of updates made during the run.
+- **created**: Count of newly created issues.
+- **closed**: Count of issues closed during the run.
+- **jql**: The JQL query used for retrieving new updates.
+
 ## Inputs
 
   
