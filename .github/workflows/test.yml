@@ -15,7 +15,7 @@ jobs:
 
       # when possible, prefer using GitHub OIDC for AWS creds
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4.0.2
+        uses: aws-actions/configure-aws-credentials@v4.0.3
         with:
           aws-region: ${{ secrets.AWS_REGION }}
           # role-to-assume: ${{ secrets.OIDC_ROLE_TO_ASSUME }}
