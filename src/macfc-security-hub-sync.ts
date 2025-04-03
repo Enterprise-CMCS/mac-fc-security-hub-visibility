@@ -49,6 +49,8 @@ export class SecurityHubJiraSync {
   private jiraLinkDirection?: string
   public jiraLabelsConfig?: LabelConfig[]
   private jiraAddLabels?: string[]
+  private createIssueErrors: number = 0
+  private linkIssueErrors: number = 0
   private jiraConsolidateTickets?: boolean
   private testFindings: AwsSecurityFinding[] = []
   constructor(
@@ -279,10 +281,14 @@ export class SecurityHubJiraSync {
     )
 
     console.log(JSON.stringify(updatesForReturn))
-    return updatesForReturn
+    return { updatesForReturn, createIssueErrors: this.createIssueErrors, linkIssueErrors: this.linkIssueErrors }
   }
 
   async getAWSAccountID() {
+    // Reset counters at the start of sync
+    this.createIssueErrors = 0;
+    this.linkIssueErrors = 0;
+
     const client = new STSClient({
       region: this.region
     })
@@ -661,22 +667,44 @@ export class SecurityHubJiraSync {
     }
     let newIssueInfo
     try {
-      newIssueInfo = await this.jira.createNewIssue(newIssueData)
+      // Create the Jira issue
+      try {
+        newIssueInfo = await this.jira.createNewIssue(newIssueData)
+      } catch (createError: unknown) {
+        this.createIssueErrors++;
+        // Log the error for visibility
+        const errorMsg = extractErrorMessage(createError);
+        console.error(`Error creating Jira issue for finding "${finding.title}": ${errorMsg}`);
+        // Re-throw to potentially fail the action if creation fails
+        throw new Error(`Failed to create Jira issue: ${errorMsg}`);
+      }
+
+      // Link the issue if a link ID is provided
       const issue_id = this.jiraLinkId
       if (issue_id) {
         const linkType = this.jiraLinkType
         const linkDirection = this.jiraLinkDirection
-        await this.jira.linkIssues(
-          newIssueInfo.key,
-          issue_id,
-          linkType,
-          linkDirection
-        )
+        try {
+          await this.jira.linkIssues(
+            newIssueInfo.key,
+            issue_id,
+            linkType,
+            linkDirection
+          );
+        } catch (linkError: unknown) {
+          this.linkIssueErrors++;
+          const errorMsg = extractErrorMessage(linkError);
+          // Log the error for easier debugging, but don't re-throw
+          console.error(`Error linking issue ${newIssueInfo.key} to ${issue_id}: ${errorMsg}`);
+        }
       }
     } catch (e: unknown) {
+      // This will catch errors re-thrown from createNewIssue block
+      // Errors from linkIssues are caught and logged above, not re-thrown here.
+      // If createNewIssue failed, newIssueInfo would be undefined, so linking wouldn't be attempted.
       throw new Error(
-        `Error creating Jira issue from finding: ${extractErrorMessage(e)}`
-      )
+        `Error during Jira issue creation process for finding "${finding.title}": ${extractErrorMessage(e)}`
+      );
     }
     return {
       action: 'created',
@@ -732,8 +760,15 @@ export class SecurityHubJiraSync {
             identifyingLabels
           )
           updatesForReturn.push(update)
-        } catch (e) {
-          console.log('Moving forward with next findings', e)
+        } catch (e: unknown) {
+          // Log the error for visibility in the GitHub action output
+          console.error(`Error processing finding: ${finding.title}`, e)
+          
+          // Error is already logged inside createJiraIssueFromFinding if creation failed.
+          // If linking failed, it's logged there too but not re-thrown.
+          // We re-throw here mainly if the creation itself failed earlier.
+          // No need to log again, just propagate.
+          throw e; // Re-throw the original error caught by createJiraIssueFromFinding
         }
       }
     }
