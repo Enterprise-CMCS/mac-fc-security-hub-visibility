@@ -39,6 +39,8 @@ export declare class SecurityHubJiraSync {
     private jiraLinkDirection?;
     jiraLabelsConfig?: LabelConfig[];
     private jiraAddLabels?;
+    private createIssueErrors;
+    private linkIssueErrors;
     private jiraConsolidateTickets?;
     private testFindings;
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
@@ -46,7 +48,11 @@ export declare class SecurityHubJiraSync {
     areSameLists(A: Resource[], B: Resource[]): boolean;
     isAlreadyInNew(finding: SecurityHubFinding, List: SecurityHubFinding[]): boolean;
     isNewFinding(finding: SecurityHubFinding, issues: Issue[]): boolean;
-    sync(): Promise<UpdateForReturn[]>;
+    sync(): Promise<{
+        updatesForReturn: UpdateForReturn[];
+        createIssueErrors: number;
+        linkIssueErrors: number;
+    }>;
     getAWSAccountID(): Promise<string>;
     shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]): boolean;
     closeIssuesForResolvedFindings(jiraIssues: Issue[], shFindings: SecurityHubFinding[]): Promise<UpdateForReturn[]>;

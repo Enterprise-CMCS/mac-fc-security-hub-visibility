@@ -225,7 +225,8 @@ async function run(): Promise<void> {
       securityHubConfig,
       autoClose
     )
-    const resultUpdates = await secHub.sync()
+    const syncResult = await secHub.sync()
+    const resultUpdates = syncResult.updatesForReturn; // Extract the updates array
 
     // Construct the JQL
     const jqlQuery = `issueKey in ( ${resultUpdates
@@ -262,6 +263,15 @@ async function run(): Promise<void> {
       'closed',
       resultUpdates.filter(update => update.action == 'closed').length
     )
+    // Set the new error count outputs
+    core.setOutput('create-issue-errors', syncResult.createIssueErrors);
+    core.setOutput('link-issue-errors', syncResult.linkIssueErrors);
+
+    // Fail the job if there are any create issue errors or link issue errors
+    if (syncResult.createIssueErrors > 0 || syncResult.linkIssueErrors > 0) {
+      throw new Error(`Job failed due to errors: ${syncResult.createIssueErrors} create issue errors, ${syncResult.linkIssueErrors} link issue errors`);
+    }
+
   } catch (error: unknown) {
     core.setFailed(`Sync failed: ${extractErrorMessage(error)}`)
   }
