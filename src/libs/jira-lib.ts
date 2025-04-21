@@ -23,6 +23,10 @@ export interface JiraConfig {
   includeAllProducts: boolean
   skipProducts?: string
   jiraLabelsConfig?: string
+  dueDateCritical?: string
+  dueDateHigh?: string
+  dueDateModerate?: string
+  dueDateLow?: string
 }
 
 export type CustomFields = {
@@ -46,6 +50,7 @@ interface IssueFields {
   priority?: PriorityField
   project?: {key: string}
   assignee?: {name: string}
+  duedate?: string // Add the due date field
 }
 
 export interface NewIssueData {
@@ -105,6 +110,10 @@ export class Jira {
   private dryRunIssueCounter: number = 0
   private jiraLabelsConfig?: LabelConfig[]
   private jiraWatchers?: string[]
+  private dueDateCritical: number
+  private dueDateHigh: number
+  private dueDateModerate: number
+  private dueDateLow: number
   constructor(jiraConfig: JiraConfig) {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.jiraProject = jiraConfig.jiraProjectKey
@@ -120,6 +129,18 @@ export class Jira {
     if (jiraConfig.jiraLabelsConfig) {
       this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig)
     }
+
+    // Parse due date inputs, providing defaults
+    this.dueDateCritical = parseInt(jiraConfig.dueDateCritical || '15', 10)
+    this.dueDateHigh = parseInt(jiraConfig.dueDateHigh || '30', 10)
+    this.dueDateModerate = parseInt(jiraConfig.dueDateModerate || '90', 10) // Default for Moderate and Unknown
+    this.dueDateLow = parseInt(jiraConfig.dueDateLow || '365', 10)
+
+    // Ensure parsed values are numbers, fallback to defaults if NaN
+    this.dueDateCritical = isNaN(this.dueDateCritical) ? 15 : this.dueDateCritical
+    this.dueDateHigh = isNaN(this.dueDateHigh) ? 30 : this.dueDateHigh
+    this.dueDateModerate = isNaN(this.dueDateModerate) ? 90 : this.dueDateModerate
+    this.dueDateLow = isNaN(this.dueDateLow) ? 365 : this.dueDateLow
 
     this.axiosInstance = axios.create({
       baseURL: jiraConfig.jiraBaseURI,
@@ -450,6 +471,39 @@ export class Jira {
   async createNewIssue(issue: NewIssueData): Promise<Issue> {
     let response
     try {
+      // Extract severity from issue labels if available
+      const severity = issue.fields.labels?.find(label => 
+        ['CRITICAL', 'HIGH', 'MEDIUM', 'MODERATE', 'LOW'].includes(String(label).toUpperCase())
+      );
+      
+      // Determine due date based on severity
+      let dueDays: number
+      switch (severity?.toUpperCase()) {
+        case 'CRITICAL':
+          dueDays = this.dueDateCritical
+          break
+        case 'HIGH':
+          dueDays = this.dueDateHigh
+          break
+        case 'LOW':
+          dueDays = this.dueDateLow
+          break
+        case 'MEDIUM': // Explicitly handle MEDIUM if needed, otherwise falls through
+        case 'MODERATE': // Assuming Moderate maps to MEDIUM severity
+        default: // Includes unknown/undefined severity
+          dueDays = this.dueDateModerate // Default 90 days
+          break
+      }
+
+      const dueDate = new Date()
+      dueDate.setDate(dueDate.getDate() + dueDays)
+      const dueDateString = dueDate.toISOString().split('T')[0] // Format YYYY-MM-DD
+
+      // Add duedate field - Ensure your Jira instance has this field configured
+      // The actual field ID might differ (e.g., 'customfield_xxxxx')
+      // You might need to make this configurable if the field ID isn't standard
+      issue.fields['duedate'] = dueDateString
+
       if (this.jiraAssignee) {
         issue.fields.assignee = {name: this.jiraAssignee}
       }

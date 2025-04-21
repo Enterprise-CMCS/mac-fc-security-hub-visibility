@@ -183,6 +183,26 @@ async function run(): Promise<void> {
       jiraLabelsConfig: getInputOrEnv(
         'jira-labels-config',
         'JIRA_LABELS_CONFIG'
+      ),
+      dueDateCritical: getDefaultInputOrEnv(
+        'due-date-critical',
+        'DUE_DATE_CRITICAL',
+        '15'
+      ),
+      dueDateHigh: getDefaultInputOrEnv(
+        'due-date-high',
+        'DUE_DATE_HIGH',
+        '30'
+      ),
+      dueDateModerate: getDefaultInputOrEnv(
+        'due-date-moderate',
+        'DUE_DATE_MODERATE',
+        '90'
+      ),
+      dueDateLow: getDefaultInputOrEnv(
+        'due-date-low',
+        'DUE_DATE_LOW',
+        '365'
       )
     }
 
