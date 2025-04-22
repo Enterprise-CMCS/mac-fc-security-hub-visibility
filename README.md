@@ -583,3 +583,27 @@ Result of the custom labeling above the labels on the issues created will be: "p
 ## Local Testing
 
 See test-infrastructure/jira-container/README.md for instructions on how to run against local Jira container
+
+
+## Due Date Automation
+
+Automatically assigns a due date to newly created Jira issues based on the severity of the Security Hub finding.
+
+When a Jira issue is created, the system checks for a severity label (CRITICAL, HIGH, MEDIUM, MODERATE, or LOW) and calculates the due date by adding a configurable number of days to the current date. The resulting date is formatted as YYYY-MM-DD and added to the duedate field.
+
+Default Due Dates by Severity
+
+You can customize these defaults via GitHub Action inputs or environment variables.
+
+| Severity   | Input Name           | Default (Days) |
+|------------|----------------------|----------------|
+| Critical   | `due-date-critical`  | 15             |
+| High       | `due-date-high`      | 30             |
+| Moderate   | `due-date-moderate`  | 90             |
+| Low        | `due-date-low`       | 365            |
+
+** Examples of GitHub Action inputs: **
+-  due-date-critical: 3
+-  due-date-high:     6
+-  due-date-moderate:   9
+-  due-date-low:      12
