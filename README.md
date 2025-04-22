@@ -589,9 +589,10 @@ See test-infrastructure/jira-container/README.md for instructions on how to run 
 
 Automatically assigns a due date to newly created Jira issues based on the severity of the Security Hub finding.
 
-When a Jira issue is created, the system checks for a severity label (CRITICAL, HIGH, MEDIUM, MODERATE, or LOW) and calculates the due date by adding a configurable number of days to the current date. The resulting date is formatted as YYYY-MM-DD and added to the duedate field.
+When a Jira issue is created, the system checks for a severity label (CRITICAL, HIGH, MODERATE, or LOW) and calculates the due date by adding a configurable number of days to the current date. 
+The resulting date is formatted as YYYY-MM-DD and added to the duedate field.
 
-Default Due Dates by Severity
+**Default Due Dates by Severity**
 
 You can customize these defaults via GitHub Action inputs or environment variables.
 
