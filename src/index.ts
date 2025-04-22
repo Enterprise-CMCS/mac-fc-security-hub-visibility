@@ -282,6 +282,17 @@ async function run(): Promise<void> {
       'closed',
       resultUpdates.filter(update => update.action == 'closed').length
     )
+    // log into console also
+    core.info(
+      `Jira URL: ${jiraUrl} \n` +
+        `Total Issues: ${resultUpdates.length} \n` +
+        `Created Issues: ${resultUpdates.filter(
+          update => update.action == 'created'
+        ).length} \n` +
+        `Closed Issues: ${resultUpdates.filter(
+          update => update.action == 'closed'
+        ).length}`
+    )
   } catch (error: unknown) {
     core.setFailed(`Sync failed: ${extractErrorMessage(error)}`)
   }

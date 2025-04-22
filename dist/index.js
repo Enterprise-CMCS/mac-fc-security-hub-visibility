@@ -59748,6 +59748,11 @@ async function run() {
         core.setOutput('total', resultUpdates.length);
         core.setOutput('created', resultUpdates.filter(update => update.action == 'created').length);
         core.setOutput('closed', resultUpdates.filter(update => update.action == 'closed').length);
+        // log into console also
+        core.info(`Jira URL: ${jiraUrl} \n` +
+            `Total Issues: ${resultUpdates.length} \n` +
+            `Created Issues: ${resultUpdates.filter(update => update.action == 'created').length} \n` +
+            `Closed Issues: ${resultUpdates.filter(update => update.action == 'closed').length}`);
     }
     catch (error) {
         core.setFailed(`Sync failed: ${extractErrorMessage(error)}`);
