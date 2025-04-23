@@ -603,6 +603,14 @@ You can customize these defaults via GitHub Action inputs or environment variabl
 | Moderate   | `due-date-moderate`  | 90             |
 | Low        | `due-date-low`       | 365            |
 
+**Configuring the Due Date Field**
+
+By default, the due date is set in the standard Jira `duedate` field. However, you can specify a different field (e.g., a custom field) using the `jira-duedate-field` input.
+
+| Input Name           | Default Value | Description                                                                 |
+|----------------------|---------------|-----------------------------------------------------------------------------|
+| `business-duedate` | `duedate`     | The Jira field ID to use for setting the due date (e.g., `customfield_xxxxx`). |
+
 ** Examples of GitHub Action inputs: **
 -  due-date-critical: 3
 -  due-date-high:     6

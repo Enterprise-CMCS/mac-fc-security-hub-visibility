@@ -59708,7 +59708,9 @@ async function run() {
             dueDateCritical: getDefaultInputOrEnv('due-date-critical', 'DUE_DATE_CRITICAL', '15'),
             dueDateHigh: getDefaultInputOrEnv('due-date-high', 'DUE_DATE_HIGH', '30'),
             dueDateModerate: getDefaultInputOrEnv('due-date-moderate', 'DUE_DATE_MODERATE', '90'),
-            dueDateLow: getDefaultInputOrEnv('due-date-low', 'DUE_DATE_LOW', '365')
+            dueDateLow: getDefaultInputOrEnv('due-date-low', 'DUE_DATE_LOW', '365'),
+            jiraDueDateField: getDefaultInputOrEnv(// Add the new input reading
+            'jira-duedate-field', 'JIRA_DUEDATE_FIELD', 'duedate')
         };
         const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
         const securityHubConfig = {
@@ -59834,7 +59836,7 @@ function handleAxiosError(error) {
         if (error.cause instanceof AggregateError && error.cause.errors) {
             // Map each error in the AggregateError to its message and join them
             const errMsgs = error.cause.errors
-                .map(err => (0, index_1.extractErrorMessage)(err))
+                .map((err) => (0, index_1.extractErrorMessage)(err)) // Add explicit type 'any' to err
                 .join(', ');
             return `Errors from Axios request: ${errMsgs}`;
         }
@@ -59864,6 +59866,7 @@ class Jira {
     dueDateHigh;
     dueDateModerate;
     dueDateLow;
+    jiraDueDateField; // Store the configured due date field ID
     constructor(jiraConfig) {
         this.jiraBaseURI = jiraConfig.jiraBaseURI;
         this.jiraProject = jiraConfig.jiraProjectKey;
@@ -59889,6 +59892,8 @@ class Jira {
         this.dueDateHigh = isNaN(this.dueDateHigh) ? 30 : this.dueDateHigh;
         this.dueDateModerate = isNaN(this.dueDateModerate) ? 90 : this.dueDateModerate;
         this.dueDateLow = isNaN(this.dueDateLow) ? 365 : this.dueDateLow;
+        // Initialize the due date field, defaulting to 'duedate'
+        this.jiraDueDateField = jiraConfig.jiraDueDateField || 'duedate';
         this.axiosInstance = axios_1.default.create({
             baseURL: jiraConfig.jiraBaseURI,
             headers: {
@@ -60149,10 +60154,8 @@ class Jira {
             const dueDate = new Date();
             dueDate.setDate(dueDate.getDate() + dueDays);
             const dueDateString = dueDate.toISOString().split('T')[0]; // Format YYYY-MM-DD
-            // Add duedate field - Ensure your Jira instance has this field configured
-            // The actual field ID might differ (e.g., 'customfield_xxxxx')
-            // You might need to make this configurable if the field ID isn't standard
-            issue.fields['duedate'] = dueDateString;
+            // Add duedate field using the configured field ID
+            issue.fields[this.jiraDueDateField] = dueDateString;
             if (this.jiraAssignee) {
                 issue.fields.assignee = { name: this.jiraAssignee };
             }

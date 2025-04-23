@@ -203,6 +203,11 @@ async function run(): Promise<void> {
         'due-date-low',
         'DUE_DATE_LOW',
         '365'
+      ),
+      jiraDueDateField: getDefaultInputOrEnv( // Add the new input reading
+        'jira-duedate-field',
+        'JIRA_DUEDATE_FIELD',
+        'duedate'
       )
     }
 

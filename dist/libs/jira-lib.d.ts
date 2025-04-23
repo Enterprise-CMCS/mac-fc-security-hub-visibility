@@ -24,6 +24,7 @@ export interface JiraConfig {
     dueDateHigh?: string;
     dueDateModerate?: string;
     dueDateLow?: string;
+    jiraDueDateField?: string;
 }
 export type CustomFields = {
     [key: string]: string;
@@ -48,6 +49,7 @@ interface IssueFields {
         name: string;
     };
     duedate?: string;
+    [key: string]: any;
 }
 export interface NewIssueData {
     fields: IssueFields;
@@ -77,6 +79,7 @@ export declare class Jira {
     private dueDateHigh;
     private dueDateModerate;
     private dueDateLow;
+    private jiraDueDateField;
     constructor(jiraConfig: JiraConfig);
     getCurrentUser(): Promise<any>;
     getIssue(issueId: string): Promise<any>;
