@@ -616,3 +616,19 @@ By default, the due date is set in the standard Jira `duedate` field. However, y
 -  due-date-high:     6
 -  due-date-moderate:   9
 -  due-date-low:      12
+
+## How to Find a Custom Field ID in Jira
+
+1. Access Jira Administration
+ Ensure you're logged in as a Jira Admin.
+ - Go to: Jira Settings → Issues → Custom Fields
+2. Locate the Custom Field
+ - Use the search bar to find the field you're interested in.
+3. Open Field Details
+ - Click the three-dot menu next to the field and select Edit Details.
+4. Find the Field ID
+ - You'll be redirected to a new URL. The custom field ID will appear in the URL, formatted like this:
+
+   `id=<field_id>`
+   
+ - The field name will be:  customfield_<field_id>
