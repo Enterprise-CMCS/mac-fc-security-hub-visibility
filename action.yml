@@ -69,6 +69,26 @@ inputs:
   skip-products:
     description: "comma separated list of product names for those the findings should be skipped"
     required: false
+  jira-duedate-field:
+    description: 'The Jira field ID to use for setting the due date (e.g., duedate, customfield_xxxxx). Defaults to duedate.'
+    required: false
+    default: 'duedate'
+  due-date-critical:
+      description: 'Number of days within which a Jira issue should be due for critical findings'
+      required: false
+      default: '15'
+  due-date-high:
+    description: 'Number of days within which a Jira issue should be due for high findings'
+    required: false
+    default: '30'
+  due-date-moderate:
+    description: 'Number of days within which a Jira issue should be due for moderate findings'
+    required: false
+    default: '90'
+  due-date-low:
+    description: 'Number of days within which a Jira issue should be due for low findings'
+    required: false
+    default: '365'
   jira-labels-config:
     description: "This variable is to specify stringified labels config"
     required: false

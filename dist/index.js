@@ -59704,7 +59704,13 @@ async function run() {
             jiraLinkDirection: getDefaultInputOrEnv('jira-link-direction', 'JIRA_LINK_DIRECTION', 'inward'),
             includeAllProducts: getInputOrEnvAndConvertToBool('include-all-products', 'INCLUDE_ALL_PRODUCTS', false),
             skipProducts: getInputOrEnv('skip-products', 'SKIP_PRODUCTS'),
-            jiraLabelsConfig: getInputOrEnv('jira-labels-config', 'JIRA_LABELS_CONFIG')
+            jiraLabelsConfig: getInputOrEnv('jira-labels-config', 'JIRA_LABELS_CONFIG'),
+            dueDateCritical: getDefaultInputOrEnv('due-date-critical', 'DUE_DATE_CRITICAL', '15'),
+            dueDateHigh: getDefaultInputOrEnv('due-date-high', 'DUE_DATE_HIGH', '30'),
+            dueDateModerate: getDefaultInputOrEnv('due-date-moderate', 'DUE_DATE_MODERATE', '90'),
+            dueDateLow: getDefaultInputOrEnv('due-date-low', 'DUE_DATE_LOW', '365'),
+            jiraDueDateField: getDefaultInputOrEnv(// Add the new input reading
+            'jira-duedate-field', 'JIRA_DUEDATE_FIELD', 'duedate')
         };
         const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
         const securityHubConfig = {
@@ -59744,6 +59750,11 @@ async function run() {
         core.setOutput('total', resultUpdates.length);
         core.setOutput('created', resultUpdates.filter(update => update.action == 'created').length);
         core.setOutput('closed', resultUpdates.filter(update => update.action == 'closed').length);
+        // log into console also
+        core.info(`Jira URL: ${jiraUrl} \n` +
+            `Total Issues: ${resultUpdates.length} \n` +
+            `Created Issues: ${resultUpdates.filter(update => update.action == 'created').length} \n` +
+            `Closed Issues: ${resultUpdates.filter(update => update.action == 'closed').length}`);
     }
     catch (error) {
         core.setFailed(`Sync failed: ${extractErrorMessage(error)}`);
@@ -59825,7 +59836,7 @@ function handleAxiosError(error) {
         if (error.cause instanceof AggregateError && error.cause.errors) {
             // Map each error in the AggregateError to its message and join them
             const errMsgs = error.cause.errors
-                .map(err => (0, index_1.extractErrorMessage)(err))
+                .map((err) => (0, index_1.extractErrorMessage)(err)) // Add explicit type 'any' to err
                 .join(', ');
             return `Errors from Axios request: ${errMsgs}`;
         }
@@ -59851,6 +59862,11 @@ class Jira {
     dryRunIssueCounter = 0;
     jiraLabelsConfig;
     jiraWatchers;
+    dueDateCritical;
+    dueDateHigh;
+    dueDateModerate;
+    dueDateLow;
+    jiraDueDateField; // Store the configured due date field ID
     constructor(jiraConfig) {
         this.jiraBaseURI = jiraConfig.jiraBaseURI;
         this.jiraProject = jiraConfig.jiraProjectKey;
@@ -59866,6 +59882,18 @@ class Jira {
         if (jiraConfig.jiraLabelsConfig) {
             this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig);
         }
+        // Parse due date inputs, providing defaults
+        this.dueDateCritical = parseInt(jiraConfig.dueDateCritical || '15', 10);
+        this.dueDateHigh = parseInt(jiraConfig.dueDateHigh || '30', 10);
+        this.dueDateModerate = parseInt(jiraConfig.dueDateModerate || '90', 10); // Default for Moderate and Unknown
+        this.dueDateLow = parseInt(jiraConfig.dueDateLow || '365', 10);
+        // Ensure parsed values are numbers, fallback to defaults if NaN
+        this.dueDateCritical = isNaN(this.dueDateCritical) ? 15 : this.dueDateCritical;
+        this.dueDateHigh = isNaN(this.dueDateHigh) ? 30 : this.dueDateHigh;
+        this.dueDateModerate = isNaN(this.dueDateModerate) ? 90 : this.dueDateModerate;
+        this.dueDateLow = isNaN(this.dueDateLow) ? 365 : this.dueDateLow;
+        // Initialize the due date field, defaulting to 'duedate'
+        this.jiraDueDateField = jiraConfig.jiraDueDateField || 'duedate';
         this.axiosInstance = axios_1.default.create({
             baseURL: jiraConfig.jiraBaseURI,
             headers: {
@@ -60103,6 +60131,31 @@ class Jira {
     async createNewIssue(issue) {
         let response;
         try {
+            // Extract severity from issue labels if available
+            const severity = issue.fields.labels?.find(label => ['CRITICAL', 'HIGH', 'MEDIUM', 'MODERATE', 'LOW'].includes(String(label).toUpperCase()));
+            // Determine due date based on severity
+            let dueDays;
+            switch (severity?.toUpperCase()) {
+                case 'CRITICAL':
+                    dueDays = this.dueDateCritical;
+                    break;
+                case 'HIGH':
+                    dueDays = this.dueDateHigh;
+                    break;
+                case 'LOW':
+                    dueDays = this.dueDateLow;
+                    break;
+                case 'MEDIUM': // Explicitly handle MEDIUM if needed, otherwise falls through
+                case 'MODERATE': // Assuming Moderate maps to MEDIUM severity
+                default: // Includes unknown/undefined severity
+                    dueDays = this.dueDateModerate; // Default 90 days
+                    break;
+            }
+            const dueDate = new Date();
+            dueDate.setDate(dueDate.getDate() + dueDays);
+            const dueDateString = dueDate.toISOString().split('T')[0]; // Format YYYY-MM-DD
+            // Add duedate field using the configured field ID
+            issue.fields[this.jiraDueDateField] = dueDateString;
             if (this.jiraAssignee) {
                 issue.fields.assignee = { name: this.jiraAssignee };
             }
@@ -61034,16 +61087,37 @@ class SecurityHubJiraSync {
         }
         let newIssueInfo;
         try {
-            newIssueInfo = await this.jira.createNewIssue(newIssueData);
+            // Create the Jira issue
+            try {
+                newIssueInfo = await this.jira.createNewIssue(newIssueData);
+            }
+            catch (createError) {
+                // Log the error for visibility
+                const errorMsg = (0, index_1.extractErrorMessage)(createError);
+                console.error(`Error creating Jira issue for finding "${finding.title}": ${errorMsg}`);
+                // Re-throw to potentially fail the action if creation fails
+                throw new Error(`Failed to create Jira issue: ${errorMsg}`);
+            }
+            // Link the issue if a link ID is provided
             const issue_id = this.jiraLinkId;
             if (issue_id) {
                 const linkType = this.jiraLinkType;
                 const linkDirection = this.jiraLinkDirection;
-                await this.jira.linkIssues(newIssueInfo.key, issue_id, linkType, linkDirection);
+                try {
+                    await this.jira.linkIssues(newIssueInfo.key, issue_id, linkType, linkDirection);
+                }
+                catch (linkError) {
+                    const errorMsg = (0, index_1.extractErrorMessage)(linkError);
+                    // Log the error for easier debugging, but don't re-throw
+                    console.error(`Error linking issue ${newIssueInfo.key} to ${issue_id}: ${errorMsg}`);
+                }
             }
         }
         catch (e) {
-            throw new Error(`Error creating Jira issue from finding: ${(0, index_1.extractErrorMessage)(e)}`);
+            // This will catch errors re-thrown from createNewIssue block
+            // Errors from linkIssues are caught and logged above, not re-thrown here.
+            // If createNewIssue failed, newIssueInfo would be undefined, so linking wouldn't be attempted.
+            throw new Error(`Error during Jira issue creation process for finding "${finding.title}": ${(0, index_1.extractErrorMessage)(e)}`);
         }
         return {
             action: 'created',

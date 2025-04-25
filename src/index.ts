@@ -183,6 +183,31 @@ async function run(): Promise<void> {
       jiraLabelsConfig: getInputOrEnv(
         'jira-labels-config',
         'JIRA_LABELS_CONFIG'
+      ),
+      dueDateCritical: getDefaultInputOrEnv(
+        'due-date-critical',
+        'DUE_DATE_CRITICAL',
+        '15'
+      ),
+      dueDateHigh: getDefaultInputOrEnv(
+        'due-date-high',
+        'DUE_DATE_HIGH',
+        '30'
+      ),
+      dueDateModerate: getDefaultInputOrEnv(
+        'due-date-moderate',
+        'DUE_DATE_MODERATE',
+        '90'
+      ),
+      dueDateLow: getDefaultInputOrEnv(
+        'due-date-low',
+        'DUE_DATE_LOW',
+        '365'
+      ),
+      jiraDueDateField: getDefaultInputOrEnv( // Add the new input reading
+        'jira-duedate-field',
+        'JIRA_DUEDATE_FIELD',
+        'duedate'
       )
     }
 
@@ -261,6 +286,17 @@ async function run(): Promise<void> {
     core.setOutput(
       'closed',
       resultUpdates.filter(update => update.action == 'closed').length
+    )
+    // log into console also
+    core.info(
+      `Jira URL: ${jiraUrl} \n` +
+        `Total Issues: ${resultUpdates.length} \n` +
+        `Created Issues: ${resultUpdates.filter(
+          update => update.action == 'created'
+        ).length} \n` +
+        `Closed Issues: ${resultUpdates.filter(
+          update => update.action == 'closed'
+        ).length}`
     )
   } catch (error: unknown) {
     core.setFailed(`Sync failed: ${extractErrorMessage(error)}`)

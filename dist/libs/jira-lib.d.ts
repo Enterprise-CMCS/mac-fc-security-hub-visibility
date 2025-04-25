@@ -20,6 +20,11 @@ export interface JiraConfig {
     includeAllProducts: boolean;
     skipProducts?: string;
     jiraLabelsConfig?: string;
+    dueDateCritical?: string;
+    dueDateHigh?: string;
+    dueDateModerate?: string;
+    dueDateLow?: string;
+    jiraDueDateField?: string;
 }
 export type CustomFields = {
     [key: string]: string;
@@ -43,6 +48,8 @@ interface IssueFields {
     assignee?: {
         name: string;
     };
+    duedate?: string;
+    [key: string]: any;
 }
 export interface NewIssueData {
     fields: IssueFields;
@@ -68,6 +75,11 @@ export declare class Jira {
     private dryRunIssueCounter;
     private jiraLabelsConfig?;
     private jiraWatchers?;
+    private dueDateCritical;
+    private dueDateHigh;
+    private dueDateModerate;
+    private dueDateLow;
+    private jiraDueDateField;
     constructor(jiraConfig: JiraConfig);
     getCurrentUser(): Promise<any>;
     getIssue(issueId: string): Promise<any>;

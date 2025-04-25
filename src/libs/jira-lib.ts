@@ -23,6 +23,11 @@ export interface JiraConfig {
   includeAllProducts: boolean
   skipProducts?: string
   jiraLabelsConfig?: string
+  dueDateCritical?: string
+  dueDateHigh?: string
+  dueDateModerate?: string
+  dueDateLow?: string
+  jiraDueDateField?: string // Add the new field for due date configuration
 }
 
 export type CustomFields = {
@@ -46,6 +51,8 @@ interface IssueFields {
   priority?: PriorityField
   project?: {key: string}
   assignee?: {name: string}
+  duedate?: string // Add the due date field
+  [key: string]: any; // Allow indexing by string for custom fields like due date
 }
 
 export interface NewIssueData {
@@ -78,7 +85,7 @@ function handleAxiosError(error: unknown): string {
     if (error.cause instanceof AggregateError && error.cause.errors) {
       // Map each error in the AggregateError to its message and join them
       const errMsgs = error.cause.errors
-        .map(err => extractErrorMessage(err))
+        .map((err: any) => extractErrorMessage(err)) // Add explicit type 'any' to err
         .join(', ')
       return `Errors from Axios request: ${errMsgs}`
     }
@@ -105,6 +112,11 @@ export class Jira {
   private dryRunIssueCounter: number = 0
   private jiraLabelsConfig?: LabelConfig[]
   private jiraWatchers?: string[]
+  private dueDateCritical: number
+  private dueDateHigh: number
+  private dueDateModerate: number
+  private dueDateLow: number
+  private jiraDueDateField: string // Store the configured due date field ID
   constructor(jiraConfig: JiraConfig) {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.jiraProject = jiraConfig.jiraProjectKey
@@ -120,6 +132,21 @@ export class Jira {
     if (jiraConfig.jiraLabelsConfig) {
       this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig)
     }
+
+    // Parse due date inputs, providing defaults
+    this.dueDateCritical = parseInt(jiraConfig.dueDateCritical || '15', 10)
+    this.dueDateHigh = parseInt(jiraConfig.dueDateHigh || '30', 10)
+    this.dueDateModerate = parseInt(jiraConfig.dueDateModerate || '90', 10) // Default for Moderate and Unknown
+    this.dueDateLow = parseInt(jiraConfig.dueDateLow || '365', 10)
+
+    // Ensure parsed values are numbers, fallback to defaults if NaN
+    this.dueDateCritical = isNaN(this.dueDateCritical) ? 15 : this.dueDateCritical
+    this.dueDateHigh = isNaN(this.dueDateHigh) ? 30 : this.dueDateHigh
+    this.dueDateModerate = isNaN(this.dueDateModerate) ? 90 : this.dueDateModerate
+    this.dueDateLow = isNaN(this.dueDateLow) ? 365 : this.dueDateLow
+
+    // Initialize the due date field, defaulting to 'duedate'
+    this.jiraDueDateField = jiraConfig.jiraDueDateField || 'duedate'
 
     this.axiosInstance = axios.create({
       baseURL: jiraConfig.jiraBaseURI,
@@ -450,6 +477,37 @@ export class Jira {
   async createNewIssue(issue: NewIssueData): Promise<Issue> {
     let response
     try {
+      // Extract severity from issue labels if available
+      const severity = issue.fields.labels?.find(label => 
+        ['CRITICAL', 'HIGH', 'MEDIUM', 'MODERATE', 'LOW'].includes(String(label).toUpperCase())
+      );
+      
+      // Determine due date based on severity
+      let dueDays: number
+      switch (severity?.toUpperCase()) {
+        case 'CRITICAL':
+          dueDays = this.dueDateCritical
+          break
+        case 'HIGH':
+          dueDays = this.dueDateHigh
+          break
+        case 'LOW':
+          dueDays = this.dueDateLow
+          break
+        case 'MEDIUM': // Explicitly handle MEDIUM if needed, otherwise falls through
+        case 'MODERATE': // Assuming Moderate maps to MEDIUM severity
+        default: // Includes unknown/undefined severity
+          dueDays = this.dueDateModerate // Default 90 days
+          break
+      }
+
+      const dueDate = new Date()
+      dueDate.setDate(dueDate.getDate() + dueDays)
+      const dueDateString = dueDate.toISOString().split('T')[0] // Format YYYY-MM-DD
+
+      // Add duedate field using the configured field ID
+      issue.fields[this.jiraDueDateField] = dueDateString
+
       if (this.jiraAssignee) {
         issue.fields.assignee = {name: this.jiraAssignee}
       }
