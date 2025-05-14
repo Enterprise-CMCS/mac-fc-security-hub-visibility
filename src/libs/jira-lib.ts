@@ -474,39 +474,63 @@ export class Jira {
 
     return allIssues
   }
+  /**
+   * Fetches the CISA Known Exploited Vulnerabilities feed and returns the CISA date for a given CVE ID, if found.
+   */
+  private async getCisaDueDate(cveId: string): Promise<string | undefined> {
+    try {
+      const response = await axios.get('https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json');
+      const feed = response.data.vulnerabilities as Array<{ vulnerabilityID: string; dateAdded: string }>;
+      const match = feed.find(entry => entry.vulnerabilityID.toUpperCase() === cveId.toUpperCase());
+      if (match) {
+        // dateAdded is in YYYY-MM-DD format
+        return match.dateAdded;
+      }
+    } catch (error) {
+      console.warn(`Failed to fetch CISA feed for ${cveId}:`, error);
+    }
+    return undefined;
+  }
+
   async createNewIssue(issue: NewIssueData): Promise<Issue> {
     let response
     try {
-      // Extract severity from issue labels if available
-      const severity = issue.fields.labels?.find(label => 
-        ['CRITICAL', 'HIGH', 'MEDIUM', 'MODERATE', 'LOW'].includes(String(label).toUpperCase())
-      );
-      
-      // Determine due date based on severity
-      let dueDays: number
-      switch (severity?.toUpperCase()) {
-        case 'CRITICAL':
-          dueDays = this.dueDateCritical
-          break
-        case 'HIGH':
-          dueDays = this.dueDateHigh
-          break
-        case 'LOW':
-          dueDays = this.dueDateLow
-          break
-        case 'MEDIUM': // Explicitly handle MEDIUM if needed, otherwise falls through
-        case 'MODERATE': // Assuming Moderate maps to MEDIUM severity
-        default: // Includes unknown/undefined severity
-          dueDays = this.dueDateModerate // Default 90 days
-          break
+      // Attempt to pull due date from CISA feed if a CVE ID label is present
+      const cveLabel = issue.fields.labels?.find(label => /^CVE-\d{4}-\d{4,}$/i.test(String(label)));
+      let dueDateString: string | undefined;
+      if (cveLabel) {
+        dueDateString = await this.getCisaDueDate(String(cveLabel));
       }
-
-      const dueDate = new Date()
-      dueDate.setDate(dueDate.getDate() + dueDays)
-      const dueDateString = dueDate.toISOString().split('T')[0] // Format YYYY-MM-DD
-
-      // Add duedate field using the configured field ID
-      issue.fields[this.jiraDueDateField] = dueDateString
+      if (dueDateString) {
+        // Use the CISA date if found
+        issue.fields[this.jiraDueDateField] = dueDateString;
+      } else {
+        // Fallback to severity-based default due date
+        const severity = issue.fields.labels?.find(label =>
+          ['CRITICAL', 'HIGH', 'MEDIUM', 'MODERATE', 'LOW'].includes(String(label).toUpperCase())
+        );
+        let dueDays: number;
+        switch (severity?.toUpperCase()) {
+          case 'CRITICAL':
+            dueDays = this.dueDateCritical;
+            break;
+          case 'HIGH':
+            dueDays = this.dueDateHigh;
+            break;
+          case 'LOW':
+            dueDays = this.dueDateLow;
+            break;
+          case 'MEDIUM':
+          case 'MODERATE':
+          default:
+            dueDays = this.dueDateModerate;
+            break;
+        }
+        const fallbackDate = new Date();
+        fallbackDate.setDate(fallbackDate.getDate() + dueDays);
+        dueDateString = fallbackDate.toISOString().split('T')[0];
+        issue.fields[this.jiraDueDateField] = dueDateString;
+      }
 
       if (this.jiraAssignee) {
         issue.fields.assignee = {name: this.jiraAssignee}
