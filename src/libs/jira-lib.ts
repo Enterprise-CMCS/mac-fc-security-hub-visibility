@@ -28,6 +28,7 @@ export interface JiraConfig {
   dueDateModerate?: string
   dueDateLow?: string
   jiraDueDateField?: string // Add the new field for due date configuration
+  businessDueDateField?: string // Custom field ID for workflow business due date
 }
 
 export type CustomFields = {
@@ -117,6 +118,7 @@ export class Jira {
   private dueDateModerate: number
   private dueDateLow: number
   private jiraDueDateField: string // Store the configured due date field ID
+  private businessDueDateField: string
   constructor(jiraConfig: JiraConfig) {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.jiraProject = jiraConfig.jiraProjectKey
@@ -147,6 +149,7 @@ export class Jira {
 
     // Initialize the due date field, defaulting to 'duedate'
     this.jiraDueDateField = jiraConfig.jiraDueDateField || 'duedate'
+    this.businessDueDateField = jiraConfig.businessDueDateField || this.jiraDueDateField
 
     this.axiosInstance = axios.create({
       baseURL: jiraConfig.jiraBaseURI,
@@ -504,10 +507,11 @@ export class Jira {
       if (dueDateString) {
         // Use the CISA date if found
         issue.fields[this.jiraDueDateField] = dueDateString;
+        issue.fields[this.businessDueDateField] = dueDateString;
       } else {
         // Fallback to severity-based default due date
         const severity = issue.fields.labels?.find(label =>
-          ['CRITICAL', 'HIGH', 'MEDIUM', 'MODERATE', 'LOW'].includes(String(label).toUpperCase())
+          ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(String(label).toUpperCase())
         );
         let dueDays: number;
         switch (severity?.toUpperCase()) {
@@ -521,7 +525,6 @@ export class Jira {
             dueDays = this.dueDateLow;
             break;
           case 'MEDIUM':
-          case 'MODERATE':
           default:
             dueDays = this.dueDateModerate;
             break;
@@ -530,6 +533,7 @@ export class Jira {
         fallbackDate.setDate(fallbackDate.getDate() + dueDays);
         dueDateString = fallbackDate.toISOString().split('T')[0];
         issue.fields[this.jiraDueDateField] = dueDateString;
+        issue.fields[this.businessDueDateField] = dueDateString;
       }
 
       if (this.jiraAssignee) {
