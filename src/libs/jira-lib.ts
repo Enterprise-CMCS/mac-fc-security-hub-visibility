@@ -28,7 +28,6 @@ export interface JiraConfig {
   dueDateModerate?: string
   dueDateLow?: string
   jiraDueDateField?: string // Add the new field for due date configuration
-  businessDueDateField?: string // Custom field ID for workflow business due date
 }
 
 export type CustomFields = {
@@ -53,7 +52,7 @@ interface IssueFields {
   project?: {key: string}
   assignee?: {name: string}
   duedate?: string // Add the due date field
-  [key: string]: any; // Allow indexing by string for custom fields like due date
+  [key: string]: any // Allow indexing by string for custom fields like due date
 }
 
 export interface NewIssueData {
@@ -118,7 +117,6 @@ export class Jira {
   private dueDateModerate: number
   private dueDateLow: number
   private jiraDueDateField: string // Store the configured due date field ID
-  private businessDueDateField: string
   constructor(jiraConfig: JiraConfig) {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.jiraProject = jiraConfig.jiraProjectKey
@@ -142,14 +140,17 @@ export class Jira {
     this.dueDateLow = parseInt(jiraConfig.dueDateLow || '365', 10)
 
     // Ensure parsed values are numbers, fallback to defaults if NaN
-    this.dueDateCritical = isNaN(this.dueDateCritical) ? 15 : this.dueDateCritical
+    this.dueDateCritical = isNaN(this.dueDateCritical)
+      ? 15
+      : this.dueDateCritical
     this.dueDateHigh = isNaN(this.dueDateHigh) ? 30 : this.dueDateHigh
-    this.dueDateModerate = isNaN(this.dueDateModerate) ? 90 : this.dueDateModerate
+    this.dueDateModerate = isNaN(this.dueDateModerate)
+      ? 90
+      : this.dueDateModerate
     this.dueDateLow = isNaN(this.dueDateLow) ? 365 : this.dueDateLow
 
-    // Initialize the due date field, defaulting to 'duedate'
-    this.jiraDueDateField = jiraConfig.jiraDueDateField || 'duedate'
-    this.businessDueDateField = jiraConfig.businessDueDateField || this.jiraDueDateField
+    // Initialize the due date field, defaulting to ''
+    this.jiraDueDateField = jiraConfig.jiraDueDateField || ''
 
     this.axiosInstance = axios.create({
       baseURL: jiraConfig.jiraBaseURI,
@@ -482,58 +483,73 @@ export class Jira {
    */
   private async getCisaDueDate(cveId: string): Promise<string | undefined> {
     try {
-      const response = await axios.get('https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json');
-      const feed = response.data.vulnerabilities as Array<{ vulnerabilityID: string; dateAdded: string }>;
-      const match = feed.find(entry => entry.vulnerabilityID.toUpperCase() === cveId.toUpperCase());
+      const response = await axios.get(
+        'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json'
+      )
+      const feed = response.data.vulnerabilities as Array<{
+        cveID: string
+        dueDate: string
+      }>
+      const match = feed.find(
+        (entry) => entry.cveID.toUpperCase() === cveId.toUpperCase()
+      )
       if (match) {
         // dateAdded is in YYYY-MM-DD format
-        return match.dateAdded;
+        return match.dueDate
       }
     } catch (error) {
-      console.warn(`Failed to fetch CISA feed for ${cveId}:`, error);
+      console.warn(`Failed to fetch CISA feed for ${cveId}:`, error)
     }
-    return undefined;
+    return undefined
   }
 
   async createNewIssue(issue: NewIssueData): Promise<Issue> {
     let response
     try {
       // Attempt to pull due date from CISA feed if a CVE ID label is present
-      const cveLabel = issue.fields.labels?.find(label => /^CVE-\d{4}-\d{4,}$/i.test(String(label)));
-      let dueDateString: string | undefined;
+      const cveLabel = issue.fields.labels?.find(label =>
+        /^CVE-\d{4}-\d{4,}$/i.test(String(label))
+      )
+      let dueDateString: string | undefined
       if (cveLabel) {
-        dueDateString = await this.getCisaDueDate(String(cveLabel));
+        dueDateString = await this.getCisaDueDate(String(cveLabel))
       }
       if (dueDateString) {
         // Use the CISA date if found
-        issue.fields[this.jiraDueDateField] = dueDateString;
-        issue.fields[this.businessDueDateField] = dueDateString;
+        issue.fields.duedate = dueDateString
+        if (this.jiraDueDateField) {
+          issue.fields[this.jiraDueDateField] = dueDateString
+        }
       } else {
         // Fallback to severity-based default due date
         const severity = issue.fields.labels?.find(label =>
-          ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(String(label).toUpperCase())
-        );
-        let dueDays: number;
+          ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(
+            String(label).toUpperCase()
+          )
+        )
+        let dueDays: number
         switch (severity?.toUpperCase()) {
           case 'CRITICAL':
-            dueDays = this.dueDateCritical;
-            break;
+            dueDays = this.dueDateCritical
+            break
           case 'HIGH':
-            dueDays = this.dueDateHigh;
-            break;
+            dueDays = this.dueDateHigh
+            break
           case 'LOW':
-            dueDays = this.dueDateLow;
-            break;
+            dueDays = this.dueDateLow
+            break
           case 'MEDIUM':
           default:
-            dueDays = this.dueDateModerate;
-            break;
+            dueDays = this.dueDateModerate
+            break
         }
-        const fallbackDate = new Date();
-        fallbackDate.setDate(fallbackDate.getDate() + dueDays);
-        dueDateString = fallbackDate.toISOString().split('T')[0];
-        issue.fields[this.jiraDueDateField] = dueDateString;
-        issue.fields[this.businessDueDateField] = dueDateString;
+        const fallbackDate = new Date()
+        fallbackDate.setDate(fallbackDate.getDate() + dueDays)
+        dueDateString = fallbackDate.toISOString().split('T')[0]
+        issue.fields.duedate = dueDateString
+        if (this.jiraDueDateField) {
+          issue.fields[this.jiraDueDateField] = dueDateString
+        }
       }
 
       if (this.jiraAssignee) {

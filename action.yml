@@ -72,7 +72,7 @@ inputs:
   jira-duedate-field:
     description: 'The Jira field ID to use for setting the due date (e.g., duedate, customfield_xxxxx). Defaults to duedate.'
     required: false
-    default: 'duedate'
+    default: ''
   due-date-critical:
       description: 'Number of days within which a Jira issue should be due for critical findings'
       required: false

@@ -59710,7 +59710,7 @@ async function run() {
             dueDateModerate: getDefaultInputOrEnv('due-date-moderate', 'DUE_DATE_MODERATE', '90'),
             dueDateLow: getDefaultInputOrEnv('due-date-low', 'DUE_DATE_LOW', '365'),
             jiraDueDateField: getDefaultInputOrEnv(// Add the new input reading
-            'jira-duedate-field', 'JIRA_DUEDATE_FIELD', 'duedate')
+            'jira-duedate-field', 'JIRA_DUEDATE_FIELD', '')
         };
         const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
         const securityHubConfig = {
@@ -59888,12 +59888,16 @@ class Jira {
         this.dueDateModerate = parseInt(jiraConfig.dueDateModerate || '90', 10); // Default for Moderate and Unknown
         this.dueDateLow = parseInt(jiraConfig.dueDateLow || '365', 10);
         // Ensure parsed values are numbers, fallback to defaults if NaN
-        this.dueDateCritical = isNaN(this.dueDateCritical) ? 15 : this.dueDateCritical;
+        this.dueDateCritical = isNaN(this.dueDateCritical)
+            ? 15
+            : this.dueDateCritical;
         this.dueDateHigh = isNaN(this.dueDateHigh) ? 30 : this.dueDateHigh;
-        this.dueDateModerate = isNaN(this.dueDateModerate) ? 90 : this.dueDateModerate;
+        this.dueDateModerate = isNaN(this.dueDateModerate)
+            ? 90
+            : this.dueDateModerate;
         this.dueDateLow = isNaN(this.dueDateLow) ? 365 : this.dueDateLow;
-        // Initialize the due date field, defaulting to 'duedate'
-        this.jiraDueDateField = jiraConfig.jiraDueDateField || 'duedate';
+        // Initialize the due date field, defaulting to ''
+        this.jiraDueDateField = jiraConfig.jiraDueDateField || '';
         this.axiosInstance = axios_1.default.create({
             baseURL: jiraConfig.jiraBaseURI,
             headers: {
@@ -60128,34 +60132,67 @@ class Jira {
         } while (totalIssuesReceived < total);
         return allIssues;
     }
+    /**
+     * Fetches the CISA Known Exploited Vulnerabilities feed and returns the CISA date for a given CVE ID, if found.
+     */
+    async getCisaDueDate(cveId) {
+        try {
+            const response = await axios_1.default.get('https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json');
+            const feed = response.data.vulnerabilities;
+            const match = feed.find((entry) => entry.cveID.toUpperCase() === cveId.toUpperCase());
+            if (match) {
+                // dateAdded is in YYYY-MM-DD format
+                return match.dueDate;
+            }
+        }
+        catch (error) {
+            console.warn(`Failed to fetch CISA feed for ${cveId}:`, error);
+        }
+        return undefined;
+    }
     async createNewIssue(issue) {
         let response;
         try {
-            // Extract severity from issue labels if available
-            const severity = issue.fields.labels?.find(label => ['CRITICAL', 'HIGH', 'MEDIUM', 'MODERATE', 'LOW'].includes(String(label).toUpperCase()));
-            // Determine due date based on severity
-            let dueDays;
-            switch (severity?.toUpperCase()) {
-                case 'CRITICAL':
-                    dueDays = this.dueDateCritical;
-                    break;
-                case 'HIGH':
-                    dueDays = this.dueDateHigh;
-                    break;
-                case 'LOW':
-                    dueDays = this.dueDateLow;
-                    break;
-                case 'MEDIUM': // Explicitly handle MEDIUM if needed, otherwise falls through
-                case 'MODERATE': // Assuming Moderate maps to MEDIUM severity
-                default: // Includes unknown/undefined severity
-                    dueDays = this.dueDateModerate; // Default 90 days
-                    break;
+            // Attempt to pull due date from CISA feed if a CVE ID label is present
+            const cveLabel = issue.fields.labels?.find(label => /^CVE-\d{4}-\d{4,}$/i.test(String(label)));
+            let dueDateString;
+            if (cveLabel) {
+                dueDateString = await this.getCisaDueDate(String(cveLabel));
             }
-            const dueDate = new Date();
-            dueDate.setDate(dueDate.getDate() + dueDays);
-            const dueDateString = dueDate.toISOString().split('T')[0]; // Format YYYY-MM-DD
-            // Add duedate field using the configured field ID
-            issue.fields[this.jiraDueDateField] = dueDateString;
+            if (dueDateString) {
+                // Use the CISA date if found
+                issue.fields.duedate = dueDateString;
+                if (this.jiraDueDateField) {
+                    issue.fields[this.jiraDueDateField] = dueDateString;
+                }
+            }
+            else {
+                // Fallback to severity-based default due date
+                const severity = issue.fields.labels?.find(label => ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(String(label).toUpperCase()));
+                let dueDays;
+                switch (severity?.toUpperCase()) {
+                    case 'CRITICAL':
+                        dueDays = this.dueDateCritical;
+                        break;
+                    case 'HIGH':
+                        dueDays = this.dueDateHigh;
+                        break;
+                    case 'LOW':
+                        dueDays = this.dueDateLow;
+                        break;
+                    case 'MEDIUM':
+                    default:
+                        dueDays = this.dueDateModerate;
+                        break;
+                }
+                const fallbackDate = new Date();
+                fallbackDate.setDate(fallbackDate.getDate() + dueDays);
+                dueDateString = fallbackDate.toISOString().split('T')[0];
+                issue.fields.duedate = dueDateString;
+                if (this.jiraDueDateField) {
+                    issue.fields[this.jiraDueDateField] = dueDateString;
+                }
+            }
             if (this.jiraAssignee) {
                 issue.fields.assignee = { name: this.jiraAssignee };
             }

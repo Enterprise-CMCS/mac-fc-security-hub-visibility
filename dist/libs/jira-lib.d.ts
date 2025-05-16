@@ -93,6 +93,10 @@ export declare class Jira {
     static createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
     createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
     getAllSecurityHubIssuesInJiraProject(identifyingLabels: string[]): Promise<Issue[]>;
+    /**
+     * Fetches the CISA Known Exploited Vulnerabilities feed and returns the CISA date for a given CVE ID, if found.
+     */
+    private getCisaDueDate;
     createNewIssue(issue: NewIssueData): Promise<Issue>;
     linkIssues(newIssueKey: string, issueID: string, linkType?: string, linkDirection?: string): Promise<void>;
     updateIssueTitleById(issueId: string, updatedIssue: Partial<Issue>): Promise<void>;
