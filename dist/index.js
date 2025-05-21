@@ -59867,6 +59867,7 @@ class Jira {
     dueDateModerate;
     dueDateLow;
     jiraDueDateField; // Store the configured due date field ID
+    cisaFeedCache; // Cache for CISA feed
     constructor(jiraConfig) {
         this.jiraBaseURI = jiraConfig.jiraBaseURI;
         this.jiraProject = jiraConfig.jiraProjectKey;
@@ -60134,19 +60135,28 @@ class Jira {
     }
     /**
      * Fetches the CISA Known Exploited Vulnerabilities feed and returns the CISA date for a given CVE ID, if found.
+     * Implements caching to avoid repeated API calls within a session.
      */
     async getCisaDueDate(cveId) {
         try {
-            const response = await axios_1.default.get('https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json');
-            const feed = response.data.vulnerabilities;
-            const match = feed.find((entry) => entry.cveID.toUpperCase() === cveId.toUpperCase());
+            // Check if the feed is already cached
+            if (!this.cisaFeedCache) {
+                console.log('Fetching CISA feed...');
+                const response = await axios_1.default.get('https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json');
+                this.cisaFeedCache = response.data.vulnerabilities;
+                console.log('CISA feed cached.');
+            }
+            else {
+                console.log('Using cached CISA feed.');
+            }
+            const match = this.cisaFeedCache.find((entry) => entry.cveID.toUpperCase() === cveId.toUpperCase());
             if (match) {
-                // dateAdded is in YYYY-MM-DD format
+                // dueDate is in YYYY-MM-DD format
                 return match.dueDate;
             }
         }
         catch (error) {
-            console.warn(`Failed to fetch CISA feed for ${cveId}:`, error);
+            console.warn(`Failed to fetch or process CISA feed for ${cveId}:`, error);
         }
         return undefined;
     }

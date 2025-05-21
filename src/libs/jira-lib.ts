@@ -117,6 +117,7 @@ export class Jira {
   private dueDateModerate: number
   private dueDateLow: number
   private jiraDueDateField: string // Store the configured due date field ID
+  private cisaFeedCache: Array<{cveID: string; dueDate: string}> | undefined // Cache for CISA feed
   constructor(jiraConfig: JiraConfig) {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.jiraProject = jiraConfig.jiraProjectKey
@@ -480,25 +481,34 @@ export class Jira {
   }
   /**
    * Fetches the CISA Known Exploited Vulnerabilities feed and returns the CISA date for a given CVE ID, if found.
+   * Implements caching to avoid repeated API calls within a session.
    */
   private async getCisaDueDate(cveId: string): Promise<string | undefined> {
     try {
-      const response = await axios.get(
-        'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json'
-      )
-      const feed = response.data.vulnerabilities as Array<{
-        cveID: string
-        dueDate: string
-      }>
-      const match = feed.find(
+      // Check if the feed is already cached
+      if (!this.cisaFeedCache) {
+        console.log('Fetching CISA feed...')
+        const response = await axios.get(
+          'https://www.cisa.gov/sites/default/files/feeds/known_exploited_vulnerabilities.json'
+        )
+        this.cisaFeedCache = response.data.vulnerabilities as Array<{
+          cveID: string
+          dueDate: string
+        }>
+        console.log('CISA feed cached.')
+      } else {
+        console.log('Using cached CISA feed.')
+      }
+
+      const match = this.cisaFeedCache.find(
         (entry) => entry.cveID.toUpperCase() === cveId.toUpperCase()
       )
       if (match) {
-        // dateAdded is in YYYY-MM-DD format
+        // dueDate is in YYYY-MM-DD format
         return match.dueDate
       }
     } catch (error) {
-      console.warn(`Failed to fetch CISA feed for ${cveId}:`, error)
+      console.warn(`Failed to fetch or process CISA feed for ${cveId}:`, error)
     }
     return undefined
   }
