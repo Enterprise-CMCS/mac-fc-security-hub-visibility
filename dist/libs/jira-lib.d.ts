@@ -80,6 +80,7 @@ export declare class Jira {
     private dueDateModerate;
     private dueDateLow;
     private jiraDueDateField;
+    private cisaFeedCache;
     constructor(jiraConfig: JiraConfig);
     getCurrentUser(): Promise<any>;
     getIssue(issueId: string): Promise<any>;
@@ -93,6 +94,11 @@ export declare class Jira {
     static createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
     createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
     getAllSecurityHubIssuesInJiraProject(identifyingLabels: string[]): Promise<Issue[]>;
+    /**
+     * Fetches the CISA Known Exploited Vulnerabilities feed and returns the CISA date for a given CVE ID, if found.
+     * Implements caching to avoid repeated API calls within a session.
+     */
+    private getCisaDueDate;
     createNewIssue(issue: NewIssueData): Promise<Issue>;
     linkIssues(newIssueKey: string, issueID: string, linkType?: string, linkDirection?: string): Promise<void>;
     updateIssueTitleById(issueId: string, updatedIssue: Partial<Issue>): Promise<void>;
