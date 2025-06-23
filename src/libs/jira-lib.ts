@@ -530,7 +530,7 @@ export class Jira {
         if (this.jiraDueDateField) {
           issue.fields[this.jiraDueDateField] = dueDateString
         }
-        issue.fields.labels?.push('cveID')
+        issue.fields.labels?.push('KEV')
       } else {
         // Fallback to severity-based default due date
         const severity = issue.fields.labels?.find(label =>
