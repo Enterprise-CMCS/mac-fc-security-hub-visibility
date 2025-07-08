@@ -8,10 +8,6 @@
     "format-check": "prettier --check '**/*.ts'",
     "build": "ncc build src/index.ts --source-map"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ben-harvey/typescript-gh-action.git"
-  },
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.11.1",
