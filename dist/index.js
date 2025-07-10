@@ -62105,7 +62105,7 @@ class Jira {
             if (transitionName.toUpperCase() === this.jiraCompleteStatusName?.toUpperCase()) {
                 payload.fields = {
                     resolution: {
-                        name: "Fixed"
+                        name: transitionName
                     }
                 };
             }
@@ -62125,11 +62125,23 @@ class Jira {
             console.log(`[Dry Run] Would transition issue ${issueId} with transition:`, transitionName);
             return;
         }
+        const payload = {
+            transition: { id: transitionId }
+        };
+        // Add resolution fields if this is the complete status transition
+        if (transitionName.toUpperCase() === this.jiraCompleteStatusName?.toUpperCase()) {
+            payload.fields = {
+                resolution: {
+                    name: transitionName
+                }
+            };
+        }
+        else {
+            console.log(`Transitioning issue ${issueId} to '${transitionName}' without resolution.complete status name: ${this.jiraCompleteStatusName}`);
+        }
         try {
             // Transition the issue using the found transition ID
-            await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/transitions`, {
-                transition: { id: transitionId }
-            });
+            await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/transitions`, payload);
             console.log(`Issue ${issueId} transitioned successfully to '${transitionName}'.`);
         }
         catch (error) {
