@@ -62109,6 +62109,9 @@ class Jira {
                     }
                 };
             }
+            else {
+                console.log(`Transitioning issue ${issueId} to '${transitionName}' without resolution.complete status name: ${this.jiraCompleteStatusName}`);
+            }
             // Transition the issue using the found transition ID
             await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/transitions`, payload);
             console.log(`Issue ${issueId} transitioned successfully to '${transitionName}'.`);

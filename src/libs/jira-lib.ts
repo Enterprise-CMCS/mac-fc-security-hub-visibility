@@ -258,6 +258,8 @@ export class Jira {
             name: "Fixed"
           }
         }
+      }else{
+        console.log(`Transitioning issue ${issueId} to '${transitionName}' without resolution.complete status name: ${this.jiraCompleteStatusName}`)
       }
 
       // Transition the issue using the found transition ID
