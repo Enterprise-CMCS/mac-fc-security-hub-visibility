@@ -62112,7 +62112,7 @@ class Jira {
         try {
             // Transition the issue using the found transition ID
             await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/transitions`, {
-                transition: { id: transitionId }
+                transition: { id: transitionId }, fields: { resolution: { name: transitionName } }
             });
             console.log(`Issue ${issueId} transitioned successfully to '${transitionName}'.`);
         }
@@ -62469,21 +62469,7 @@ class Jira {
                 // Apply the transition with resolution field
                 const transitions = await this.getIssueTransitions(issueId);
                 const transition = transitions.find(t => t.name === nextTransition);
-                if (transition) {
-                    await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/transitions`, {
-                        transition: {
-                            id: transition.id
-                        },
-                        fields: {
-                            resolution: {
-                                name: "Fixed"
-                            }
-                        }
-                    });
-                }
-                else {
-                    await this.transitionIssueByName(issueId, nextTransition);
-                }
+                await this.transitionIssueByName(issueId, nextTransition);
             }
             throw new Error(`Overran transition map for issue ${issueId}.`);
         }
@@ -62579,16 +62565,6 @@ class Jira {
                 }
                 return;
             }
-            await this.axiosInstance.post(`/rest/api/2/issue/${issueKey}/transitions`, {
-                transition: {
-                    id: doneTransition.id
-                },
-                fields: {
-                    resolution: {
-                        name: "Fixed"
-                    }
-                }
-            });
         }
         catch (e) {
             throw new Error(`Error closing issue ${issueKey}: ${e.message}`);
