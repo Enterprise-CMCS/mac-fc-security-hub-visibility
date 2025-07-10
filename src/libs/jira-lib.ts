@@ -804,7 +804,8 @@ export class Jira {
       'complete',
       'completed',
       'deploy',
-      'deployed'
+      'deployed',
+      'Mark as done'
     ]
     try {
       const issue = await this.getIssue(issueKey)
