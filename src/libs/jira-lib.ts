@@ -28,6 +28,7 @@ export interface JiraConfig {
   dueDateModerate?: string
   dueDateLow?: string
   jiraDueDateField?: string // Add the new field for due date configuration
+  jiraCompleteStatusName?: string // Status name to use for completion
 }
 
 export type CustomFields = {
@@ -117,6 +118,8 @@ export class Jira {
   private dueDateModerate: number
   private dueDateLow: number
   private jiraDueDateField: string // Store the configured due date field ID
+  private jiraCompleteStatusName?: string // Status name to use for completion
+
   private cisaFeedCache: Array<{cveID: string; dueDate: string}> | undefined // Cache for CISA feed
   constructor(jiraConfig: JiraConfig) {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
@@ -152,7 +155,7 @@ export class Jira {
 
     // Initialize the due date field, defaulting to ''
     this.jiraDueDateField = jiraConfig.jiraDueDateField || ''
-
+    this.jiraCompleteStatusName = jiraConfig.jiraCompleteStatusName || ''
     this.axiosInstance = axios.create({
       baseURL: jiraConfig.jiraBaseURI,
       headers: {
@@ -243,12 +246,24 @@ export class Jira {
         )
       }
 
+      // Prepare transition payload
+      const payload: any = {
+        transition: {id: transition.id}
+      }
+
+      // Add resolution fields if this is the complete status transition
+      if (transitionName.toUpperCase() === this.jiraCompleteStatusName?.toUpperCase()) {
+        payload.fields = {
+          resolution: {
+            name: "Fixed"
+          }
+        }
+      }
+
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
         `/rest/api/2/issue/${issueId}/transitions`,
-        {
-          transition: {id: transition.id}
-        }
+        payload
       )
       console.log(
         `Issue ${issueId} transitioned successfully to '${transitionName}'.`
@@ -277,7 +292,7 @@ export class Jira {
       await this.axiosInstance.post(
         `/rest/api/2/issue/${issueId}/transitions`,
         {
-          transition: {id: transitionId},fields:{resolution:{name:transitionName}}
+          transition: {id: transitionId}
         }
       )
       console.log(
@@ -759,11 +774,8 @@ export class Jira {
           return // No mapped transition for current status, considered as terminal state
         }
 
-        // Apply the transition with resolution field
-        const transitions = await this.getIssueTransitions(issueId)
-        const transition = transitions.find(t => t.name === nextTransition)
-      
-          await this.transitionIssueByName(issueId, nextTransition)
+        // Apply the transition directly from the map
+        await this.transitionIssueByName(issueId, nextTransition)
       }
       throw new Error(`Overran transition map for issue ${issueId}.`)
     } catch (error: unknown) {
@@ -789,8 +801,7 @@ export class Jira {
       'complete',
       'completed',
       'deploy',
-      'deployed',
-      'Mark as done'
+      'deployed'
     ]
     try {
       const issue = await this.getIssue(issueKey)
@@ -816,8 +827,7 @@ export class Jira {
               throw new Error(
                 'Unsupported Workflow: does not contain any of ' +
                   doneStatuses.join(',') +
-                  ' statuses' + '. Available Transitions: ' +
-                  availableTransitions.map(t => t.name).join(', ')
+                  'statuses'
               )
             }
             break
@@ -876,7 +886,7 @@ export class Jira {
         return
       }
 
-     
+      await this.transitionIssueByName(issueKey, doneTransition.name)
     } catch (e: any) {
       throw new Error(`Error closing issue ${issueKey}: ${e.message}`)
     }

@@ -580,6 +580,14 @@ Result of the custom labeling above the labels on the issues created will be: "p
 
 **Description:** JSON string of raw findings list to test security hub jira sync
 
+## `jira-complete-status-name`
+
+**Required: No**
+
+**Default Value: ''**
+
+**Description:** Specifies the status name to use when completing Jira issues. When transitioning to this status, the system will automatically set the resolution to "Fixed". If not specified, the standard completion behavior will be used.
+
 ## Local Testing
 
 See test-infrastructure/jira-container/README.md for instructions on how to run against local Jira container
