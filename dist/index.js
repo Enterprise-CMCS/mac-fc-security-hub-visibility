@@ -62526,7 +62526,8 @@ class Jira {
                         if (!doneStatuses.includes(lastStatus)) {
                             throw new Error('Unsupported Workflow: does not contain any of ' +
                                 doneStatuses.join(',') +
-                                'statuses');
+                                ' statuses' + '. Available Transitions: ' +
+                                availableTransitions.map(t => t.name).join(', '));
                         }
                         break;
                     }
