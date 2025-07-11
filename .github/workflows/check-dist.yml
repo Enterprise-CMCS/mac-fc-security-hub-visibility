@@ -2,6 +2,8 @@ name: Check that module was built
 
 on:
   push:
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
 

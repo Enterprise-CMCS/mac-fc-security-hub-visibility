@@ -586,7 +586,7 @@ Result of the custom labeling above the labels on the issues created will be: "p
 
 **Default Value: ''**
 
-**Description:** Specifies the status name to use when completing Jira issues. When transitioning to this status, the system will automatically set the resolution to "Fixed". If not specified, the standard completion behavior will be used.
+**Description:** Specifies the status name to use when completing Jira issues. When transitioning to this status, the system will automatically set the resolution to Transition name. If not specified, the standard completion behavior will be used.
 
 ## Local Testing
 
