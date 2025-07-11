@@ -208,7 +208,12 @@ async function run(): Promise<void> {
         'jira-duedate-field',
         'JIRA_DUEDATE_FIELD',
         ''
-      )
+      ),
+      jiraCompleteStatusName: getDefaultInputOrEnv(
+        'jira-complete-status-name',
+        'JIRA_COMPLETE_STATUS_NAME',
+        '',
+      ),
     }
 
     const severitiesStr = getDefaultInputOrEnv(

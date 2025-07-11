@@ -28,6 +28,7 @@ export interface JiraConfig {
   dueDateModerate?: string
   dueDateLow?: string
   jiraDueDateField?: string // Add the new field for due date configuration
+  jiraCompleteStatusName?: string // Status name to use for completion
 }
 
 export type CustomFields = {
@@ -117,6 +118,8 @@ export class Jira {
   private dueDateModerate: number
   private dueDateLow: number
   private jiraDueDateField: string // Store the configured due date field ID
+  private jiraCompleteStatusName?: string // Status name to use for completion
+
   private cisaFeedCache: Array<{cveID: string; dueDate: string}> | undefined // Cache for CISA feed
   constructor(jiraConfig: JiraConfig) {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
@@ -152,7 +155,7 @@ export class Jira {
 
     // Initialize the due date field, defaulting to ''
     this.jiraDueDateField = jiraConfig.jiraDueDateField || ''
-
+    this.jiraCompleteStatusName = jiraConfig.jiraCompleteStatusName || ''
     this.axiosInstance = axios.create({
       baseURL: jiraConfig.jiraBaseURI,
       headers: {
@@ -243,12 +246,26 @@ export class Jira {
         )
       }
 
+      // Prepare transition payload
+      const payload: any = {
+        transition: {id: transition.id}
+      }
+
+      // Add resolution fields if this is the complete status transition
+      if (transitionName.toUpperCase() === this.jiraCompleteStatusName?.toUpperCase()) {
+        payload.fields = {
+          resolution: {
+            name: transitionName
+          }
+        }
+      }else{
+        console.log(`Transitioning issue ${issueId} to '${transitionName}' without resolution.complete status name: ${this.jiraCompleteStatusName}`)
+      }
+
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
         `/rest/api/2/issue/${issueId}/transitions`,
-        {
-          transition: {id: transition.id}
-        }
+        payload
       )
       console.log(
         `Issue ${issueId} transitioned successfully to '${transitionName}'.`
@@ -271,14 +288,27 @@ export class Jira {
       )
       return
     }
+      const payload: any = {
+        transition: {id: transitionId}
+      }
+
+      // Add resolution fields if this is the complete status transition
+      if (transitionName.toUpperCase() === this.jiraCompleteStatusName?.toUpperCase()) {
+        payload.fields = {
+          resolution: {
+            name: transitionName
+          }
+        }
+      }else{
+        console.log(`Transitioning issue ${issueId} to '${transitionName}' without resolution.complete status name: ${this.jiraCompleteStatusName}`)
+      }
+
 
     try {
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
         `/rest/api/2/issue/${issueId}/transitions`,
-        {
-          transition: {id: transitionId}
-        }
+        payload
       )
       console.log(
         `Issue ${issueId} transitioned successfully to '${transitionName}'.`

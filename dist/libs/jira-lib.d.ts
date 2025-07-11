@@ -25,6 +25,7 @@ export interface JiraConfig {
     dueDateModerate?: string;
     dueDateLow?: string;
     jiraDueDateField?: string;
+    jiraCompleteStatusName?: string;
 }
 export type CustomFields = {
     [key: string]: string;
@@ -80,6 +81,7 @@ export declare class Jira {
     private dueDateModerate;
     private dueDateLow;
     private jiraDueDateField;
+    private jiraCompleteStatusName?;
     private cisaFeedCache;
     constructor(jiraConfig: JiraConfig);
     getCurrentUser(): Promise<any>;

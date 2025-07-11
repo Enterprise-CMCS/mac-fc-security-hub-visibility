@@ -95,6 +95,9 @@ inputs:
   jira-consolidate-tickets:
     description: "True/False value to enable/disable the consolidation of tickets"
     required: false
+  jira-complete-status-name:
+    description: "Name of the status that indicates an issue is complete (will set resolution to Fixed when transitioning to this status)"
+    required: false
   test-findings-data:
     description: "JSON string of findings list"
     required: false
