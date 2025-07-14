@@ -212,7 +212,7 @@ async function run(): Promise<void> {
       jiraCompleteStatusName: getDefaultInputOrEnv(
         'jira-complete-status-name',
         'JIRA_COMPLETE_STATUS_NAME',
-        '',
+        'Deployed',
       ),
     }
 
