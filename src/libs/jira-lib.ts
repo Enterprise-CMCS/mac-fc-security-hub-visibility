@@ -65,10 +65,12 @@ export interface Issue {
   fields: IssueFields
   webUrl: string
 }
-
 interface Transition {
   id: string
   name: string
+  fields?: {
+    [fieldName: string]: any
+  }
 }
 
 function handleAxiosError(error: unknown): string {
@@ -199,7 +201,7 @@ export class Jira {
   async getIssueTransitions(issueId: string): Promise<Transition[]> {
     try {
       const response = await this.axiosInstance.get(
-        `/rest/api/2/issue/${issueId}/transitions`
+        `/rest/api/2/issue/${issueId}/transitions?expand=transitions.fields`
       )
       const transitions: Transition[] = response.data.transitions
 
@@ -246,9 +248,16 @@ export class Jira {
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
         `/rest/api/2/issue/${issueId}/transitions`,
-        {
-          transition: {id: transition.id}
-        }
+        transition.fields?.resolution 
+          ? {
+              transition: {id: transition.id},
+              fields: {
+                resolution: {name: "Done"}
+              }
+            }
+          : {
+              transition: {id: transition.id}
+            }
       )
       console.log(
         `Issue ${issueId} transitioned successfully to '${transitionName}'.`
@@ -262,7 +271,8 @@ export class Jira {
   async transitionIssueById(
     issueId: string,
     transitionId: string,
-    transitionName: string
+    transitionName: string,
+    transition?: Transition
   ) {
     if (this.isDryRun) {
       console.log(
@@ -276,9 +286,16 @@ export class Jira {
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
         `/rest/api/2/issue/${issueId}/transitions`,
-        {
-          transition: {id: transitionId}
-        }
+        transition?.fields?.resolution 
+          ? {
+              transition: {id: transitionId},
+              fields: {
+                resolution: {name: "Done"}
+              }
+            }
+          : {
+              transition: {id: transitionId}
+            }
       )
       console.log(
         `Issue ${issueId} transitioned successfully to '${transitionName}'.`
@@ -824,7 +841,8 @@ export class Jira {
           await this.transitionIssueById(
             issueKey,
             transition.id,
-            transition.name
+            transition.name,
+            transition
           )
           console.log(
             `Transitioned issue ${issueKey} to the next stage: ${targetTransitions[0].name}`

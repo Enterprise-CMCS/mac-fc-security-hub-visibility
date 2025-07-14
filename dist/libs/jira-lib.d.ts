@@ -63,6 +63,9 @@ export interface Issue {
 interface Transition {
     id: string;
     name: string;
+    fields?: {
+        [fieldName: string]: any;
+    };
 }
 export declare class Jira {
     private jiraBaseURI;
@@ -87,7 +90,7 @@ export declare class Jira {
     getCurrentStatus(issueId: string): Promise<any>;
     getIssueTransitions(issueId: string): Promise<Transition[]>;
     transitionIssueByName(issueId: string, transitionName: string): Promise<void>;
-    transitionIssueById(issueId: string, transitionId: string, transitionName: string): Promise<void>;
+    transitionIssueById(issueId: string, transitionId: string, transitionName: string, transition?: Transition): Promise<void>;
     addUserAsWatcher(issueId: string, watcher: string, isEnterprise?: boolean): Promise<void>;
     removeCurrentUserAsWatcher(issueId: string): Promise<void>;
     private static formatLabelQuery;
