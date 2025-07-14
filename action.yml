@@ -98,6 +98,7 @@ inputs:
   jira-complete-status-name:
     description: "Name of the status that indicates an issue is complete (will set resolution to Fixed when transitioning to this status)"
     required: false
+    default: 'Deployed'
   test-findings-data:
     description: "JSON string of findings list"
     required: false

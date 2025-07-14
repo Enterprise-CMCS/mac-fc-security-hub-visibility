@@ -61831,7 +61831,7 @@ async function run() {
             dueDateLow: getDefaultInputOrEnv('due-date-low', 'DUE_DATE_LOW', '365'),
             jiraDueDateField: getDefaultInputOrEnv(// Add the new input reading
             'jira-duedate-field', 'JIRA_DUEDATE_FIELD', ''),
-            jiraCompleteStatusName: getDefaultInputOrEnv('jira-complete-status-name', 'JIRA_COMPLETE_STATUS_NAME', ''),
+            jiraCompleteStatusName: getDefaultInputOrEnv('jira-complete-status-name', 'JIRA_COMPLETE_STATUS_NAME', 'Deployed'),
         };
         const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
         const securityHubConfig = {
