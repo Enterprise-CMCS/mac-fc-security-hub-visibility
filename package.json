@@ -8,6 +8,10 @@
     "format-check": "prettier --check '**/*.ts'",
     "build": "ncc build src/index.ts --source-map"
   },
+    "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Enterprise-CMCS/mac-fc-security-hub-visibility.git"
+  },
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.11.1",
