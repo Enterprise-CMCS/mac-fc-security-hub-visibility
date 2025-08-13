@@ -25,6 +25,9 @@ jobs:
 
       - name: Check for diff
         run: |
-          if ! git diff --quiet dist || git ls-files --other --exclude-standard --directory dist; then
+          if [ -z "$(git status --porcelain dist/)" ]; then
+            echo "No uncommitted changes in dist/. Everything is clean."
+          else
             echo "Detected uncommitted changes in dist/ after building. Please run 'npm run build' and commit the changes."
+            exit 1
           fi
