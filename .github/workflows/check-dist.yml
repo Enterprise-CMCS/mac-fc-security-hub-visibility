@@ -25,10 +25,6 @@ jobs:
 
       - name: Check for diff
         run: |
-          if [ -z "$(git status --porcelain dist/)" ]; then
-            echo "No uncommitted changes in dist/. Everything is clean."
-          else
-            echo "Detected uncommitted changes in dist/ after building. Please run 'npm run build' and commit the changes."
-            git status --porcelain dist
-            exit 1
+          if git diff --no-patch --exit-code dist; then
+            echo "Detected uncommitted changes after building. Please run 'npm run build' and commit the changes."
           fi
