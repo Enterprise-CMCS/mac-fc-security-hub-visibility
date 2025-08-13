@@ -15,7 +15,7 @@
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.11.1",
-    "@enterprise-cmcs/macpro-security-hub-sync": "^1.14.3"
+    "@enterprise-cmcs/macpro-security-hub-sync": "^1.14.5"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.38.3",
