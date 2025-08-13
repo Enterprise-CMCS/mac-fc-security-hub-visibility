@@ -29,5 +29,6 @@ jobs:
             echo "No uncommitted changes in dist/. Everything is clean."
           else
             echo "Detected uncommitted changes in dist/ after building. Please run 'npm run build' and commit the changes."
+            git status --porcelain dist
             exit 1
           fi
