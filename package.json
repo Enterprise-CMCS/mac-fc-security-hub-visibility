@@ -8,14 +8,14 @@
     "format-check": "prettier --check '**/*.ts'",
     "build": "ncc build src/index.ts --source-map"
   },
-  "repository": {
+    "repository": {
     "type": "git",
-    "url": "git+https://github.com/ben-harvey/typescript-gh-action.git"
+    "url": "git+https://github.com/Enterprise-CMCS/mac-fc-security-hub-visibility.git"
   },
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.11.1",
-    "@enterprise-cmcs/macpro-security-hub-sync": "^1.14.3"
+    "@enterprise-cmcs/macpro-security-hub-sync": "^1.14.5"
   },
   "devDependencies": {
     "@vercel/ncc": "^0.38.3",
