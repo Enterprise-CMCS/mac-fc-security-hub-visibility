@@ -20,7 +20,7 @@ jobs:
           private_key: ${{ secrets.PR_PERMS_APP_SECRET }}
 
       - name: Update code.json
-        uses: DSACMS/automated-codejson-generator@v1.0.0
+        uses: DSACMS/automated-codejson-generator@v1.1.0
         with:
           GITHUB_TOKEN: ${{ steps.create_token.outputs.token }}
           BRANCH: "main"
