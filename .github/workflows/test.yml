@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # when possible, prefer using GitHub OIDC for AWS creds
       - name: Configure AWS credentials
