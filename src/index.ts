@@ -3,10 +3,13 @@ import {SecurityHubJiraSync} from '@enterprise-cmcs/macpro-security-hub-sync'
 
 async function run(): Promise<void> {
   try {
-    process.env.JIRA_HOST = core.getInput('jira-host')
-    process.env.JIRA_USERNAME = core.getInput('jira-username')
-    process.env.JIRA_TOKEN = core.getInput('jira-token')
-    process.env.JIRA_PROJECT = core.getInput('jira-project-key')
+    process.env.JIRA_HOST = 'localhost'
+    process.env.JIRA_PROTOCOL = 'http'
+    process.env.JIRA_PORT = '2990'
+    process.env.JIRA_BASE = '/jira'
+    process.env.JIRA_USERNAME = 'mac_fc_jira_ent'
+    process.env.JIRA_TOKEN = 'NDk5MzQ4OTA3NTk0Op52vG3Lbw459HPN3CsQiYovBl0m'
+    process.env.JIRA_PROJECT = 'MACFC'
     process.env.JIRA_CLOSED_STATUSES = core.getInput('jira-ignore-statuses')
     process.env.AUTO_CLOSE = core.getInput('auto-close')
     process.env.ASSIGNEE = core.getInput('assign-jira-ticket-to')
@@ -36,10 +39,8 @@ async function run(): Promise<void> {
 
     core.info('Syncing Security Hub and Jira')
     await new SecurityHubJiraSync({
-      region: core.getInput('aws-region'),
-      severities: core
-        .getInput('aws-severities')
-        .split(',')
+      region: 'us-east-1',
+      severities: 'CRITICAL, HIGH, MEDIUM'.split(',')
         .map(severity => severity.trim()),
       epicKey: core.getInput('jira-epic-key'),
       customJiraFields
