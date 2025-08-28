@@ -23,7 +23,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.3.3",
-    "typescript": "^5.7.2"
+    "typescript": "^5.9.2"
   },
   "version": "0.0.0"
 }
