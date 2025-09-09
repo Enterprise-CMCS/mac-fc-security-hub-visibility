@@ -63323,28 +63323,28 @@ class Jira {
             throw new Error('ERROR:  Your query does not include an AWS Account ID as a label, and is too broad.  Refusing to continue');
         }
         console.log(fullQuery);
-        let totalIssuesReceived = 0;
         let allIssues = [];
-        let startAt = 0;
-        let total = 0;
+        let nextPageToken = null;
         do {
             try {
-                const response = await this.axiosInstance.post('/rest/api/3/search/jql', {
+                const requestBody = {
                     jql: fullQuery,
-                    startAt: startAt,
                     maxResults: 50,
-                    fields: ['*all']
-                });
+                    fields: ['*all'],
+                    expand: ""
+                };
+                if (nextPageToken) {
+                    requestBody.nextPageToken = nextPageToken;
+                }
+                const response = await this.axiosInstance.post('/rest/api/3/search/jql', requestBody);
                 const results = response.data;
                 allIssues = allIssues.concat(results.issues);
-                totalIssuesReceived += results.issues.length;
-                startAt = totalIssuesReceived;
-                total = results.total;
+                nextPageToken = results.nextPageToken || null;
             }
             catch (error) {
                 throw new Error(`Error getting Security Hub issues from Jira: ${handleAxiosError(error)}`);
             }
-        } while (totalIssuesReceived < total);
+        } while (nextPageToken);
         return allIssues;
     }
     /**

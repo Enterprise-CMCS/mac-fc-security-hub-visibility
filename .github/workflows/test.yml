@@ -1,5 +1,8 @@
 name: Sync Security Hub findings and Jira issues V2
 on:
+  push: #test
+  schedule:
+    - cron: "25 1 * * *"
   workflow_dispatch:
 permissions:
   id-token: write
@@ -19,25 +22,28 @@ jobs:
       - name: Check out repo
         uses: actions/checkout@v3
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v3
         with:
           aws-region: us-east-1
-          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_TO_ASSUME }}
+          role-to-assume: ${{ secrets.MACFCEE_DEV_OIDC_ROLE }}
       - name: Sync Security Hub and Jira
         id: sync_step
-        uses: Enterprise-CMCS/mac-fc-security-hub-visibility@v2.0.8
+        uses: Enterprise-CMCS/mac-fc-security-hub-visibility@v2.0.0.16
         with:
-          jira-token: ${{ secrets.JIRA_TEST_TOKEN }}
-          jira-username: username # required variable for package but not for Enterprise Jira
-          jira-project-key: Pj
+          jira-token: ${{ secrets.JIRA_TOKEN }}
+          jira-username:  VU6Q # required variable for package but not for Enterprise Jira
+          jira-project-key: CMCSMACD
           jira-ignore-statuses: Done, Closed, Canceled
+          jira-watchers: 'VU6Q, RIQ5'
           aws-severities: CRITICAL, HIGH, MEDIUM, LOW
-          jira-link-id: ${{secrets.JIRA_LINK_ID}}
+          jira-link-id: CMCSMACD-2484
           jira-link-type: "Relates"
           include-all-products: 'true'
+          jira-add-labels: 'test-issue, custom:label, nessus, test-performance-default, mac-fc-embedded'
           jira-link-direction: 'outward'
-          jira-labels-config: "[{\"labelField\":\"ProductName\",\"labelPrefix\":\"product\",\"labelDelimiter\":\":\"},{\"labelField\":\"severity\"},{\"labelField\":\"accountId\",\"labelDelimiter\":\":\",\"labelPrefix\":\"account\"},{\"labelField\":\"region\"},{\"labelField\":\"accountAlias\"}]"
-         #skip-products: Health, Default 
+          jira-labels-config: "[{\"labelField\":\"ProductName\",\"labelPrefix\":\"product\",\"labelDelimiter\":\":\"},{\"labelField\":\"severity\"},{\"labelField\":\"accountId\",\"labelDelimiter\":\":\",\"labelPrefix\":\"account\"},{\"labelField\":\"region\"},{\"labelField\":\"accountAlias\"},{\"labelField\":\"identify\"} ]"
+          #skip-products: Health, Default 
+          jira-consolidate-tickets: 'true'
       - name: Capture and process outputs
         run: |
           # Define total, created, closed, and updates from the sync step outputs
@@ -88,7 +94,7 @@ jobs:
         uses: rtCamp/action-slack-notify@v2
         if: env.NEW_ISSUES_CREATED == 'true' && success()
         env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_WEBHOOK: ${{ secrets.MAIRA_SLACK_WEBHOOK }}
           SLACK_USERNAME: Deploy Alerts
           SLACK_ICON_EMOJI: ':white_check_mark:'
           SLACK_COLOR: good

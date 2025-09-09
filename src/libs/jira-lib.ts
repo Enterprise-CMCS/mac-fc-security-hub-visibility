@@ -469,30 +469,32 @@ export class Jira {
     }
     console.log(fullQuery)
 
-    let totalIssuesReceived = 0
     let allIssues: Issue[] = []
-    let startAt = 0
-    let total = 0
+    let nextPageToken: string | null = null
 
     do {
       try {
-        const response = await this.axiosInstance.post('/rest/api/3/search/jql', {
+        const requestBody: any = {
           jql: fullQuery,
-          startAt: startAt,
           maxResults: 50,
-          fields: ['*all']
-        })
+          fields: ['*all'],
+          expand: ""
+        }
+        
+        if (nextPageToken) {
+          requestBody.nextPageToken = nextPageToken
+        }
+
+        const response = await this.axiosInstance.post('/rest/api/3/search/jql', requestBody)
         const results = response.data
         allIssues = allIssues.concat(results.issues)
-        totalIssuesReceived += results.issues.length
-        startAt = totalIssuesReceived
-        total = results.total
+        nextPageToken = results.nextPageToken || null
       } catch (error: unknown) {
         throw new Error(
           `Error getting Security Hub issues from Jira: ${handleAxiosError(error)}`
         )
       }
-    } while (totalIssuesReceived < total)
+    } while (nextPageToken)
 
     return allIssues
   }
