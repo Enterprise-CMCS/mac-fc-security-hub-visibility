@@ -486,7 +486,8 @@ export class Jira {
         }
 
         const response = await this.axiosInstance.post('/rest/api/3/search/jql', requestBody)
-        const results = response.data
+        const results = response.data;
+        console.log('Received results:', results);
         allIssues = allIssues.concat(results.issues)
         nextPageToken = results.nextPageToken || null
       } catch (error: unknown) {

@@ -168,6 +168,8 @@ export class SecurityHubJiraSync {
     console.log(
       'Getting active Security Hub Findings with severities: ' + this.severities
     )
+    console.log('jira  issues', jiraIssues.length)
+    console.log('first issue', jiraIssues[0])
     const shFindingsObj = this.testFindings.length
       ? this.testFindings.map((finding: AwsSecurityFinding) =>
           this.securityHub.awsSecurityFindingToSecurityHubFinding(finding)
@@ -199,6 +201,7 @@ export class SecurityHubJiraSync {
     const existingTitles = new Set<string>()
 
     jiraIssues.forEach(issue => {
+      console.log('checking issue', issue)
       const issueDesc = issue.fields.description ?? ''
 
       // Find all matching Security Hub findings by title
