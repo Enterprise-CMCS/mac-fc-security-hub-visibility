@@ -1,8 +1,5 @@
 name: Sync Security Hub findings and Jira issues V2
 on:
-  push: #test
-  schedule:
-    - cron: "25 1 * * *"
   workflow_dispatch:
 permissions:
   id-token: write
