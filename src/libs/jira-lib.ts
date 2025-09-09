@@ -476,7 +476,7 @@ export class Jira {
 
     do {
       try {
-        const response = await this.axiosInstance.post('/rest/api/2/search', {
+        const response = await this.axiosInstance.post('/rest/api/3/search/jql', {
           jql: fullQuery,
           startAt: startAt,
           maxResults: 50,
