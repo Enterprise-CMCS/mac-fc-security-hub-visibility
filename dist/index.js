@@ -64000,10 +64000,11 @@ class SecurityHubJiraSync {
         const newFindings = [];
         const existingTitles = new Set();
         jiraIssues.forEach(issue => {
-            console.log('checking issue', issue);
-            const issueDesc = issue.fields.description ?? '';
+            console.log('checking issue', issue.key);
+            console.log('checking issue suummary', issue.fields.summary);
+            const issueSummary = issue.fields.summary ?? '';
             // Find all matching Security Hub findings by title
-            const matchingFindings = shFindings.filter(f => f.title && issueDesc.includes(f.title));
+            const matchingFindings = shFindings.filter(f => f.title && issueSummary.includes(f.title));
             if (matchingFindings.length >= 1) {
                 // Consolidate multiple findings
                 let consolidatedFinding = undefined;
