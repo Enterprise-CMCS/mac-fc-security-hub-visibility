@@ -64066,8 +64066,6 @@ class SecurityHubJiraSync {
         const jiraIssues = await this.jira.getAllSecurityHubIssuesInJiraProject(identifyingLabels);
         // Step 2. Get all current findings from Security Hub
         console.log('Getting active Security Hub Findings with severities: ' + this.severities);
-        console.log('jira  issues', jiraIssues.length);
-        console.log('first issue', JSON.stringify(jiraIssues[0]));
         const shFindingsObj = this.testFindings.length
             ? this.testFindings.map((finding) => this.securityHub.awsSecurityFindingToSecurityHubFinding(finding))
             : await this.securityHub.getAllActiveFindings();
@@ -64094,8 +64092,8 @@ class SecurityHubJiraSync {
         const newFindings = [];
         const existingTitles = new Set();
         jiraIssues.forEach(issue => {
-            console.log('checking issue', issue.key);
-            console.log('checking issue suummary', issue.fields.summary);
+            // console.log('checking issue', issue.key)
+            // console.log('checking issue suummary', issue.fields.summary)
             const issueSummary = issue.fields.summary ?? '';
             // Find all matching Security Hub findings by title
             const matchingFindings = shFindings.filter(f => f.title && issueSummary.includes(f.title));
