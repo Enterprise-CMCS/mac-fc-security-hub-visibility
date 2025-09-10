@@ -141,7 +141,7 @@ export class SecurityHubJiraSync {
   }
   isNewFinding(finding: SecurityHubFinding, issues: Issue[]) {
     const matchingIssues = issues.filter(
-      i => finding.title && i.fields.description?.includes(finding.title)
+      i => finding.title && i.fields.descriptionText?.includes(finding.title)
     )
     if (!matchingIssues.length) {
       return false
@@ -149,7 +149,7 @@ export class SecurityHubJiraSync {
     return (
       matchingIssues.filter(i =>
         finding.Resources?.every(
-          r => r.Id && i.fields.description?.includes(r.Id)
+          r => r.Id && i.fields.descriptionText?.includes(r.Id)
         )
       ).length == 0
     )
@@ -217,7 +217,7 @@ export class SecurityHubJiraSync {
         matchingFindings.forEach(finding => {
           const shouldConsolidate = (finding.Resources ?? []).every(
             resource =>
-              resource.Id && issue.fields.description?.includes(resource.Id)
+              resource.Id && issue.fields.descriptionText?.includes(resource.Id)
           )
 
           if (shouldConsolidate) {
@@ -308,7 +308,7 @@ export class SecurityHubJiraSync {
   shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]) {
     const matchingTitles = findings.filter(finding => {
       if (finding.title) {
-        return ticket.fields.description?.includes(finding.title)
+        return ticket.fields.descriptionText?.includes(finding.title)
       }
       return false
     })
@@ -323,8 +323,8 @@ export class SecurityHubJiraSync {
           const id = resource.Id ?? ''
           if (id) {
             bool = (bool &&
-              ticket.fields.description &&
-              ticket.fields.description?.includes(id)) as unknown as boolean
+              ticket.fields.descriptionText &&
+              ticket.fields.descriptionText?.includes(id)) as unknown as boolean
           }
         })
         return bool && resources.length
@@ -714,7 +714,7 @@ export class SecurityHubJiraSync {
         return false
       }
       const title = finding.title
-      return issue.fields.description?.includes(title)
+      return issue.fields.descriptionText?.includes(title)
     })
     console.log('Potential Duplicates: ', potentialDuplicates.length)
     if (potentialDuplicates.length == 0) {
@@ -728,7 +728,7 @@ export class SecurityHubJiraSync {
           if (!id) {
             return false
           }
-          return should && issue.fields.description?.includes(id) == true
+          return should && issue.fields.descriptionText?.includes(id) == true
         },
         true
       )

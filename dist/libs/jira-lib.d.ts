@@ -38,7 +38,7 @@ interface PriorityField {
 }
 interface IssueFields {
     summary: string;
-    description?: string;
+    description?: string | any;
     issuetype?: IssueType;
     labels?: (string | undefined)[];
     priority?: PriorityField;
@@ -50,6 +50,7 @@ interface IssueFields {
     };
     duedate?: string;
     [key: string]: any;
+    descriptionText?: string;
 }
 export interface NewIssueData {
     fields: IssueFields;
@@ -67,6 +68,7 @@ interface Transition {
         [fieldName: string]: any;
     };
 }
+export declare function getDescriptionText(issue: Issue): string;
 export declare class Jira {
     private jiraBaseURI;
     private jiraProject;

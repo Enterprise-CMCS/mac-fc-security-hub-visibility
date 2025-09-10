@@ -45,7 +45,7 @@ interface PriorityField {
 
 interface IssueFields {
   summary: string
-  description?: string
+  description?: string | any // Can be string or ADF object
   issuetype?: IssueType
   labels?: (string | undefined)[] // Assuming labels can be strings or objects
   priority?: PriorityField
@@ -53,6 +53,9 @@ interface IssueFields {
   assignee?: {name: string}
   duedate?: string // Add the due date field
   [key: string]: any // Allow indexing by string for custom fields like due date
+  
+  // Optional getter function for description text
+  descriptionText?: string
 }
 
 export interface NewIssueData {
@@ -71,6 +74,65 @@ interface Transition {
   fields?: {
     [fieldName: string]: any
   }
+}
+
+function adfToText(node: any): string {
+  if (!node) return "";
+
+  // Handle array of nodes
+  if (Array.isArray(node)) {
+    return node.map(adfToText).join("");
+  }
+
+  switch (node.type) {
+    case "doc":
+      return adfToText(node.content);
+
+    case "paragraph":
+      return adfToText(node.content) + "\n";
+
+    case "text":
+      return node.text || "";
+
+    case "bulletList":
+      return node.content.map((item: any) => "• " + adfToText(item)).join("\n") + "\n";
+
+    case "listItem":
+      return adfToText(node.content);
+
+    case "embedCard":
+      return (node.attrs && node.attrs.url ? node.attrs.url : "") + "\n";
+
+    default:
+      return node.content ? adfToText(node.content) : "";
+  }
+}
+
+export function getDescriptionText(issue: Issue): string {
+  if (!issue.fields.description) return "";
+  
+  // If description is already a string, return it
+  if (typeof issue.fields.description === 'string') {
+    return issue.fields.description;
+  }
+  
+  // If description is ADF format, convert it to text
+  return adfToText(issue.fields.description);
+}
+
+function enhanceIssueWithDescriptionText(issue: Issue): Issue {
+  Object.defineProperty(issue.fields, 'descriptionText', {
+    get: function() {
+      return getDescriptionText(issue);
+    },
+    enumerable: false,
+    configurable: true
+  });
+  return issue;
+}
+
+function enhanceIssuesWithDescriptionText(issues: Issue[]): Issue[] {
+  return issues.map(enhanceIssueWithDescriptionText);
 }
 
 function handleAxiosError(error: unknown): string {
@@ -488,7 +550,8 @@ export class Jira {
         const response = await this.axiosInstance.post('/rest/api/3/search/jql', requestBody)
         const results = response.data;
         console.log('Received results:', results);
-        allIssues = allIssues.concat(results.issues)
+        const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
+        allIssues = allIssues.concat(enhancedIssues)
         nextPageToken = results.nextPageToken || null
       } catch (error: unknown) {
         throw new Error(

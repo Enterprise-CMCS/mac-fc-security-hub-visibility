@@ -63021,10 +63021,58 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Jira = void 0;
+exports.getDescriptionText = getDescriptionText;
 const dotenv = __importStar(__nccwpck_require__(18889));
 const axios_1 = __importStar(__nccwpck_require__(87269));
 const index_1 = __nccwpck_require__(79407);
 dotenv.config();
+function adfToText(node) {
+    if (!node)
+        return "";
+    // Handle array of nodes
+    if (Array.isArray(node)) {
+        return node.map(adfToText).join("");
+    }
+    switch (node.type) {
+        case "doc":
+            return adfToText(node.content);
+        case "paragraph":
+            return adfToText(node.content) + "\n";
+        case "text":
+            return node.text || "";
+        case "bulletList":
+            return node.content.map((item) => "• " + adfToText(item)).join("\n") + "\n";
+        case "listItem":
+            return adfToText(node.content);
+        case "embedCard":
+            return (node.attrs && node.attrs.url ? node.attrs.url : "") + "\n";
+        default:
+            return node.content ? adfToText(node.content) : "";
+    }
+}
+function getDescriptionText(issue) {
+    if (!issue.fields.description)
+        return "";
+    // If description is already a string, return it
+    if (typeof issue.fields.description === 'string') {
+        return issue.fields.description;
+    }
+    // If description is ADF format, convert it to text
+    return adfToText(issue.fields.description);
+}
+function enhanceIssueWithDescriptionText(issue) {
+    Object.defineProperty(issue.fields, 'descriptionText', {
+        get: function () {
+            return getDescriptionText(issue);
+        },
+        enumerable: false,
+        configurable: true
+    });
+    return issue;
+}
+function enhanceIssuesWithDescriptionText(issues) {
+    return issues.map(enhanceIssueWithDescriptionText);
+}
 function handleAxiosError(error) {
     // Check if the error is an instance of AxiosError
     if (error instanceof axios_1.AxiosError) {
@@ -63339,7 +63387,8 @@ class Jira {
                 const response = await this.axiosInstance.post('/rest/api/3/search/jql', requestBody);
                 const results = response.data;
                 console.log('Received results:', results);
-                allIssues = allIssues.concat(results.issues);
+                const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
+                allIssues = allIssues.concat(enhancedIssues);
                 nextPageToken = results.nextPageToken || null;
             }
             catch (error) {
@@ -63957,11 +64006,11 @@ class SecurityHubJiraSync {
         return exists;
     }
     isNewFinding(finding, issues) {
-        const matchingIssues = issues.filter(i => finding.title && i.fields.description?.includes(finding.title));
+        const matchingIssues = issues.filter(i => finding.title && i.fields.descriptionText?.includes(finding.title));
         if (!matchingIssues.length) {
             return false;
         }
-        return (matchingIssues.filter(i => finding.Resources?.every(r => r.Id && i.fields.description?.includes(r.Id))).length == 0);
+        return (matchingIssues.filter(i => finding.Resources?.every(r => r.Id && i.fields.descriptionText?.includes(r.Id))).length == 0);
     }
     async sync() {
         const updatesForReturn = [];
@@ -64009,7 +64058,7 @@ class SecurityHubJiraSync {
                 // Consolidate multiple findings
                 let consolidatedFinding = undefined;
                 matchingFindings.forEach(finding => {
-                    const shouldConsolidate = (finding.Resources ?? []).every(resource => resource.Id && issue.fields.description?.includes(resource.Id));
+                    const shouldConsolidate = (finding.Resources ?? []).every(resource => resource.Id && issue.fields.descriptionText?.includes(resource.Id));
                     if (shouldConsolidate) {
                         if (!consolidatedFinding) {
                             consolidatedFinding = { ...finding };
@@ -64077,7 +64126,7 @@ class SecurityHubJiraSync {
     shouldCloseTicket(ticket, findings) {
         const matchingTitles = findings.filter(finding => {
             if (finding.title) {
-                return ticket.fields.description?.includes(finding.title);
+                return ticket.fields.descriptionText?.includes(finding.title);
             }
             return false;
         });
@@ -64091,8 +64140,8 @@ class SecurityHubJiraSync {
                 const id = resource.Id ?? '';
                 if (id) {
                     bool = (bool &&
-                        ticket.fields.description &&
-                        ticket.fields.description?.includes(id));
+                        ticket.fields.descriptionText &&
+                        ticket.fields.descriptionText?.includes(id));
                 }
             });
             return bool && resources.length;
@@ -64397,7 +64446,7 @@ class SecurityHubJiraSync {
                 return false;
             }
             const title = finding.title;
-            return issue.fields.description?.includes(title);
+            return issue.fields.descriptionText?.includes(title);
         });
         console.log('Potential Duplicates: ', potentialDuplicates.length);
         if (potentialDuplicates.length == 0) {
@@ -64409,7 +64458,7 @@ class SecurityHubJiraSync {
                 if (!id) {
                     return false;
                 }
-                return should && issue.fields.description?.includes(id) == true;
+                return should && issue.fields.descriptionText?.includes(id) == true;
             }, true);
             return !duplicate;
         });
