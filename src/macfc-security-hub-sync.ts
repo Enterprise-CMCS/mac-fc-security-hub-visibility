@@ -501,53 +501,301 @@ export class SecurityHubJiraSync {
       consolidated = false
     } = finding
 
-    return `----
-
-      *This issue was generated from Security Hub data and is managed through automation.*
-      Please do not edit the title or body of this issue, or remove the security-hub tag.  All other edits/comments are welcome.
-      Finding Title: ${title}
-
-      ----
-
-      h2. Type of Issue:
-
-      * Security Hub Finding
-
-      h2. Title:
-
-      ${title}
-
-      h2. Description:
-
-      ${description}
-
-      ${
-        remediationText || remediationUrl
-          ? `
-      h2. Remediation:
-
-      ${remediationUrl}
-      ${remediationText}
-        `
-          : ''
+    // Create ADF format content
+    const content = [
+      // Horizontal rule
+      {
+        type: "rule"
+      },
+      // Intro paragraph
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "This issue was generated from Security Hub data and is managed through automation.",
+            marks: [{ type: "strong" }]
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Please do not edit the title or body of this issue, or remove the security-hub tag. All other edits/comments are welcome."
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: `Finding Title: ${title}`
+          }
+        ]
+      },
+      // Horizontal rule
+      {
+        type: "rule"
+      },
+      // Type of Issue header
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Type of Issue:"
+          }
+        ]
+      },
+      {
+        type: "bulletList",
+        content: [
+          {
+            type: "listItem",
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: "Security Hub Finding"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      // Title header
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Title:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: title
+          }
+        ]
+      },
+      // Description header
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Description:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: description
+          }
+        ]
       }
+    ];
 
-      h2. AWS Account:
-      ${awsAccountId} (${accountAlias})
+    // Add remediation section if present
+    if (remediationText || remediationUrl) {
+      content.push(
+        {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [
+            {
+              type: "text",
+              text: "Remediation:"
+            }
+          ]
+        }
+      );
+      
+      if (remediationUrl) {
+        content.push({
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: remediationUrl
+            }
+          ]
+        });
+      }
+      
+      if (remediationText) {
+        content.push({
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: remediationText
+            }
+          ]
+        });
+      }
+    }
 
-      h2. Severity:
-      ${severity}
+    // AWS Account section
+    content.push(
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "AWS Account:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: `${awsAccountId} (${accountAlias})`
+          }
+        ]
+      }
+    );
 
-      ${this.makeProductFieldSection(finding)}
+    // Severity section
+    content.push(
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Severity:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: severity
+          }
+        ]
+      }
+    );
 
-      h2. Resources:
-      Following are the resources with their corresponding finding url that were non-compliant at the time of the issue creation
-      ${this.makeResourceList(finding.Resources)}
+    // Product fields section (convert from string)
+    const productSection = this.makeProductFieldSection(finding);
+    if (productSection.trim()) {
+      content.push({
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: productSection
+          }
+        ]
+      });
+    }
 
-      To check the latest list of resources, kindly refer to the finding url
-      h2. AC:
+    // Resources section
+    content.push(
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Resources:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Following are the resources with their corresponding finding url that were non-compliant at the time of the issue creation"
+          }
+        ]
+      }
+    );
 
-      * All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed.  (Note:  this ticket will automatically close when the AC is met.)`
+    // Resource list
+    const resourceList = this.makeResourceList(finding.Resources);
+    if (resourceList.trim()) {
+      content.push({
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: resourceList
+          }
+        ]
+      });
+    }
+
+    content.push(
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "To check the latest list of resources, kindly refer to the finding url"
+          }
+        ]
+      },
+      // AC section
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "AC:"
+          }
+        ]
+      },
+      {
+        type: "bulletList",
+        content: [
+          {
+            type: "listItem",
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: "All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed. (Note: this ticket will automatically close when the AC is met.)"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    );
+
+    return {
+      type: "doc",
+      version: 1,
+      content: content
+    };
   }
 
   createSecurityHubFindingUrl(standardsControlArn = '') {
