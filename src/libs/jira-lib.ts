@@ -58,6 +58,7 @@ interface IssueFields {
   descriptionText?: string
 }
 
+
 export interface NewIssueData {
   fields: IssueFields
 }
@@ -74,6 +75,16 @@ interface Transition {
   fields?: {
     [fieldName: string]: any
   }
+
+}
+export interface ADFNode {
+  type: string
+  text?: string
+  version?: number
+  attrs?: {
+    [key: string]: any
+  }
+  content?: ADFNode[]
 }
 
 function adfToText(node: any): string {
@@ -680,7 +691,7 @@ export class Jira {
 
       // Convert description to ADF format if it's a string
       if (issue.fields.description && typeof issue.fields.description === 'string') {
-        issue.fields.description = textToAdf(issue.fields.description)
+          issue.fields.description = textToAdf(issue.fields.description)
       }
 
       if (this.isDryRun) {
@@ -794,15 +805,32 @@ export class Jira {
       throw new Error(`Error updating issue title: ${handleAxiosError(error)}`)
     }
   }
-  async addCommentToIssueById(issueId: string, comment: string) {
+  async addCommentToIssueById(issueId: string, comment: string | ADFNode) {
     if (this.isDryRun) {
       console.log(`[Dry Run] Would add comment to issue ${issueId}:`, comment)
       return
     }
 
     try {
+      let commentBody: any;
+      
+      // Handle different comment formats
+      if (typeof comment === 'string') {
+        // Convert string to ADF format
+        commentBody = textToAdf(comment);
+      } else if (typeof comment === 'object' && 
+                 comment.type === 'doc' && 
+                 comment.version === 1) {
+        // Already in ADF format
+        commentBody = comment;
+      } else {
+        // Unknown format, try to convert to string first, then to ADF
+        const stringComment = String(comment);
+        commentBody = textToAdf(stringComment);
+      }
+
       await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/comment`, {
-        body: comment
+        body: commentBody
       })
       await this.removeCurrentUserAsWatcher(issueId) // Commenting on the issue adds the user as a watcher, so we remove them
     } catch (error: unknown) {

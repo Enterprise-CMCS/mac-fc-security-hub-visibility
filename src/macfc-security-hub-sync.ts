@@ -337,10 +337,23 @@ export class SecurityHubJiraSync {
   ) {
     const updatesForReturn: UpdateForReturn[] = []
     try {
-      const makeComment = () =>
-        `As of ${new Date(
-          Date.now()
-        ).toDateString()}, this Security Hub finding has been marked resolved`
+      const makeComment = () => ({
+        type: "doc",
+        version: 1,
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: `As of ${new Date(
+                  Date.now()
+                ).toDateString()}, this Security Hub finding has been marked resolved`
+              }
+            ]
+          }
+        ]
+      })
       // close all security-hub labeled Jira issues that do not have an active finding
       if (this.autoClose) {
         for (let i = 0; i < jiraIssues.length; i++) {

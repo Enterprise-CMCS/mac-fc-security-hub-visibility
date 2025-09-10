@@ -63581,8 +63581,25 @@ class Jira {
             return;
         }
         try {
+            let commentBody;
+            // Handle different comment formats
+            if (typeof comment === 'string') {
+                // Convert string to ADF format
+                commentBody = textToAdf(comment);
+            }
+            else if (typeof comment === 'object' &&
+                comment.type === 'doc' &&
+                comment.version === 1) {
+                // Already in ADF format
+                commentBody = comment;
+            }
+            else {
+                // Unknown format, try to convert to string first, then to ADF
+                const stringComment = String(comment);
+                commentBody = textToAdf(stringComment);
+            }
             await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/comment`, {
-                body: comment
+                body: commentBody
             });
             await this.removeCurrentUserAsWatcher(issueId); // Commenting on the issue adds the user as a watcher, so we remove them
         }
@@ -64178,7 +64195,21 @@ class SecurityHubJiraSync {
     async closeIssuesForResolvedFindings(jiraIssues, shFindings) {
         const updatesForReturn = [];
         try {
-            const makeComment = () => `As of ${new Date(Date.now()).toDateString()}, this Security Hub finding has been marked resolved`;
+            const makeComment = () => ({
+                type: "doc",
+                version: 1,
+                content: [
+                    {
+                        type: "paragraph",
+                        content: [
+                            {
+                                type: "text",
+                                text: `As of ${new Date(Date.now()).toDateString()}, this Security Hub finding has been marked resolved`
+                            }
+                        ]
+                    }
+                ]
+            });
             // close all security-hub labeled Jira issues that do not have an active finding
             if (this.autoClose) {
                 for (let i = 0; i < jiraIssues.length; i++) {

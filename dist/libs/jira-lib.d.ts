@@ -68,6 +68,15 @@ interface Transition {
         [fieldName: string]: any;
     };
 }
+export interface ADFNode {
+    type: string;
+    text?: string;
+    version?: number;
+    attrs?: {
+        [key: string]: any;
+    };
+    content?: ADFNode[];
+}
 export declare function getDescriptionText(issue: Issue): string;
 export declare class Jira {
     private jiraBaseURI;
@@ -107,7 +116,7 @@ export declare class Jira {
     createNewIssue(issue: NewIssueData): Promise<Issue>;
     linkIssues(newIssueKey: string, issueID: string, linkType?: string, linkDirection?: string): Promise<void>;
     updateIssueTitleById(issueId: string, updatedIssue: Partial<Issue>): Promise<void>;
-    addCommentToIssueById(issueId: string, comment: string): Promise<void>;
+    addCommentToIssueById(issueId: string, comment: string | ADFNode): Promise<void>;
     getNextTransition(currentStatus: string): string | undefined;
     applyWildcardTransition(issueId: string): Promise<boolean>;
     closeIssueUsingTransitionMap(issueId: string): Promise<void>;
