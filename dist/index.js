@@ -63073,6 +63073,31 @@ function enhanceIssueWithDescriptionText(issue) {
 function enhanceIssuesWithDescriptionText(issues) {
     return issues.map(enhanceIssueWithDescriptionText);
 }
+function textToAdf(text) {
+    if (!text) {
+        return {
+            type: "doc",
+            version: 1,
+            content: []
+        };
+    }
+    // Split text into paragraphs
+    const paragraphs = text.split('\n').filter(line => line.trim() !== '');
+    const content = paragraphs.map(paragraph => ({
+        type: "paragraph",
+        content: [
+            {
+                type: "text",
+                text: paragraph
+            }
+        ]
+    }));
+    return {
+        type: "doc",
+        version: 1,
+        content: content
+    };
+}
 function handleAxiosError(error) {
     // Check if the error is an instance of AxiosError
     if (error instanceof axios_1.AxiosError) {
@@ -63470,6 +63495,10 @@ class Jira {
                 issue.fields.assignee = { name: this.jiraAssignee };
             }
             issue.fields.project = { key: this.jiraProject };
+            // Convert description to ADF format if it's a string
+            if (issue.fields.description && typeof issue.fields.description === 'string') {
+                issue.fields.description = textToAdf(issue.fields.description);
+            }
             if (this.isDryRun) {
                 console.log(`[Dry Run] Would create a new issue with the following details:`, issue);
                 // Return a dry run issue object

@@ -135,6 +135,35 @@ function enhanceIssuesWithDescriptionText(issues: Issue[]): Issue[] {
   return issues.map(enhanceIssueWithDescriptionText);
 }
 
+function textToAdf(text: string): any {
+  if (!text) {
+    return {
+      type: "doc",
+      version: 1,
+      content: []
+    };
+  }
+
+  // Split text into paragraphs
+  const paragraphs = text.split('\n').filter(line => line.trim() !== '');
+  
+  const content = paragraphs.map(paragraph => ({
+    type: "paragraph",
+    content: [
+      {
+        type: "text",
+        text: paragraph
+      }
+    ]
+  }));
+
+  return {
+    type: "doc",
+    version: 1,
+    content: content
+  };
+}
+
 function handleAxiosError(error: unknown): string {
   // Check if the error is an instance of AxiosError
   if (error instanceof AxiosError) {
@@ -648,6 +677,11 @@ export class Jira {
         issue.fields.assignee = {name: this.jiraAssignee}
       }
       issue.fields.project = {key: this.jiraProject}
+
+      // Convert description to ADF format if it's a string
+      if (issue.fields.description && typeof issue.fields.description === 'string') {
+        issue.fields.description = textToAdf(issue.fields.description)
+      }
 
       if (this.isDryRun) {
         console.log(
