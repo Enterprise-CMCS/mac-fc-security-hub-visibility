@@ -233,7 +233,7 @@ export class Jira {
 
   async getCurrentUser() {
     try {
-      const response = await this.axiosInstance.get('/rest/api/2/myself')
+      const response = await this.axiosInstance.get('/rest/api/3/myself')
       return response.data
     } catch (error: unknown) {
       throw new Error(`Error fetching current user: ${handleAxiosError(error)}`)
@@ -242,7 +242,7 @@ export class Jira {
   async getIssue(issueId: string) {
     try {
       const response = await this.axiosInstance.get(
-        `/rest/api/2/issue/${issueId}`
+        `/rest/api/3/issue/${issueId}`
       )
       return response.data
     } catch (error: unknown) {
@@ -263,7 +263,7 @@ export class Jira {
   async getIssueTransitions(issueId: string): Promise<Transition[]> {
     try {
       const response = await this.axiosInstance.get(
-        `/rest/api/2/issue/${issueId}/transitions?expand=transitions.fields`
+        `/rest/api/3/issue/${issueId}/transitions?expand=transitions.fields`
       )
       const transitions: Transition[] = response.data.transitions
 
@@ -309,7 +309,7 @@ export class Jira {
 
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
-        `/rest/api/2/issue/${issueId}/transitions`,
+        `/rest/api/3/issue/${issueId}/transitions`,
         transition.fields?.resolution 
           ? {
               transition: {id: transition.id},
@@ -347,7 +347,7 @@ export class Jira {
     try {
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
-        `/rest/api/2/issue/${issueId}/transitions`,
+        `/rest/api/3/issue/${issueId}/transitions`,
         transition?.fields?.resolution 
           ? {
               transition: {id: transitionId},
@@ -393,7 +393,7 @@ export class Jira {
         params.key = 'accountId'
       }
       const res = await this.axiosInstance.post(
-        `/rest/api/2/issue/${issueId}/watchers`,
+        `/rest/api/3/issue/${issueId}/watchers`,
         params.value
       )
       console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId)
@@ -429,7 +429,7 @@ export class Jira {
         params.key = 'accountId'
         params.value = currentUser.accountId
       }
-      await this.axiosInstance.delete(`/rest/api/2/issue/${issueId}/watchers`, {
+      await this.axiosInstance.delete(`/rest/api/3/issue/${issueId}/watchers`, {
         params: {
           [params.key]: params.value
         }
@@ -675,7 +675,7 @@ export class Jira {
         return dryRunIssue // Return a dummy issue
       }
 
-      response = await this.axiosInstance.post('/rest/api/2/issue', issue)
+      response = await this.axiosInstance.post('/rest/api/3/issue', issue)
       const newIssue = response.data
       // Construct the webUrl for the new issue
       newIssue['webUrl'] = `${this.jiraBaseURI}/browse/${newIssue.key}`
@@ -730,7 +730,7 @@ export class Jira {
 
     try {
       const response = await this.axiosInstance.post(
-        '/rest/api/2/issueLink',
+        '/rest/api/3/issueLink',
         linkData
       )
       console.log(
@@ -753,7 +753,7 @@ export class Jira {
 
     try {
       const response = await this.axiosInstance.put(
-        `/rest/api/2/issue/${issueId}`,
+        `/rest/api/3/issue/${issueId}`,
         updatedIssue
       )
       console.log('Issue title updated successfully:', response.data)
@@ -768,7 +768,7 @@ export class Jira {
     }
 
     try {
-      await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/comment`, {
+      await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/comment`, {
         body: comment
       })
       await this.removeCurrentUserAsWatcher(issueId) // Commenting on the issue adds the user as a watcher, so we remove them

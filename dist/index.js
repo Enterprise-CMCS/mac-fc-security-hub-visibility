@@ -63160,7 +63160,7 @@ class Jira {
     }
     async getCurrentUser() {
         try {
-            const response = await this.axiosInstance.get('/rest/api/2/myself');
+            const response = await this.axiosInstance.get('/rest/api/3/myself');
             return response.data;
         }
         catch (error) {
@@ -63169,7 +63169,7 @@ class Jira {
     }
     async getIssue(issueId) {
         try {
-            const response = await this.axiosInstance.get(`/rest/api/2/issue/${issueId}`);
+            const response = await this.axiosInstance.get(`/rest/api/3/issue/${issueId}`);
             return response.data;
         }
         catch (error) {
@@ -63186,7 +63186,7 @@ class Jira {
     }
     async getIssueTransitions(issueId) {
         try {
-            const response = await this.axiosInstance.get(`/rest/api/2/issue/${issueId}/transitions?expand=transitions.fields`);
+            const response = await this.axiosInstance.get(`/rest/api/3/issue/${issueId}/transitions?expand=transitions.fields`);
             const transitions = response.data.transitions;
             if (!transitions.every(t => 'id' in t && 'name' in t)) {
                 throw new Error('One or more transitions are missing required properties (id, name)');
@@ -63213,7 +63213,7 @@ class Jira {
                 throw new Error(`Transition '${transitionName}' not found for issue ${issueId}`);
             }
             // Transition the issue using the found transition ID
-            await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/transitions`, transition.fields?.resolution
+            await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/transitions`, transition.fields?.resolution
                 ? {
                     transition: { id: transition.id },
                     fields: {
@@ -63236,7 +63236,7 @@ class Jira {
         }
         try {
             // Transition the issue using the found transition ID
-            await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/transitions`, transition?.fields?.resolution
+            await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/transitions`, transition?.fields?.resolution
                 ? {
                     transition: { id: transitionId },
                     fields: {
@@ -63271,7 +63271,7 @@ class Jira {
                 params.value = user.accountId;
                 params.key = 'accountId';
             }
-            const res = await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/watchers`, params.value);
+            const res = await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/watchers`, params.value);
             console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId);
         }
         catch (error) {
@@ -63299,7 +63299,7 @@ class Jira {
                 params.key = 'accountId';
                 params.value = currentUser.accountId;
             }
-            await this.axiosInstance.delete(`/rest/api/2/issue/${issueId}/watchers`, {
+            await this.axiosInstance.delete(`/rest/api/3/issue/${issueId}/watchers`, {
                 params: {
                     [params.key]: params.value
                 }
@@ -63489,7 +63489,7 @@ class Jira {
                 };
                 return dryRunIssue; // Return a dummy issue
             }
-            response = await this.axiosInstance.post('/rest/api/2/issue', issue);
+            response = await this.axiosInstance.post('/rest/api/3/issue', issue);
             const newIssue = response.data;
             // Construct the webUrl for the new issue
             newIssue['webUrl'] = `${this.jiraBaseURI}/browse/${newIssue.key}`;
@@ -63526,7 +63526,7 @@ class Jira {
             linkData.outwardIssue.key = temp;
         }
         try {
-            const response = await this.axiosInstance.post('/rest/api/2/issueLink', linkData);
+            const response = await this.axiosInstance.post('/rest/api/3/issueLink', linkData);
             console.log(`Successfully linked issue ${newIssueKey} with ${issueID}:`, response.data);
         }
         catch (error) {
@@ -63540,7 +63540,7 @@ class Jira {
             return;
         }
         try {
-            const response = await this.axiosInstance.put(`/rest/api/2/issue/${issueId}`, updatedIssue);
+            const response = await this.axiosInstance.put(`/rest/api/3/issue/${issueId}`, updatedIssue);
             console.log('Issue title updated successfully:', response.data);
         }
         catch (error) {
@@ -63553,7 +63553,7 @@ class Jira {
             return;
         }
         try {
-            await this.axiosInstance.post(`/rest/api/2/issue/${issueId}/comment`, {
+            await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/comment`, {
                 body: comment
             });
             await this.removeCurrentUserAsWatcher(issueId); // Commenting on the issue adds the user as a watcher, so we remove them
