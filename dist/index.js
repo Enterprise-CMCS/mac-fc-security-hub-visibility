@@ -63386,7 +63386,6 @@ class Jira {
                 }
                 const response = await this.axiosInstance.post('/rest/api/3/search/jql', requestBody);
                 const results = response.data;
-                console.log('Received results:', results);
                 const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
                 allIssues = allIssues.concat(enhancedIssues);
                 nextPageToken = results.nextPageToken || null;
@@ -64022,7 +64021,7 @@ class SecurityHubJiraSync {
         // Step 2. Get all current findings from Security Hub
         console.log('Getting active Security Hub Findings with severities: ' + this.severities);
         console.log('jira  issues', jiraIssues.length);
-        console.log('first issue', jiraIssues[0]);
+        console.log('first issue', JSON.stringify(jiraIssues[0]));
         const shFindingsObj = this.testFindings.length
             ? this.testFindings.map((finding) => this.securityHub.awsSecurityFindingToSecurityHubFinding(finding))
             : await this.securityHub.getAllActiveFindings();
