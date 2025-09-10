@@ -63411,6 +63411,7 @@ class Jira {
                 }
                 const response = await this.axiosInstance.post('/rest/api/3/search/jql', requestBody);
                 const results = response.data;
+                console.log(results);
                 const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
                 allIssues = allIssues.concat(enhancedIssues);
                 nextPageToken = results.nextPageToken || null;
