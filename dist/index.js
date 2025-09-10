@@ -64482,20 +64482,223 @@ class SecurityHubJiraSync {
                 }
             ]
         });
-        // Product fields section (convert from string)
+        // Product fields section as table
         const productSection = this.makeProductFieldSection(finding);
         if (productSection.trim()) {
             content.push({
-                type: "paragraph",
+                type: "heading",
+                attrs: { level: 2 },
                 content: [
                     {
                         type: "text",
-                        text: productSection
+                        text: "Product Fields:"
+                    }
+                ]
+            }, {
+                type: "table",
+                content: [
+                    {
+                        type: "tableRow",
+                        content: [
+                            {
+                                type: "tableHeader",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: "Type"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                type: "tableCell",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: finding.ProductName || "N/A"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        type: "tableRow",
+                        content: [
+                            {
+                                type: "tableHeader",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: "Product Name"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                type: "tableCell",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: finding.ProductName || "N/A"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        type: "tableRow",
+                        content: [
+                            {
+                                type: "tableHeader",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: "Provider Name"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                type: "tableCell",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: finding.ProviderName || "N/A"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        type: "tableRow",
+                        content: [
+                            {
+                                type: "tableHeader",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: "Provider Version"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                type: "tableCell",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: finding.ProviderVersion || "N/A"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        type: "tableRow",
+                        content: [
+                            {
+                                type: "tableHeader",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: "Company Name"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                type: "tableCell",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: finding.CompanyName || "N/A"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        type: "tableRow",
+                        content: [
+                            {
+                                type: "tableHeader",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: "CVE"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            },
+                            {
+                                type: "tableCell",
+                                content: [
+                                    {
+                                        type: "paragraph",
+                                        content: [
+                                            {
+                                                type: "text",
+                                                text: finding.CVE || "N/A"
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
                     }
                 ]
             });
         }
-        // Resources section
+        // Resources section as table
         content.push({
             type: "heading",
             attrs: { level: 2 },
@@ -64514,17 +64717,172 @@ class SecurityHubJiraSync {
                 }
             ]
         });
-        // Resource list
-        const resourceList = this.makeResourceList(finding.Resources);
-        if (resourceList.trim()) {
+        // Create resources table
+        if (finding.Resources && finding.Resources.length > 0) {
+            const resourceTableContent = [
+                // Header row
+                {
+                    type: "tableRow",
+                    content: [
+                        {
+                            type: "tableHeader",
+                            content: [
+                                {
+                                    type: "paragraph",
+                                    content: [
+                                        {
+                                            type: "text",
+                                            text: "Resource Id"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            type: "tableHeader",
+                            content: [
+                                {
+                                    type: "paragraph",
+                                    content: [
+                                        {
+                                            type: "text",
+                                            text: "Partition"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            type: "tableHeader",
+                            content: [
+                                {
+                                    type: "paragraph",
+                                    content: [
+                                        {
+                                            type: "text",
+                                            text: "Region"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            type: "tableHeader",
+                            content: [
+                                {
+                                    type: "paragraph",
+                                    content: [
+                                        {
+                                            type: "text",
+                                            text: "Type"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            type: "tableHeader",
+                            content: [
+                                {
+                                    type: "paragraph",
+                                    content: [
+                                        {
+                                            type: "text",
+                                            text: "Finding URL"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ];
+            // Add resource rows
+            finding.Resources.forEach((resource) => {
+                const resourceId = resource.Id || "N/A";
+                const partition = resource.Partition || "aws";
+                const region = resource.Region || "N/A";
+                const type = resource.Type || "N/A";
+                const findingUrl = this.createSecurityHubFindingUrlThroughFilters(resource.Id) || "N/A";
+                resourceTableContent.push({
+                    type: "tableRow",
+                    content: [
+                        {
+                            type: "tableCell",
+                            content: [
+                                {
+                                    type: "paragraph",
+                                    content: [
+                                        {
+                                            type: "text",
+                                            text: String(resourceId)
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            type: "tableCell",
+                            content: [
+                                {
+                                    type: "paragraph",
+                                    content: [
+                                        {
+                                            type: "text",
+                                            text: String(partition)
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            type: "tableCell",
+                            content: [
+                                {
+                                    type: "paragraph",
+                                    content: [
+                                        {
+                                            type: "text",
+                                            text: String(region)
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            type: "tableCell",
+                            content: [
+                                {
+                                    type: "paragraph",
+                                    content: [
+                                        {
+                                            type: "text",
+                                            text: String(type)
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            type: "tableCell",
+                            content: [
+                                {
+                                    type: "paragraph",
+                                    content: [
+                                        {
+                                            type: "text",
+                                            text: String(findingUrl)
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                });
+            });
             content.push({
-                type: "paragraph",
-                content: [
-                    {
-                        type: "text",
-                        text: resourceList
-                    }
-                ]
+                type: "table",
+                content: resourceTableContent
             });
         }
         content.push({
