@@ -28,6 +28,7 @@ export interface JiraConfig {
   dueDateModerate?: string
   dueDateLow?: string
   jiraDueDateField?: string // Add the new field for due date configuration
+  jiraApiVersion?: string // API version to use (v2 or v3)
 }
 
 export type CustomFields = {
@@ -222,6 +223,7 @@ export class Jira {
   private dueDateLow: number
   private jiraDueDateField: string // Store the configured due date field ID
   private cisaFeedCache: Array<{cveID: string; dueDate: string}> | undefined // Cache for CISA feed
+  private apiVersion: string // API version (v2 or v3)
   constructor(jiraConfig: JiraConfig) {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.jiraProject = jiraConfig.jiraProjectKey
@@ -256,6 +258,8 @@ export class Jira {
 
     // Initialize the due date field, defaulting to ''
     this.jiraDueDateField = jiraConfig.jiraDueDateField || ''
+    // Set API version, defaulting to 'v3'
+    this.apiVersion = jiraConfig.jiraApiVersion || ''
 
     this.axiosInstance = axios.create({
       baseURL: jiraConfig.jiraBaseURI,
@@ -271,9 +275,13 @@ export class Jira {
     })
   }
 
+  private getApiPath(endpoint: string): string {
+    return `/rest/api/${this.apiVersion}${endpoint}`
+  }
+
   async getCurrentUser() {
     try {
-      const response = await this.axiosInstance.get('/rest/api/3/myself')
+      const response = await this.axiosInstance.get(this.getApiPath('/myself'))
       return response.data
     } catch (error: unknown) {
       throw new Error(`Error fetching current user: ${handleAxiosError(error)}`)
@@ -282,7 +290,7 @@ export class Jira {
   async getIssue(issueId: string) {
     try {
       const response = await this.axiosInstance.get(
-        `/rest/api/3/issue/${issueId}`
+        this.getApiPath(`/issue/${issueId}`)
       )
       return response.data
     } catch (error: unknown) {
@@ -303,7 +311,7 @@ export class Jira {
   async getIssueTransitions(issueId: string): Promise<Transition[]> {
     try {
       const response = await this.axiosInstance.get(
-        `/rest/api/3/issue/${issueId}/transitions?expand=transitions.fields`
+        this.getApiPath(`/issue/${issueId}/transitions?expand=transitions.fields`)
       )
       const transitions: Transition[] = response.data.transitions
 
@@ -349,7 +357,7 @@ export class Jira {
 
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
-        `/rest/api/3/issue/${issueId}/transitions`,
+        this.getApiPath(`/issue/${issueId}/transitions`),
         transition.fields?.resolution 
           ? {
               transition: {id: transition.id},
@@ -387,7 +395,7 @@ export class Jira {
     try {
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
-        `/rest/api/3/issue/${issueId}/transitions`,
+        this.getApiPath(`/issue/${issueId}/transitions`),
         transition?.fields?.resolution 
           ? {
               transition: {id: transitionId},
@@ -422,7 +430,7 @@ export class Jira {
         params.key = 'username'
       } else {
         const response = await this.axiosInstance.get(
-          `/rest/api/3/user/search?query=${encodeURIComponent(watcher)}`
+          this.getApiPath(`/user/search?query=${encodeURIComponent(watcher)}`)
         )
         if (!response.data.length) {
           console.log('Invalid wacther id ' + watcher)
@@ -433,7 +441,7 @@ export class Jira {
         params.key = 'accountId'
       }
       const res = await this.axiosInstance.post(
-        `/rest/api/3/issue/${issueId}/watchers`,
+        this.getApiPath(`/issue/${issueId}/watchers`),
         params.value
       )
       console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId)
@@ -469,7 +477,7 @@ export class Jira {
         params.key = 'accountId'
         params.value = currentUser.accountId
       }
-      await this.axiosInstance.delete(`/rest/api/3/issue/${issueId}/watchers`, {
+      await this.axiosInstance.delete(this.getApiPath(`/issue/${issueId}/watchers`), {
         params: {
           [params.key]: params.value
         }
@@ -572,33 +580,63 @@ export class Jira {
     console.log(fullQuery)
 
     let allIssues: Issue[] = []
-    let nextPageToken: string | null = null
+    
+    if (this.apiVersion === '3') {
+      // Use v3 API with pagination token
+      let nextPageToken: string | null = null
+      
+      do {
+        try {
+          const requestBody: any = {
+            jql: fullQuery,
+            maxResults: 50,
+            fields: ['*all'],
+            expand: ""
+          }
+          
+          if (nextPageToken) {
+            requestBody.nextPageToken = nextPageToken
+          }
 
-    do {
-      try {
-        const requestBody: any = {
-          jql: fullQuery,
-          maxResults: 50,
-          fields: ['*all'],
-          expand: ""
+          const response = await this.axiosInstance.post(this.getApiPath('/search/jql'), requestBody)
+          const results = response.data;
+          console.log(results);
+          const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
+          allIssues = allIssues.concat(enhancedIssues)
+          nextPageToken = results.nextPageToken || null
+        } catch (error: unknown) {
+          throw new Error(
+            `Error getting Security Hub issues from Jira: ${handleAxiosError(error)}`
+          )
         }
-        
-        if (nextPageToken) {
-          requestBody.nextPageToken = nextPageToken
-        }
+      } while (nextPageToken)
+    } else {
+      // Use v2 API with startAt pagination
+      let totalIssuesReceived = 0
+      let startAt = 0
+      let total = 0
 
-        const response = await this.axiosInstance.post('/rest/api/3/search/jql', requestBody)
-        const results = response.data;
-        console.log(results);
-        const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
-        allIssues = allIssues.concat(enhancedIssues)
-        nextPageToken = results.nextPageToken || null
-      } catch (error: unknown) {
-        throw new Error(
-          `Error getting Security Hub issues from Jira: ${handleAxiosError(error)}`
-        )
-      }
-    } while (nextPageToken)
+      do {
+        try {
+          const response = await this.axiosInstance.post(this.getApiPath('/search'), {
+            jql: fullQuery,
+            startAt: startAt,
+            maxResults: 50,
+            fields: ['*all']
+          })
+          const results = response.data
+          const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
+          allIssues = allIssues.concat(enhancedIssues)
+          totalIssuesReceived += results.issues.length
+          startAt = totalIssuesReceived
+          total = results.total
+        } catch (error: unknown) {
+          throw new Error(
+            `Error getting Security Hub issues from Jira: ${handleAxiosError(error)}`
+          )
+        }
+      } while (totalIssuesReceived < total)
+    }
 
     return allIssues
   }
@@ -690,9 +728,13 @@ export class Jira {
       }
       issue.fields.project = {key: this.jiraProject}
 
-      // Convert description to ADF format if it's a string
+      // Convert description format based on API version
       if (issue.fields.description && typeof issue.fields.description === 'string') {
+        if (this.apiVersion === '3') {
+          // Convert string to ADF format for v3
           issue.fields.description = textToAdf(issue.fields.description)
+        }
+        // For v2, keep as string (no conversion needed)
       }
 
       if (this.isDryRun) {
@@ -720,7 +762,7 @@ export class Jira {
         return dryRunIssue // Return a dummy issue
       }
 
-      response = await this.axiosInstance.post('/rest/api/3/issue', issue)
+      response = await this.axiosInstance.post(this.getApiPath('/issue'), issue)
       const newIssue = response.data
       // Construct the webUrl for the new issue
       newIssue['webUrl'] = `${this.jiraBaseURI}/browse/${newIssue.key}`
@@ -775,7 +817,7 @@ export class Jira {
 
     try {
       const response = await this.axiosInstance.post(
-        '/rest/api/3/issueLink',
+        this.getApiPath('/issueLink'),
         linkData
       )
       console.log(
@@ -798,7 +840,7 @@ export class Jira {
 
     try {
       const response = await this.axiosInstance.put(
-        `/rest/api/3/issue/${issueId}`,
+        this.getApiPath(`/issue/${issueId}`),
         updatedIssue
       )
       console.log('Issue title updated successfully:', response.data)
@@ -815,22 +857,36 @@ export class Jira {
     try {
       let commentBody: any;
       
-      // Handle different comment formats
-      if (typeof comment === 'string') {
-        // Convert string to ADF format
-        commentBody = textToAdf(comment);
-      } else if (typeof comment === 'object' && 
-                 comment.type === 'doc' && 
-                 comment.version === 1) {
-        // Already in ADF format
-        commentBody = comment;
+      // Handle different comment formats based on API version
+      if (this.apiVersion === '3') {
+        // v3 requires ADF format
+        if (typeof comment === 'string') {
+          commentBody = textToAdf(comment);
+        } else if (typeof comment === 'object' && 
+                   comment.type === 'doc' && 
+                   comment.version === 1) {
+          // Already in ADF format
+          commentBody = comment;
+        } else {
+          // Unknown format, try to convert to string first, then to ADF
+          const stringComment = String(comment);
+          commentBody = textToAdf(stringComment);
+        }
       } else {
-        // Unknown format, try to convert to string first, then to ADF
-        const stringComment = String(comment);
-        commentBody = textToAdf(stringComment);
+        // v2 uses plain text
+        if (typeof comment === 'string') {
+          commentBody = comment;
+        } else if (typeof comment === 'object' && 
+                   comment.type === 'doc') {
+          // Convert ADF to plain text for v2
+          commentBody = adfToText(comment);
+        } else {
+          // Unknown format, convert to string
+          commentBody = String(comment);
+        }
       }
 
-      await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/comment`, {
+      await this.axiosInstance.post(this.getApiPath(`/issue/${issueId}/comment`), {
         body: commentBody
       })
       await this.removeCurrentUserAsWatcher(issueId) // Commenting on the issue adds the user as a watcher, so we remove them

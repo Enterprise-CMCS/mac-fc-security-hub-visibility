@@ -25,6 +25,7 @@ export interface JiraConfig {
     dueDateModerate?: string;
     dueDateLow?: string;
     jiraDueDateField?: string;
+    jiraApiVersion?: string;
 }
 export type CustomFields = {
     [key: string]: string;
@@ -95,7 +96,9 @@ export declare class Jira {
     private dueDateLow;
     private jiraDueDateField;
     private cisaFeedCache;
+    private apiVersion;
     constructor(jiraConfig: JiraConfig);
+    private getApiPath;
     getCurrentUser(): Promise<any>;
     getIssue(issueId: string): Promise<any>;
     getCurrentStatus(issueId: string): Promise<any>;

@@ -208,6 +208,11 @@ async function run(): Promise<void> {
         'jira-duedate-field',
         'JIRA_DUEDATE_FIELD',
         ''
+      ),
+      jiraApiVersion: getDefaultInputOrEnv(
+        'jira-api-version',
+        'JIRA_API_VERSION',
+        '3'
       )
     }
 

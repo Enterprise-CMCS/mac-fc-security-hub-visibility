@@ -62900,7 +62900,8 @@ async function run() {
             dueDateModerate: getDefaultInputOrEnv('due-date-moderate', 'DUE_DATE_MODERATE', '90'),
             dueDateLow: getDefaultInputOrEnv('due-date-low', 'DUE_DATE_LOW', '365'),
             jiraDueDateField: getDefaultInputOrEnv(// Add the new input reading
-            'jira-duedate-field', 'JIRA_DUEDATE_FIELD', '')
+            'jira-duedate-field', 'JIRA_DUEDATE_FIELD', ''),
+            jiraApiVersion: getDefaultInputOrEnv('jira-api-version', 'JIRA_API_VERSION', '3')
         };
         const severitiesStr = getDefaultInputOrEnv('aws-severities', 'AWS_SEVERITIES', 'CRITICAL,HIGH,MEDIUM'); //
         const securityHubConfig = {
@@ -63141,6 +63142,7 @@ class Jira {
     dueDateLow;
     jiraDueDateField; // Store the configured due date field ID
     cisaFeedCache; // Cache for CISA feed
+    apiVersion; // API version (v2 or v3)
     constructor(jiraConfig) {
         this.jiraBaseURI = jiraConfig.jiraBaseURI;
         this.jiraProject = jiraConfig.jiraProjectKey;
@@ -63172,6 +63174,8 @@ class Jira {
         this.dueDateLow = isNaN(this.dueDateLow) ? 365 : this.dueDateLow;
         // Initialize the due date field, defaulting to ''
         this.jiraDueDateField = jiraConfig.jiraDueDateField || '';
+        // Set API version, defaulting to 'v3'
+        this.apiVersion = jiraConfig.jiraApiVersion || '';
         this.axiosInstance = axios_1.default.create({
             baseURL: jiraConfig.jiraBaseURI,
             headers: {
@@ -63183,9 +63187,12 @@ class Jira {
             }
         });
     }
+    getApiPath(endpoint) {
+        return `/rest/api/${this.apiVersion}${endpoint}`;
+    }
     async getCurrentUser() {
         try {
-            const response = await this.axiosInstance.get('/rest/api/3/myself');
+            const response = await this.axiosInstance.get(this.getApiPath('/myself'));
             return response.data;
         }
         catch (error) {
@@ -63194,7 +63201,7 @@ class Jira {
     }
     async getIssue(issueId) {
         try {
-            const response = await this.axiosInstance.get(`/rest/api/3/issue/${issueId}`);
+            const response = await this.axiosInstance.get(this.getApiPath(`/issue/${issueId}`));
             return response.data;
         }
         catch (error) {
@@ -63211,7 +63218,7 @@ class Jira {
     }
     async getIssueTransitions(issueId) {
         try {
-            const response = await this.axiosInstance.get(`/rest/api/3/issue/${issueId}/transitions?expand=transitions.fields`);
+            const response = await this.axiosInstance.get(this.getApiPath(`/issue/${issueId}/transitions?expand=transitions.fields`));
             const transitions = response.data.transitions;
             if (!transitions.every(t => 'id' in t && 'name' in t)) {
                 throw new Error('One or more transitions are missing required properties (id, name)');
@@ -63238,7 +63245,7 @@ class Jira {
                 throw new Error(`Transition '${transitionName}' not found for issue ${issueId}`);
             }
             // Transition the issue using the found transition ID
-            await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/transitions`, transition.fields?.resolution
+            await this.axiosInstance.post(this.getApiPath(`/issue/${issueId}/transitions`), transition.fields?.resolution
                 ? {
                     transition: { id: transition.id },
                     fields: {
@@ -63261,7 +63268,7 @@ class Jira {
         }
         try {
             // Transition the issue using the found transition ID
-            await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/transitions`, transition?.fields?.resolution
+            await this.axiosInstance.post(this.getApiPath(`/issue/${issueId}/transitions`), transition?.fields?.resolution
                 ? {
                     transition: { id: transitionId },
                     fields: {
@@ -63287,7 +63294,7 @@ class Jira {
                 params.key = 'username';
             }
             else {
-                const response = await this.axiosInstance.get(`/rest/api/3/user/search?query=${encodeURIComponent(watcher)}`);
+                const response = await this.axiosInstance.get(this.getApiPath(`/user/search?query=${encodeURIComponent(watcher)}`));
                 if (!response.data.length) {
                     console.log('Invalid wacther id ' + watcher);
                     return;
@@ -63296,7 +63303,7 @@ class Jira {
                 params.value = user.accountId;
                 params.key = 'accountId';
             }
-            const res = await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/watchers`, params.value);
+            const res = await this.axiosInstance.post(this.getApiPath(`/issue/${issueId}/watchers`), params.value);
             console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId);
         }
         catch (error) {
@@ -63324,7 +63331,7 @@ class Jira {
                 params.key = 'accountId';
                 params.value = currentUser.accountId;
             }
-            await this.axiosInstance.delete(`/rest/api/3/issue/${issueId}/watchers`, {
+            await this.axiosInstance.delete(this.getApiPath(`/issue/${issueId}/watchers`), {
                 params: {
                     [params.key]: params.value
                 }
@@ -63397,29 +63404,57 @@ class Jira {
         }
         console.log(fullQuery);
         let allIssues = [];
-        let nextPageToken = null;
-        do {
-            try {
-                const requestBody = {
-                    jql: fullQuery,
-                    maxResults: 50,
-                    fields: ['*all'],
-                    expand: ""
-                };
-                if (nextPageToken) {
-                    requestBody.nextPageToken = nextPageToken;
+        if (this.apiVersion === '3') {
+            // Use v3 API with pagination token
+            let nextPageToken = null;
+            do {
+                try {
+                    const requestBody = {
+                        jql: fullQuery,
+                        maxResults: 50,
+                        fields: ['*all'],
+                        expand: ""
+                    };
+                    if (nextPageToken) {
+                        requestBody.nextPageToken = nextPageToken;
+                    }
+                    const response = await this.axiosInstance.post(this.getApiPath('/search/jql'), requestBody);
+                    const results = response.data;
+                    console.log(results);
+                    const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
+                    allIssues = allIssues.concat(enhancedIssues);
+                    nextPageToken = results.nextPageToken || null;
                 }
-                const response = await this.axiosInstance.post('/rest/api/3/search/jql', requestBody);
-                const results = response.data;
-                console.log(results);
-                const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
-                allIssues = allIssues.concat(enhancedIssues);
-                nextPageToken = results.nextPageToken || null;
-            }
-            catch (error) {
-                throw new Error(`Error getting Security Hub issues from Jira: ${handleAxiosError(error)}`);
-            }
-        } while (nextPageToken);
+                catch (error) {
+                    throw new Error(`Error getting Security Hub issues from Jira: ${handleAxiosError(error)}`);
+                }
+            } while (nextPageToken);
+        }
+        else {
+            // Use v2 API with startAt pagination
+            let totalIssuesReceived = 0;
+            let startAt = 0;
+            let total = 0;
+            do {
+                try {
+                    const response = await this.axiosInstance.post(this.getApiPath('/search'), {
+                        jql: fullQuery,
+                        startAt: startAt,
+                        maxResults: 50,
+                        fields: ['*all']
+                    });
+                    const results = response.data;
+                    const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
+                    allIssues = allIssues.concat(enhancedIssues);
+                    totalIssuesReceived += results.issues.length;
+                    startAt = totalIssuesReceived;
+                    total = results.total;
+                }
+                catch (error) {
+                    throw new Error(`Error getting Security Hub issues from Jira: ${handleAxiosError(error)}`);
+                }
+            } while (totalIssuesReceived < total);
+        }
         return allIssues;
     }
     /**
@@ -63496,9 +63531,13 @@ class Jira {
                 issue.fields.assignee = { name: this.jiraAssignee };
             }
             issue.fields.project = { key: this.jiraProject };
-            // Convert description to ADF format if it's a string
+            // Convert description format based on API version
             if (issue.fields.description && typeof issue.fields.description === 'string') {
-                issue.fields.description = textToAdf(issue.fields.description);
+                if (this.apiVersion === '3') {
+                    // Convert string to ADF format for v3
+                    issue.fields.description = textToAdf(issue.fields.description);
+                }
+                // For v2, keep as string (no conversion needed)
             }
             if (this.isDryRun) {
                 console.log(`[Dry Run] Would create a new issue with the following details:`, issue);
@@ -63518,7 +63557,7 @@ class Jira {
                 };
                 return dryRunIssue; // Return a dummy issue
             }
-            response = await this.axiosInstance.post('/rest/api/3/issue', issue);
+            response = await this.axiosInstance.post(this.getApiPath('/issue'), issue);
             const newIssue = response.data;
             // Construct the webUrl for the new issue
             newIssue['webUrl'] = `${this.jiraBaseURI}/browse/${newIssue.key}`;
@@ -63555,7 +63594,7 @@ class Jira {
             linkData.outwardIssue.key = temp;
         }
         try {
-            const response = await this.axiosInstance.post('/rest/api/3/issueLink', linkData);
+            const response = await this.axiosInstance.post(this.getApiPath('/issueLink'), linkData);
             console.log(`Successfully linked issue ${newIssueKey} with ${issueID}:`, response.data);
         }
         catch (error) {
@@ -63569,7 +63608,7 @@ class Jira {
             return;
         }
         try {
-            const response = await this.axiosInstance.put(`/rest/api/3/issue/${issueId}`, updatedIssue);
+            const response = await this.axiosInstance.put(this.getApiPath(`/issue/${issueId}`), updatedIssue);
             console.log('Issue title updated successfully:', response.data);
         }
         catch (error) {
@@ -63583,23 +63622,40 @@ class Jira {
         }
         try {
             let commentBody;
-            // Handle different comment formats
-            if (typeof comment === 'string') {
-                // Convert string to ADF format
-                commentBody = textToAdf(comment);
-            }
-            else if (typeof comment === 'object' &&
-                comment.type === 'doc' &&
-                comment.version === 1) {
-                // Already in ADF format
-                commentBody = comment;
+            // Handle different comment formats based on API version
+            if (this.apiVersion === '3') {
+                // v3 requires ADF format
+                if (typeof comment === 'string') {
+                    commentBody = textToAdf(comment);
+                }
+                else if (typeof comment === 'object' &&
+                    comment.type === 'doc' &&
+                    comment.version === 1) {
+                    // Already in ADF format
+                    commentBody = comment;
+                }
+                else {
+                    // Unknown format, try to convert to string first, then to ADF
+                    const stringComment = String(comment);
+                    commentBody = textToAdf(stringComment);
+                }
             }
             else {
-                // Unknown format, try to convert to string first, then to ADF
-                const stringComment = String(comment);
-                commentBody = textToAdf(stringComment);
+                // v2 uses plain text
+                if (typeof comment === 'string') {
+                    commentBody = comment;
+                }
+                else if (typeof comment === 'object' &&
+                    comment.type === 'doc') {
+                    // Convert ADF to plain text for v2
+                    commentBody = adfToText(comment);
+                }
+                else {
+                    // Unknown format, convert to string
+                    commentBody = String(comment);
+                }
             }
-            await this.axiosInstance.post(`/rest/api/3/issue/${issueId}/comment`, {
+            await this.axiosInstance.post(this.getApiPath(`/issue/${issueId}/comment`), {
                 body: commentBody
             });
             await this.removeCurrentUserAsWatcher(issueId); // Commenting on the issue adds the user as a watcher, so we remove them
@@ -63971,6 +64027,7 @@ class SecurityHubJiraSync {
     jiraAddLabels;
     jiraConsolidateTickets;
     testFindings = [];
+    apiVersion;
     constructor(jiraConfig, securityHubConfig, autoClose) {
         this.securityHub = new libs_1.SecurityHub(securityHubConfig);
         this.region = securityHubConfig.region;
@@ -63995,6 +64052,7 @@ class SecurityHubJiraSync {
             this.testFindings = JSON.parse(jiraConfig.testFindingsData);
             console.log('parsed', this.testFindings);
         }
+        this.apiVersion = jiraConfig.jiraApiVersion || '3';
     }
     consolidateTickets(arr) {
         const seen = {}; // Store unique titles
@@ -64194,21 +64252,31 @@ class SecurityHubJiraSync {
     async closeIssuesForResolvedFindings(jiraIssues, shFindings) {
         const updatesForReturn = [];
         try {
-            const makeComment = () => ({
-                type: "doc",
-                version: 1,
-                content: [
-                    {
-                        type: "paragraph",
+            const makeComment = () => {
+                const commentText = `As of ${new Date(Date.now()).toDateString()}, this Security Hub finding has been marked resolved`;
+                if (this.apiVersion === '3') {
+                    // Return ADF format for 3
+                    return {
+                        type: "doc",
+                        version: 1,
                         content: [
                             {
-                                type: "text",
-                                text: `As of ${new Date(Date.now()).toDateString()}, this Security Hub finding has been marked resolved`
+                                type: "paragraph",
+                                content: [
+                                    {
+                                        type: "text",
+                                        text: commentText
+                                    }
+                                ]
                             }
                         ]
-                    }
-                ]
-            });
+                    };
+                }
+                else {
+                    // Return plain text for v2
+                    return commentText;
+                }
+            };
             // close all security-hub labeled Jira issues that do not have an active finding
             if (this.autoClose) {
                 for (let i = 0; i < jiraIssues.length; i++) {
@@ -64329,7 +64397,56 @@ class SecurityHubJiraSync {
     }
     createIssueBody(finding) {
         const { remediation: { Recommendation: { Url: remediationUrl = '', Text: remediationText = '' } = {} } = {}, id = '', title = '', description = '', accountAlias = '', awsAccountId = '', severity = '', standardsControlArn = '', consolidated = false } = finding;
-        // Create ADF format content
+        // Return different formats based on API version
+        if (this.apiVersion === '2') {
+            // Return old text format for v2
+            return `----
+
+      *This issue was generated from Security Hub data and is managed through automation.*
+      Please do not edit the title or body of this issue, or remove the security-hub tag.  All other edits/comments are welcome.
+      Finding Title: ${title}
+
+      ----
+
+      h2. Type of Issue:
+
+      * Security Hub Finding
+
+      h2. Title:
+
+      ${title}
+
+      h2. Description:
+
+      ${description}
+
+      ${remediationText || remediationUrl
+                ? `
+      h2. Remediation:
+
+      ${remediationUrl}
+      ${remediationText}
+        `
+                : ''}
+
+      h2. AWS Account:
+      ${awsAccountId} (${accountAlias})
+
+      h2. Severity:
+      ${severity}
+
+      ${this.makeProductFieldSection(finding)}
+
+      h2. Resources:
+      Following are the resources with their corresponding finding url that were non-compliant at the time of the issue creation
+      ${this.makeResourceList(finding.Resources)}
+
+      To check the latest list of resources, kindly refer to the finding url
+      h2. AC:
+
+      * All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed.  (Note:  this ticket will automatically close when the AC is met.)`;
+        }
+        // Create ADF format content for v3
         const content = [
             // Horizontal rule
             {

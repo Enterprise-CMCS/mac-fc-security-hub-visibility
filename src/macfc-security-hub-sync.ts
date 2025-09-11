@@ -51,6 +51,7 @@ export class SecurityHubJiraSync {
   private jiraAddLabels?: string[]
   private jiraConsolidateTickets?: boolean
   private testFindings: AwsSecurityFinding[] = []
+  private apiVersion: string
   constructor(
     jiraConfig: JiraConfig,
     securityHubConfig: SecurityHubJiraSyncConfig,
@@ -79,6 +80,7 @@ export class SecurityHubJiraSync {
       this.testFindings = JSON.parse(jiraConfig.testFindingsData)
       console.log('parsed', this.testFindings)
     }
+    this.apiVersion = jiraConfig.jiraApiVersion || '3'
   }
   consolidateTickets(arr: SecurityHubFinding[]) {
     const seen: GeneralObj = {} // Store unique titles
@@ -335,23 +337,33 @@ export class SecurityHubJiraSync {
   ) {
     const updatesForReturn: UpdateForReturn[] = []
     try {
-      const makeComment = () => ({
-        type: "doc",
-        version: 1,
-        content: [
-          {
-            type: "paragraph",
+      const makeComment = () => {
+        const commentText = `As of ${new Date(
+          Date.now()
+        ).toDateString()}, this Security Hub finding has been marked resolved`;
+        
+        if (this.apiVersion === '3') {
+          // Return ADF format for 3
+          return {
+            type: "doc",
+            version: 1,
             content: [
               {
-                type: "text",
-                text: `As of ${new Date(
-                  Date.now()
-                ).toDateString()}, this Security Hub finding has been marked resolved`
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: commentText
+                  }
+                ]
               }
             ]
           }
-        ]
-      })
+        } else {
+          // Return plain text for v2
+          return commentText;
+        }
+      }
       // close all security-hub labeled Jira issues that do not have an active finding
       if (this.autoClose) {
         for (let i = 0; i < jiraIssues.length; i++) {
@@ -512,7 +524,59 @@ export class SecurityHubJiraSync {
       consolidated = false
     } = finding
 
-    // Create ADF format content
+    // Return different formats based on API version
+    if (this.apiVersion === '2') {
+      // Return old text format for v2
+      return `----
+
+      *This issue was generated from Security Hub data and is managed through automation.*
+      Please do not edit the title or body of this issue, or remove the security-hub tag.  All other edits/comments are welcome.
+      Finding Title: ${title}
+
+      ----
+
+      h2. Type of Issue:
+
+      * Security Hub Finding
+
+      h2. Title:
+
+      ${title}
+
+      h2. Description:
+
+      ${description}
+
+      ${
+        remediationText || remediationUrl
+          ? `
+      h2. Remediation:
+
+      ${remediationUrl}
+      ${remediationText}
+        `
+          : ''
+      }
+
+      h2. AWS Account:
+      ${awsAccountId} (${accountAlias})
+
+      h2. Severity:
+      ${severity}
+
+      ${this.makeProductFieldSection(finding)}
+
+      h2. Resources:
+      Following are the resources with their corresponding finding url that were non-compliant at the time of the issue creation
+      ${this.makeResourceList(finding.Resources)}
+
+      To check the latest list of resources, kindly refer to the finding url
+      h2. AC:
+
+      * All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed.  (Note:  this ticket will automatically close when the AC is met.)`;
+    }
+
+    // Create ADF format content for v3
     const content = [
       // Horizontal rule
       {

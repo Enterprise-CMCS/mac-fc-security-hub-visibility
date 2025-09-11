@@ -98,6 +98,10 @@ inputs:
   test-findings-data:
     description: "JSON string of findings list"
     required: false
+  jira-api-version:
+    description: 'Jira API version to use (v2 or v3). v3 uses ADF format for descriptions/comments, v2 uses plain text.'
+    required: false
+    default: '2'
 outputs:
   updates:
     description: "List of urls of created issues"

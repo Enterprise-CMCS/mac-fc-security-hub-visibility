@@ -41,6 +41,7 @@ export declare class SecurityHubJiraSync {
     private jiraAddLabels?;
     private jiraConsolidateTickets?;
     private testFindings;
+    private apiVersion;
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
     consolidateTickets(arr: SecurityHubFinding[]): SecurityHubFinding[];
     areSameLists(A: Resource[], B: Resource[]): boolean;
@@ -54,7 +55,7 @@ export declare class SecurityHubJiraSync {
     makeProductFieldSection(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrlThroughFilters(findingId: string): string;
     createFindingUrlSection(Ids: string[]): string;
-    createIssueBody(finding: SecurityHubFinding): {
+    createIssueBody(finding: SecurityHubFinding): string | {
         type: string;
         version: number;
         content: ({
