@@ -1233,7 +1233,7 @@ export class SecurityHubJiraSync {
     return {
       type: "doc",
       version: 1,
-      content: content
+      content
     };
   }
 

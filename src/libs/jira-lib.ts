@@ -172,7 +172,7 @@ function textToAdf(text: string): any {
   return {
     type: "doc",
     version: 1,
-    content: content
+    content
   };
 }
 
