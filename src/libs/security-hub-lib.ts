@@ -10,6 +10,7 @@ import {
 import {SecurityHubJiraSyncConfig} from '../macfc-security-hub-sync'
 import {extractErrorMessage} from '../index'
 
+
 export interface Resource {
   Type: string | undefined
 

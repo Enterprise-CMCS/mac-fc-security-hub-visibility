@@ -2,7 +2,6 @@ import * as dotenv from 'dotenv'
 import axios, {AxiosError, AxiosInstance} from 'axios'
 import {extractErrorMessage} from '../index'
 import {LabelConfig} from 'macfc-security-hub-sync'
-
 dotenv.config()
 
 export interface JiraConfig {
