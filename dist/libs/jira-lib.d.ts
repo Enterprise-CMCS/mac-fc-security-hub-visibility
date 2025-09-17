@@ -25,6 +25,7 @@ export interface JiraConfig {
     dueDateModerate?: string;
     dueDateLow?: string;
     jiraDueDateField?: string;
+    jiraApiVersion?: string;
 }
 export type CustomFields = {
     [key: string]: string;
@@ -38,7 +39,7 @@ interface PriorityField {
 }
 interface IssueFields {
     summary: string;
-    description?: string;
+    description?: string | any;
     issuetype?: IssueType;
     labels?: (string | undefined)[];
     priority?: PriorityField;
@@ -50,6 +51,7 @@ interface IssueFields {
     };
     duedate?: string;
     [key: string]: any;
+    descriptionText?: string;
 }
 export interface NewIssueData {
     fields: IssueFields;
@@ -67,6 +69,16 @@ interface Transition {
         [fieldName: string]: any;
     };
 }
+export interface ADFNode {
+    type: string;
+    text?: string;
+    version?: number;
+    attrs?: {
+        [key: string]: any;
+    };
+    content?: ADFNode[];
+}
+export declare function getDescriptionText(issue: Issue): string;
 export declare class Jira {
     private jiraBaseURI;
     private jiraProject;
@@ -84,7 +96,9 @@ export declare class Jira {
     private dueDateLow;
     private jiraDueDateField;
     private cisaFeedCache;
+    private apiVersion;
     constructor(jiraConfig: JiraConfig);
+    private getApiPath;
     getCurrentUser(): Promise<any>;
     getIssue(issueId: string): Promise<any>;
     getCurrentStatus(issueId: string): Promise<any>;
@@ -105,7 +119,7 @@ export declare class Jira {
     createNewIssue(issue: NewIssueData): Promise<Issue>;
     linkIssues(newIssueKey: string, issueID: string, linkType?: string, linkDirection?: string): Promise<void>;
     updateIssueTitleById(issueId: string, updatedIssue: Partial<Issue>): Promise<void>;
-    addCommentToIssueById(issueId: string, comment: string): Promise<void>;
+    addCommentToIssueById(issueId: string, comment: string | ADFNode): Promise<void>;
     getNextTransition(currentStatus: string): string | undefined;
     applyWildcardTransition(issueId: string): Promise<boolean>;
     closeIssueUsingTransitionMap(issueId: string): Promise<void>;

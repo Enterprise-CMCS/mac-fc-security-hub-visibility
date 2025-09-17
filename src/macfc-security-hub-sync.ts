@@ -51,6 +51,7 @@ export class SecurityHubJiraSync {
   private jiraAddLabels?: string[]
   private jiraConsolidateTickets?: boolean
   private testFindings: AwsSecurityFinding[] = []
+  private apiVersion: string
   constructor(
     jiraConfig: JiraConfig,
     securityHubConfig: SecurityHubJiraSyncConfig,
@@ -79,6 +80,7 @@ export class SecurityHubJiraSync {
       this.testFindings = JSON.parse(jiraConfig.testFindingsData)
       console.log('parsed', this.testFindings)
     }
+    this.apiVersion = jiraConfig.jiraApiVersion || '3'
   }
   consolidateTickets(arr: SecurityHubFinding[]) {
     const seen: GeneralObj = {} // Store unique titles
@@ -141,7 +143,7 @@ export class SecurityHubJiraSync {
   }
   isNewFinding(finding: SecurityHubFinding, issues: Issue[]) {
     const matchingIssues = issues.filter(
-      i => finding.title && i.fields.description?.includes(finding.title)
+      i => finding.title && i.fields.descriptionText?.includes(finding.title)
     )
     if (!matchingIssues.length) {
       return false
@@ -149,7 +151,7 @@ export class SecurityHubJiraSync {
     return (
       matchingIssues.filter(i =>
         finding.Resources?.every(
-          r => r.Id && i.fields.description?.includes(r.Id)
+          r => r.Id && i.fields.descriptionText?.includes(r.Id)
         )
       ).length == 0
     )
@@ -199,11 +201,13 @@ export class SecurityHubJiraSync {
     const existingTitles = new Set<string>()
 
     jiraIssues.forEach(issue => {
-      const issueDesc = issue.fields.description ?? ''
+      // console.log('checking issue', issue.key)
+      // console.log('checking issue suummary', issue.fields.summary)
+      const descriptionText = issue.fields.descriptionText ?? ''
 
       // Find all matching Security Hub findings by title
       const matchingFindings = shFindings.filter(
-        f => f.title && issueDesc.includes(f.title)
+        f => f.title && descriptionText.includes(f.title)
       )
 
       if (matchingFindings.length >= 1) {
@@ -213,7 +217,7 @@ export class SecurityHubJiraSync {
         matchingFindings.forEach(finding => {
           const shouldConsolidate = (finding.Resources ?? []).every(
             resource =>
-              resource.Id && issue.fields.description?.includes(resource.Id)
+              resource.Id && issue.fields.descriptionText?.includes(resource.Id)
           )
 
           if (shouldConsolidate) {
@@ -304,7 +308,7 @@ export class SecurityHubJiraSync {
   shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]) {
     const matchingTitles = findings.filter(finding => {
       if (finding.title) {
-        return ticket.fields.description?.includes(finding.title)
+        return ticket.fields.descriptionText?.includes(finding.title)
       }
       return false
     })
@@ -319,8 +323,8 @@ export class SecurityHubJiraSync {
           const id = resource.Id ?? ''
           if (id) {
             bool = (bool &&
-              ticket.fields.description &&
-              ticket.fields.description?.includes(id)) as unknown as boolean
+              ticket.fields.descriptionText &&
+              ticket.fields.descriptionText?.includes(id)) as unknown as boolean
           }
         })
         return bool && resources.length
@@ -333,10 +337,33 @@ export class SecurityHubJiraSync {
   ) {
     const updatesForReturn: UpdateForReturn[] = []
     try {
-      const makeComment = () =>
-        `As of ${new Date(
+      const makeComment = () => {
+        const commentText = `As of ${new Date(
           Date.now()
-        ).toDateString()}, this Security Hub finding has been marked resolved`
+        ).toDateString()}, this Security Hub finding has been marked resolved`;
+        
+        if (this.apiVersion === '3') {
+          // Return ADF format for 3
+          return {
+            type: "doc",
+            version: 1,
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: commentText
+                  }
+                ]
+              }
+            ]
+          }
+        } else {
+          // Return plain text for v2
+          return commentText;
+        }
+      }
       // close all security-hub labeled Jira issues that do not have an active finding
       if (this.autoClose) {
         for (let i = 0; i < jiraIssues.length; i++) {
@@ -497,7 +524,10 @@ export class SecurityHubJiraSync {
       consolidated = false
     } = finding
 
-    return `----
+    // Return different formats based on API version
+    if (this.apiVersion === '2') {
+      // Return old text format for v2
+      return `----
 
       *This issue was generated from Security Hub data and is managed through automation.*
       Please do not edit the title or body of this issue, or remove the security-hub tag.  All other edits/comments are welcome.
@@ -543,7 +573,668 @@ export class SecurityHubJiraSync {
       To check the latest list of resources, kindly refer to the finding url
       h2. AC:
 
-      * All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed.  (Note:  this ticket will automatically close when the AC is met.)`
+      * All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed.  (Note:  this ticket will automatically close when the AC is met.)`;
+    }
+
+    // Create ADF format content for v3
+    const content = [
+      // Horizontal rule
+      {
+        type: "rule"
+      },
+      // Intro paragraph
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "This issue was generated from Security Hub data and is managed through automation.",
+            marks: [{ type: "strong" }]
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Please do not edit the title or body of this issue, or remove the security-hub tag. All other edits/comments are welcome."
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: `Finding Title: ${title}`
+          }
+        ]
+      },
+      // Horizontal rule
+      {
+        type: "rule"
+      },
+      // Type of Issue header
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Type of Issue:"
+          }
+        ]
+      },
+      {
+        type: "bulletList",
+        content: [
+          {
+            type: "listItem",
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: "Security Hub Finding"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      // Title header
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Title:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: title
+          }
+        ]
+      },
+      // Description header
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Description:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: description
+          }
+        ]
+      }
+    ];
+
+    // Add remediation section if present
+    if (remediationText || remediationUrl) {
+      content.push(
+        {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [
+            {
+              type: "text",
+              text: "Remediation:"
+            }
+          ]
+        }
+      );
+      
+      if (remediationUrl) {
+        content.push({
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: remediationUrl
+            }
+          ]
+        });
+      }
+      
+      if (remediationText) {
+        content.push({
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: remediationText
+            }
+          ]
+        });
+      }
+    }
+
+    // AWS Account section
+    content.push(
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "AWS Account:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: `${awsAccountId} (${accountAlias})`
+          }
+        ]
+      }
+    );
+
+    // Severity section
+    content.push(
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Severity:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: severity
+          }
+        ]
+      }
+    );
+
+    // Product fields section as table
+    const productSection = this.makeProductFieldSection(finding);
+    if (productSection.trim()) {
+      content.push(
+        {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [
+            {
+              type: "text",
+              text: "Product Fields:"
+            }
+          ]
+        },
+        {
+          type: "table",
+          content: [
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Type"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.ProductName || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Product Name"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.ProductName || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Provider Name"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.ProviderName || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Provider Version"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.ProviderVersion || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Company Name"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.CompanyName || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "CVE"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.CVE || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        } as any
+      );
+    }
+
+    // Resources section as table
+    content.push(
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Resources:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Following are the resources with their corresponding finding url that were non-compliant at the time of the issue creation"
+          }
+        ]
+      }
+    );
+
+    // Create resources table
+    if (finding.Resources && finding.Resources.length > 0) {
+      const resourceTableContent: any[] = [
+        // Header row
+        {
+          type: "tableRow",
+          content: [
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Resource Id"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Partition"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Region"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Type"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Finding URL"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ];
+
+      // Add resource rows
+      finding.Resources.forEach((resource: any) => {
+        const resourceId = resource.Id || "N/A";
+        const partition = resource.Partition || "aws";
+        const region = resource.Region || "N/A";
+        const type = resource.Type || "N/A";
+        const findingUrl = this.createSecurityHubFindingUrlThroughFilters(resource.Id) || "N/A";
+
+        resourceTableContent.push({
+          type: "tableRow",
+          content: [
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: String(resourceId)
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: String(partition)
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: String(region)
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: String(type)
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: String(findingUrl)
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        });
+      });
+
+      content.push({
+        type: "table",
+        content: resourceTableContent
+      } as any);
+    }
+
+    content.push(
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "To check the latest list of resources, kindly refer to the finding url"
+          }
+        ]
+      },
+      // AC section
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "AC:"
+          }
+        ]
+      },
+      {
+        type: "bulletList",
+        content: [
+          {
+            type: "listItem",
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: "All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed. (Note: this ticket will automatically close when the AC is met.)"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    );
+
+    return {
+      type: "doc",
+      version: 1,
+      content
+    };
   }
 
   createSecurityHubFindingUrl(standardsControlArn = '') {
@@ -710,7 +1401,7 @@ export class SecurityHubJiraSync {
         return false
       }
       const title = finding.title
-      return issue.fields.description?.includes(title)
+      return issue.fields.descriptionText?.includes(title)
     })
     console.log('Potential Duplicates: ', potentialDuplicates.length)
     if (potentialDuplicates.length == 0) {
@@ -724,7 +1415,7 @@ export class SecurityHubJiraSync {
           if (!id) {
             return false
           }
-          return should && issue.fields.description?.includes(id) == true
+          return should && issue.fields.descriptionText?.includes(id) == true
         },
         true
       )

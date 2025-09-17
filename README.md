@@ -166,6 +166,33 @@ JSON string of Jira custom field keys/values, e.g. `{ "customfield_14117": "exam
 
   
 
+### JIRA_API_VERSION
+
+  
+
+**Required: No**
+
+  
+
+**Default Value: 3**
+
+  
+
+Specifies which Jira API version to use for communication with Jira. This affects both the API endpoints and the data formats used for descriptions and comments.
+
+- **v3**: Uses modern Atlassian Document Format (ADF) for rich text descriptions and comments. Recommended for Atlassian Cloud instances.
+- **v2**: Uses plain text format with Jira markup for descriptions and comments. Required for older Enterprise Jira instances that don't support ADF.
+
+**Example usage in GitHub Actions:**
+```yaml
+- uses: your-action
+  with:
+    jira-api-version: '2'  # Use v2 for Enterprise Jira
+    # ... other inputs
+```
+
+  
+
 ### AWS_SEVERITIES
 
   

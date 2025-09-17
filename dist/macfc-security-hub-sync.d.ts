@@ -41,6 +41,7 @@ export declare class SecurityHubJiraSync {
     private jiraAddLabels?;
     private jiraConsolidateTickets?;
     private testFindings;
+    private apiVersion;
     constructor(jiraConfig: JiraConfig, securityHubConfig: SecurityHubJiraSyncConfig, autoClose: boolean);
     consolidateTickets(arr: SecurityHubFinding[]): SecurityHubFinding[];
     areSameLists(A: Resource[], B: Resource[]): boolean;
@@ -54,7 +55,54 @@ export declare class SecurityHubJiraSync {
     makeProductFieldSection(finding: SecurityHubFinding): string;
     createSecurityHubFindingUrlThroughFilters(findingId: string): string;
     createFindingUrlSection(Ids: string[]): string;
-    createIssueBody(finding: SecurityHubFinding): string;
+    createIssueBody(finding: SecurityHubFinding): string | {
+        type: string;
+        version: number;
+        content: ({
+            type: string;
+            content?: undefined;
+            attrs?: undefined;
+        } | {
+            type: string;
+            content: {
+                type: string;
+                text: string;
+                marks: {
+                    type: string;
+                }[];
+            }[];
+            attrs?: undefined;
+        } | {
+            type: string;
+            content: {
+                type: string;
+                text: string;
+            }[];
+            attrs?: undefined;
+        } | {
+            type: string;
+            attrs: {
+                level: number;
+            };
+            content: {
+                type: string;
+                text: string;
+            }[];
+        } | {
+            type: string;
+            content: {
+                type: string;
+                content: {
+                    type: string;
+                    content: {
+                        type: string;
+                        text: string;
+                    }[];
+                }[];
+            }[];
+            attrs?: undefined;
+        })[];
+    };
     createSecurityHubFindingUrl(standardsControlArn?: string): string;
     getSeverityMappingToJiraPriority: (severity: string) => "Lowest" | "Low" | "Medium" | "High" | "Critical";
     createLabels(finding: SecurityHubFinding, identifyingLabels: string[], config: LabelConfig[]): string[];
