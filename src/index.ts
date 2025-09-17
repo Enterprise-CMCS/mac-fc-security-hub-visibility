@@ -12,7 +12,6 @@ export function extractErrorMessage(error: unknown): string {
   return 'An unknown error occurred'
 }
 
-
 // Utility function to get input with fallback to environment variable, can return undefined
 function getInputOrEnv(inputName: string, envName: string): string | undefined {
   const inputValue = core.getInput(inputName) || process.env[envName]

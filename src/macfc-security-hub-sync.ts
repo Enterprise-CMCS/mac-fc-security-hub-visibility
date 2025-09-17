@@ -1452,4 +1452,3 @@ export class SecurityHubJiraSync {
     return updatesForReturn
   }
 }
-
