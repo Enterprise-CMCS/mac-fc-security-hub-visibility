@@ -1,0 +1,75 @@
+{
+  "name": "mac-fc-security-hub-visibility",
+  "description": "A GitHub action that syncs Security Hub findings with Jira tickets.",
+  "longDescription": "An action that gets all findings from Security Hub and for each finding, creates/updates a Jira ticket if necessary.",
+  "status": "Production",
+  "permissions": {
+    "licenses": [
+      {
+        "name": "None",
+        "URL": "none"
+      }
+    ],
+    "usageType": "governmentWideReuse",
+    "exemptionText": ""
+  },
+  "organization": "Centers for Medicare & Medicaid Services",
+  "repositoryURL": "https://github.com/Enterprise-CMCS/mac-fc-security-hub-visibility",
+  "projectURL": "",
+  "repositoryHost": "github.com/CMS-Enterprise",
+  "repositoryVisibility": "public",
+  "vcs": "git",
+  "laborHours": 0,
+  "reuseFrequency": {
+    "forks": 0
+  },
+  "platforms": [
+    "linux"
+  ],
+  "categories": [
+    "compliance-management",
+    "it-security"
+  ],
+  "softwareType": "standalone/backend",
+  "languages": [
+    "JavaScript"
+  ],
+  "maintenance": "contract",
+  "contractNumber": "47QTCA21D00AC",
+  "date": {
+    "created": "",
+    "lastModified": "",
+    "metaDataLastUpdated": ""
+  },
+  "tags": [
+    "sechub",
+    "compliance",
+    "governance",
+    "security-sync"
+  ],
+  "contact": {
+    "email": "cms-macfc@corbalt.com",
+    "name": "Corbalt"
+  },
+  "feedbackMechanisms": [
+    "https://github.com/Enterprise-CMCS/mac-fc-security-hub-visibility/issues"
+  ],
+  "localisation": false,
+  "repositoryType": "tools",
+  "userInput": false,
+  "fismaLevel": "Moderate",
+  "group": "CMCS/DSG",
+  "projects": [
+    "Security Sync"
+  ],
+  "upstream": [
+    "https://github.com/Enterprise-CMCS/mac-fc-security-hub-visibility/network/dependencies"
+  ],
+  "subsetInHealthcare": [
+    "Medicaid"
+  ],
+  "userType": [
+    "Government"
+  ],
+  "maturityModelTier": 2
+}
