@@ -4,14 +4,12 @@ import {
   SecurityHubJiraSyncConfig
 } from './macfc-security-hub-sync'
 import {JiraConfig, CustomFields, Jira} from './libs/jira-lib'
-
 export function extractErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message
   }
   return 'An unknown error occurred'
 }
-
 // Utility function to get input with fallback to environment variable, can return undefined
 function getInputOrEnv(inputName: string, envName: string): string | undefined {
   const inputValue = core.getInput(inputName) || process.env[envName]
