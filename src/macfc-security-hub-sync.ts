@@ -1444,11 +1444,10 @@ export class SecurityHubJiraSync {
           )
           updatesForReturn.push(update)
         } catch (e) {
-          console.log('Moving forward with next findings', e)
+          console.log('Moving forward with next findings...randomechange', e)
         }
       }
     }
-
     return updatesForReturn
   }
 }
