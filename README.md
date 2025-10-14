@@ -663,3 +663,25 @@ By default, the due date is set in the standard Jira `duedate` field. However, y
 This logic now attempts to fetch due dates from the CISA Known Exploited Vulnerabilities (KEV) feed when a CVE ID is present.
 If found, it uses the CISA due date.
 If no CISA due date is found, it falls back to our severity-based default due dates.
+
+
+
+## Contributing
+
+### How to Modify Code and Create a Pull Request
+
+If you want to contribute changes to this project, follow these steps:
+
+1. **Make your changes**: Edit the code as needed in your local branch.
+
+2. **Build the project**: After making changes, you must rebuild the distribution files:
+   ```bash
+   pnpm install
+   pnpm build
+   ```
+
+3. **Important**: **Do NOT use `npm install`**. Using `npm install` instead of `pnpm install` may result in the failure of the `check-dist` action in CI/CD. This project uses `pnpm` as its package manager, and using `npm` will create an incompatible `package-lock.json` file.
+
+4. **Commit your changes**: Once the build is successful, commit your changes including the updated distribution files.
+
+5. **Create a Pull Request**: Push your branch and open a PR for review.
