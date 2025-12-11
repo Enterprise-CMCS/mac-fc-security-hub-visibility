@@ -1359,8 +1359,6 @@ export class SecurityHubJiraSync {
     try {
       // Create the Jira issue
       try {
-       // Create the Jira issue
-      try {
         newIssueInfo = await this.jira.createNewIssue(newIssueData)
       } catch (createError: unknown) {
         this.createIssueErrors++;
@@ -1399,11 +1397,6 @@ export class SecurityHubJiraSync {
           // Log the error for easier debugging, but don't re-throw
           console.error(`Error linking issue ${newIssueInfo.key} to ${issue_id}: ${errorMsg}`);
         };
-        } catch (linkError: unknown) {
-          const errorMsg = extractErrorMessage(linkError);
-          // Log the error for easier debugging, but don't re-throw
-          console.error(`Error linking issue ${newIssueInfo.key} to ${issue_id}: ${errorMsg}`);
-        }
       }
     } catch (e: unknown) {
       // This will catch errors re-thrown from createNewIssue block
