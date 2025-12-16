@@ -49,6 +49,8 @@ export class SecurityHubJiraSync {
   private jiraLinkDirection?: string
   public jiraLabelsConfig?: LabelConfig[]
   private jiraAddLabels?: string[]
+  private createIssueErrors: number = 0
+  private linkIssueErrors: number = 0
   private jiraConsolidateTickets?: boolean
   private testFindings: AwsSecurityFinding[] = []
   private apiVersion: string
@@ -283,10 +285,13 @@ export class SecurityHubJiraSync {
     )
 
     console.log(JSON.stringify(updatesForReturn))
-    return updatesForReturn
+    return { updatesForReturn, createIssueErrors: this.createIssueErrors, linkIssueErrors: this.linkIssueErrors }
   }
 
   async getAWSAccountID() {
+    // Reset counters at the start of sync
+    this.createIssueErrors = 0;
+    this.linkIssueErrors = 0;
     const client = new STSClient({
       region: this.region
     })
@@ -1356,6 +1361,7 @@ export class SecurityHubJiraSync {
       try {
         newIssueInfo = await this.jira.createNewIssue(newIssueData)
       } catch (createError: unknown) {
+        this.createIssueErrors++;
         // Log the error for visibility
         const errorMsg = extractErrorMessage(createError);
         console.error(`Error creating Jira issue for finding "${finding.title}": ${errorMsg}`);
@@ -1376,6 +1382,7 @@ export class SecurityHubJiraSync {
             linkDirection
           );
         } catch (linkError: unknown) {
+          this.linkIssueErrors++;
           const errorMsg = extractErrorMessage(linkError);
           // Log the error for easier debugging, but don't re-throw
           console.error(`Error linking issue ${newIssueInfo.key} to ${issue_id}: ${errorMsg}`);

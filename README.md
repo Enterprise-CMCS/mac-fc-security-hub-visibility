@@ -685,3 +685,5 @@ If you want to contribute changes to this project, follow these steps:
 4. **Commit your changes**: Once the build is successful, commit your changes including the updated distribution files.
 
 5. **Create a Pull Request**: Push your branch and open a PR for review.
+
+Version 2.1.2 : This update intentionally causes the job to fail when the Jira 2,000 issue-linking limit is reached or when issue creation/linking fails, validating proper error handling and logging.
