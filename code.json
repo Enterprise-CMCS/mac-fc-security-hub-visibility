@@ -19,9 +19,10 @@
   "repositoryHost": "github.com/CMS-Enterprise",
   "repositoryVisibility": "public",
   "vcs": "git",
-  "laborHours": 0,
+  "laborHours": 7389,
   "reuseFrequency": {
-    "forks": 0
+    "forks": 0,
+    "clones": 0
   },
   "platforms": [
     "linux"
@@ -32,14 +33,16 @@
   ],
   "softwareType": "standalone/backend",
   "languages": [
-    "JavaScript"
+    "TypeScript",
+    "Shell",
+    "Dockerfile"
   ],
   "maintenance": "contract",
   "contractNumber": "47QTCA21D00AC",
   "date": {
-    "created": "",
-    "lastModified": "",
-    "metaDataLastUpdated": ""
+    "created": "2024-01-10T16:11:19Z",
+    "lastModified": "2025-12-16T21:11:04Z",
+    "metaDataLastUpdated": "2026-01-01T00:38:47.238Z"
   },
   "tags": [
     "sechub",
@@ -62,6 +65,7 @@
   "projects": [
     "Security Sync"
   ],
+  "systems": [],
   "upstream": [
     "https://github.com/Enterprise-CMCS/mac-fc-security-hub-visibility/network/dependencies"
   ],
