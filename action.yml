@@ -113,8 +113,10 @@ outputs:
     description: "count of closed issues"
   create-issue-errors:
     description: "count of errors encountered during Jira issue creation"
-  link-issue-errors:
-    description: "count of errors encountered during Jira issue linking"
+  link-issue-errors-on-creation:
+    description: "count of errors encountered during Jira issue linking on creation"
+  link-issue-errors-on-closure:
+    description: "count of errors encountered during Jira issue linking on closure" 
   jql:
     description: "the jql query for new updates"
 runs:

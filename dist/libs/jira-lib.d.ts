@@ -17,6 +17,9 @@ export interface JiraConfig {
     jiraLinkIdOnCreation?: string;
     jiraLinkTypeOnCreation?: string;
     jiraLinkDirectionOnCreation?: string;
+    jiraLinkIdOnClosure?: string;
+    jiraLinkTypeOnClosure?: string;
+    jiraLinkDirectionOnClosure?: string;
     includeAllProducts: boolean;
     skipProducts?: string;
     jiraLabelsConfig?: string;

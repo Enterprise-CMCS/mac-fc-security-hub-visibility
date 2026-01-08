@@ -47,10 +47,14 @@ export class SecurityHubJiraSync {
   private jiraLinkIdOnCreation?: string
   private jiraLinkTypeOnCreation?: string
   private jiraLinkDirectionOnCreation?: string
+  private jiraLinkIdOnClosure?: string
+  private jiraLinkTypeOnClosure?: string
+  private jiraLinkDirectionOnClosure?: string
   public jiraLabelsConfig?: LabelConfig[]
   private jiraAddLabels?: string[]
   private createIssueErrors: number = 0
   private linkIssueErrors: number = 0
+  private closureLinkIssueErrors: number = 0
   private jiraConsolidateTickets?: boolean
   private testFindings: AwsSecurityFinding[] = []
   private apiVersion: string
@@ -69,6 +73,9 @@ export class SecurityHubJiraSync {
     this.jiraLinkIdOnCreation = jiraConfig.jiraLinkIdOnCreation
     this.jiraLinkTypeOnCreation = jiraConfig.jiraLinkTypeOnCreation
     this.jiraLinkDirectionOnCreation = jiraConfig.jiraLinkDirectionOnCreation
+    this.jiraLinkIdOnClosure = jiraConfig.jiraLinkIdOnClosure
+    this.jiraLinkTypeOnClosure = jiraConfig.jiraLinkTypeOnClosure
+    this.jiraLinkDirectionOnClosure = jiraConfig.jiraLinkDirectionOnClosure
     this.jiraAddLabels = jiraConfig.jiraAddLabels
       ?.split(',')
       .map(label => label.trim())
@@ -285,13 +292,15 @@ export class SecurityHubJiraSync {
     )
 
     console.log(JSON.stringify(updatesForReturn))
-    return { updatesForReturn, createIssueErrors: this.createIssueErrors, linkIssueErrors: this.linkIssueErrors }
+    return { updatesForReturn, createIssueErrors: this.createIssueErrors,
+       linkIssueErrors: this.linkIssueErrors, closureLinkErrors:this.closureLinkIssueErrors };
   }
 
   async getAWSAccountID() {
     // Reset counters at the start of sync
     this.createIssueErrors = 0;
     this.linkIssueErrors = 0;
+    this.closureLinkIssueErrors = 0;
     const client = new STSClient({
       region: this.region
     })
@@ -383,6 +392,24 @@ export class SecurityHubJiraSync {
               jiraIssues[i].id,
               makeComment()
             )
+          const issue_id = this.jiraLinkIdOnClosure
+          if (issue_id) {
+            const linkType = this.jiraLinkTypeOnClosure
+            const linkDirection = this.jiraLinkDirectionOnClosure || 'inward'
+            try {
+              await this.jira.linkIssues(
+                jiraIssues[i].key,
+                issue_id,
+                linkType,
+                linkDirection
+              );
+            } catch (linkError: unknown) {
+              this.closureLinkIssueErrors++;
+              const errorMsg = extractErrorMessage(linkError);
+              // Log the error for easier debugging, but don't re-throw
+              console.error(`Error linking issue ${jiraIssues[i].key} to ${issue_id}: ${errorMsg}`);
+            }
+          }
           }
         }
       } else {

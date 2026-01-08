@@ -174,6 +174,17 @@ async function run(): Promise<void> {
         'JIRA_LINK_DIRECTION',
         'inward'
       ),
+      jiraLinkIdOnClosure: getInputOrEnv('jira-link-id-on-closure', 'JIRA_LINK_ID_ON_CLOSURE'),
+      jiraLinkTypeOnClosure: getDefaultInputOrEnv(
+        'jira-link-type-on-closure',
+        'JIRA_LINK_TYPE_ON_CLOSURE',
+        'Relates'
+      ),
+      jiraLinkDirectionOnClosure: getDefaultInputOrEnv(
+        'jira-link-direction-on-closure',
+        'JIRA_LINK_DIRECTION_ON_CLOSURE',
+        'inward'
+      ),
       includeAllProducts: getInputOrEnvAndConvertToBool(
         'include-all-products',
         'INCLUDE_ALL_PRODUCTS',
@@ -296,7 +307,8 @@ async function run(): Promise<void> {
     
     // Set the new error count outputs
     core.setOutput('create-issue-errors', syncResult.createIssueErrors);
-    core.setOutput('link-issue-errors', syncResult.linkIssueErrors);
+    core.setOutput('link-issue-errors-on-creation', syncResult.linkIssueErrors);
+    core.setOutput('link-issue-errors-on-closure', syncResult.closureLinkErrors);
 
     // Fail the job if there are any create issue errors or link issue errors
     if (syncResult.createIssueErrors > 0 || syncResult.linkIssueErrors > 0) {
