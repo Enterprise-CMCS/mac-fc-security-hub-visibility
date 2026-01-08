@@ -458,7 +458,7 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
   
 
-### `jira-link-id`
+### `jira-link-id-on-creation`
 
   
 
@@ -474,7 +474,7 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
   
 
-### `jira-link-type`
+### `jira-link-type-on-creation`
 
   
 
@@ -486,7 +486,7 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
   
 
-**Description:** Defines the type of relationship between the new issue and the feature issue specified by the `jira-link-id`. The default relationship is 'Relates'. Other types can be used depending on your Jira configuration, such as 'Blocks', 'Is blocked by', or 'Duplicates'.
+**Description:** Defines the type of relationship between the new issue and the feature issue specified by the `jira-link-id-on-creation`. The default relationship is 'Relates'. Other types can be used depending on your Jira configuration, such as 'Blocks', 'Is blocked by', or 'Duplicates'.
 
   
 
@@ -522,7 +522,7 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
   
 
-### `jira-link-direction`
+### `jira-link-direction-on-creation`
 
   
 

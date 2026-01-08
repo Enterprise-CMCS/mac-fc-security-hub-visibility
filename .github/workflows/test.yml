@@ -32,10 +32,10 @@ jobs:
           jira-project-key: Pj
           jira-ignore-statuses: Done, Closed, Canceled
           aws-severities: CRITICAL, HIGH, MEDIUM, LOW
-          jira-link-id: ${{secrets.JIRA_LINK_ID}}
-          jira-link-type: "Relates"
+          jira-link-id-on-creation: ${{secrets.JIRA_LINK_ID}}
+          jira-link-type-on-creation: "Relates"
           include-all-products: 'true'
-          jira-link-direction: 'outward'
+          jira-link-direction-on-creation: 'outward'
           jira-labels-config: "[{\"labelField\":\"ProductName\",\"labelPrefix\":\"product\",\"labelDelimiter\":\":\"},{\"labelField\":\"severity\"},{\"labelField\":\"accountId\",\"labelDelimiter\":\":\",\"labelPrefix\":\"account\"},{\"labelField\":\"region\"},{\"labelField\":\"accountAlias\"}]"
          #skip-products: Health, Default 
       - name: Capture and process outputs

@@ -163,14 +163,14 @@ async function run(): Promise<void> {
         'DRY_RUN_TEST_DATA',
         false
       ),
-      jiraLinkId: getInputOrEnv('jira-link-id', 'JIRA_LINK_ID'),
-      jiraLinkType: getDefaultInputOrEnv(
-        'jira-link-type',
+      jiraLinkIdOnCreation: getInputOrEnv('jira-link-id-on-creation', 'JIRA_LINK_ID'),
+      jiraLinkTypeOnCreation: getDefaultInputOrEnv(
+        'jira-link-type-on-creation',
         'JIRA_LINK_TYPE',
         'Relates'
       ),
-      jiraLinkDirection: getDefaultInputOrEnv(
-        'jira-link-direction',
+      jiraLinkDirectionOnCreation: getDefaultInputOrEnv(
+        'jira-link-direction-on-creation',
         'JIRA_LINK_DIRECTION',
         'inward'
       ),

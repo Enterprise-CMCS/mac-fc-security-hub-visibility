@@ -14,9 +14,9 @@ export interface JiraConfig {
         transition: string;
     }>;
     dryRunTestData: boolean;
-    jiraLinkId?: string;
-    jiraLinkType?: string;
-    jiraLinkDirection?: string;
+    jiraLinkIdOnCreation?: string;
+    jiraLinkTypeOnCreation?: string;
+    jiraLinkDirectionOnCreation?: string;
     includeAllProducts: boolean;
     skipProducts?: string;
     jiraLabelsConfig?: string;

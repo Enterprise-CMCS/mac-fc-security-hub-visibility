@@ -34,9 +34,9 @@ export declare class SecurityHubJiraSync {
     private readonly severities;
     private readonly autoClose;
     private readonly jiraBaseURI;
-    private jiraLinkId?;
-    private jiraLinkType?;
-    private jiraLinkDirection?;
+    private jiraLinkIdOnCreation?;
+    private jiraLinkTypeOnCreation?;
+    private jiraLinkDirectionOnCreation?;
     jiraLabelsConfig?: LabelConfig[];
     private jiraAddLabels?;
     private createIssueErrors;

@@ -44,9 +44,9 @@ export class SecurityHubJiraSync {
   private readonly severities
   private readonly autoClose: boolean
   private readonly jiraBaseURI: string
-  private jiraLinkId?: string
-  private jiraLinkType?: string
-  private jiraLinkDirection?: string
+  private jiraLinkIdOnCreation?: string
+  private jiraLinkTypeOnCreation?: string
+  private jiraLinkDirectionOnCreation?: string
   public jiraLabelsConfig?: LabelConfig[]
   private jiraAddLabels?: string[]
   private createIssueErrors: number = 0
@@ -66,9 +66,9 @@ export class SecurityHubJiraSync {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.customJiraFields = securityHubConfig.customJiraFields
     this.autoClose = autoClose
-    this.jiraLinkId = jiraConfig.jiraLinkId
-    this.jiraLinkType = jiraConfig.jiraLinkType
-    this.jiraLinkDirection = jiraConfig.jiraLinkDirection
+    this.jiraLinkIdOnCreation = jiraConfig.jiraLinkIdOnCreation
+    this.jiraLinkTypeOnCreation = jiraConfig.jiraLinkTypeOnCreation
+    this.jiraLinkDirectionOnCreation = jiraConfig.jiraLinkDirectionOnCreation
     this.jiraAddLabels = jiraConfig.jiraAddLabels
       ?.split(',')
       .map(label => label.trim())
@@ -1370,10 +1370,10 @@ export class SecurityHubJiraSync {
       }
 
       // Link the issue if a link ID is provided
-      const issue_id = this.jiraLinkId
+      const issue_id = this.jiraLinkIdOnCreation
       if (issue_id) {
-        const linkType = this.jiraLinkType
-        const linkDirection = this.jiraLinkDirection
+        const linkType = this.jiraLinkTypeOnCreation
+        const linkDirection = this.jiraLinkDirectionOnCreation
         try {
           await this.jira.linkIssues(
             newIssueInfo.key,
