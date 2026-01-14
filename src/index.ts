@@ -163,15 +163,26 @@ async function run(): Promise<void> {
         'DRY_RUN_TEST_DATA',
         false
       ),
-      jiraLinkId: getInputOrEnv('jira-link-id', 'JIRA_LINK_ID'),
-      jiraLinkType: getDefaultInputOrEnv(
-        'jira-link-type',
+      jiraLinkIdOnCreation: getInputOrEnv('jira-link-id-on-creation', 'JIRA_LINK_ID'),
+      jiraLinkTypeOnCreation: getDefaultInputOrEnv(
+        'jira-link-type-on-creation',
         'JIRA_LINK_TYPE',
         'Relates'
       ),
-      jiraLinkDirection: getDefaultInputOrEnv(
-        'jira-link-direction',
+      jiraLinkDirectionOnCreation: getDefaultInputOrEnv(
+        'jira-link-direction-on-creation',
         'JIRA_LINK_DIRECTION',
+        'inward'
+      ),
+      jiraLinkIdOnClosure: getInputOrEnv('jira-link-id-on-closure', 'JIRA_LINK_ID_ON_CLOSURE'),
+      jiraLinkTypeOnClosure: getDefaultInputOrEnv(
+        'jira-link-type-on-closure',
+        'JIRA_LINK_TYPE_ON_CLOSURE',
+        'Relates'
+      ),
+      jiraLinkDirectionOnClosure: getDefaultInputOrEnv(
+        'jira-link-direction-on-closure',
+        'JIRA_LINK_DIRECTION_ON_CLOSURE',
         'inward'
       ),
       includeAllProducts: getInputOrEnvAndConvertToBool(
@@ -296,7 +307,8 @@ async function run(): Promise<void> {
     
     // Set the new error count outputs
     core.setOutput('create-issue-errors', syncResult.createIssueErrors);
-    core.setOutput('link-issue-errors', syncResult.linkIssueErrors);
+    core.setOutput('link-issue-errors-on-creation', syncResult.linkIssueErrors);
+    core.setOutput('link-issue-errors-on-closure', syncResult.closureLinkErrors);
 
     // Fail the job if there are any create issue errors or link issue errors
     if (syncResult.createIssueErrors > 0 || syncResult.linkIssueErrors > 0) {

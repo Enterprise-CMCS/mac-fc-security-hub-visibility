@@ -34,13 +34,17 @@ export declare class SecurityHubJiraSync {
     private readonly severities;
     private readonly autoClose;
     private readonly jiraBaseURI;
-    private jiraLinkId?;
-    private jiraLinkType?;
-    private jiraLinkDirection?;
+    private jiraLinkIdOnCreation?;
+    private jiraLinkTypeOnCreation?;
+    private jiraLinkDirectionOnCreation?;
+    private jiraLinkIdOnClosure?;
+    private jiraLinkTypeOnClosure?;
+    private jiraLinkDirectionOnClosure?;
     jiraLabelsConfig?: LabelConfig[];
     private jiraAddLabels?;
     private createIssueErrors;
     private linkIssueErrors;
+    private closureLinkIssueErrors;
     private jiraConsolidateTickets?;
     private testFindings;
     private apiVersion;
@@ -53,6 +57,7 @@ export declare class SecurityHubJiraSync {
         updatesForReturn: UpdateForReturn[];
         createIssueErrors: number;
         linkIssueErrors: number;
+        closureLinkErrors: number;
     }>;
     getAWSAccountID(): Promise<string>;
     shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]): boolean;

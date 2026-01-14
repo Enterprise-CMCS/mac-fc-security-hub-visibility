@@ -17,9 +17,12 @@ export interface JiraConfig {
   testFindingsData?: string
   transitionMap: Array<{status: string; transition: string}>
   dryRunTestData: boolean
-  jiraLinkId?: string
-  jiraLinkType?: string
-  jiraLinkDirection?: string
+  jiraLinkIdOnCreation?: string
+  jiraLinkTypeOnCreation?: string
+  jiraLinkDirectionOnCreation?: string
+  jiraLinkIdOnClosure?: string
+  jiraLinkTypeOnClosure?: string
+  jiraLinkDirectionOnClosure?: string
   includeAllProducts: boolean
   skipProducts?: string
   jiraLabelsConfig?: string
