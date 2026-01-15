@@ -40,6 +40,9 @@ The action provides the following outputs:
 - **total**: Count of updates made during the run.
 - **created**: Count of newly created issues.
 - **closed**: Count of issues closed during the run.
+- **create-issue-errors**: Count of errors encountered during Jira issue creation.
+- **link-issue-errors-on-creation**: Count of errors encountered during Jira issue linking at creation time.
+- **link-issue-errors-on-closure**: Count of errors encountered during Jira issue linking at closure time.
 - **jql**: The JQL query used for retrieving new updates.
 
 You can utilize the outputs to extend the security hub functionalities. This is especially useful for real-time updates on your security findings and issue tracking.
@@ -536,7 +539,49 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
 **Description:** Specifies the direction of the issue link in Jira, which can be either 'inward' or 'outward'. 'Inward' means the new issue will be linked to the feature issue, while 'outward' means the feature issue will be linked to the new issue.
 
+### `jira-link-id-on-closure`
+
   
+
+**Required: No**
+
+  
+
+**Default Value: None**
+
+  
+
+**Description:** This field specifies the Jira link ID to which the closed issue will be linked. If a value is provided, the issue will be associated with this link ID. If not specified, the issue will remain unlinked.
+
+  
+
+### `jira-link-type-on-creation`
+
+  
+
+**Required: No**
+
+  
+
+**Default Value: 'Relates'**
+
+  
+
+**Description:** Defines the type of relationship between the closed issue and the linking issue specified by the `jira-link-id-on-closure`. The default relationship is 'Relates'. Other types can be used depending on your Jira configuration, such as 'Blocks', 'Is blocked by', or 'Duplicates'.
+
+### `jira-link-direction-on-closure`
+
+  
+
+**Required: No**
+
+  
+
+**Default Value: None**
+
+  
+
+**Description:** Specifies the direction of the issue link in Jira, which can be either 'inward' or 'outward'. 'Inward' means the closed issue will be linked to the linking issue, while 'outward' means the linking issue will be linked to the closed issue.
 
 ### `jira-labels-config`
 
