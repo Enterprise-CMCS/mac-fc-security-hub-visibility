@@ -1330,6 +1330,8 @@ export class SecurityHubJiraSync {
             const cveValue = (finding.CVE ?? '')
             if(cveValue.split(',').length > 1) {
               labels.push(`multi-cve`)
+            } else {
+              labels.push(`${labelPrefix}${delimiter}${cveValue.trim().replace(/ /g, '')}`)
             } 
           }else {
             const value = (finding[field] ?? '')
