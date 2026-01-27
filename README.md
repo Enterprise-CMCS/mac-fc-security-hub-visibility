@@ -41,8 +41,8 @@ The action provides the following outputs:
 - **created**: Count of newly created issues.
 - **closed**: Count of issues closed during the run.
 - **create-issue-errors**: Count of errors encountered during Jira issue creation.
-- **link-issue-errors-on-creation**: Count of errors encountered during Jira issue linking at creation time.
-- **link-issue-errors-on-closure**: Count of errors encountered during Jira issue linking at closure time.
+- **link-issue-errors-on-creation** (v2.2.1): Count of errors encountered during Jira issue linking at creation time.
+- **link-issue-errors-on-closure** (v2.2.1): Count of errors encountered during Jira issue linking at closure time.
 - **jql**: The JQL query used for retrieving new updates.
 
 You can utilize the outputs to extend the security hub functionalities. This is especially useful for real-time updates on your security findings and issue tracking.
@@ -461,7 +461,7 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
   
 
-### `jira-link-id-on-creation`
+### `jira-link-id-on-creation` (v2.2.1)
 
   
 
@@ -477,7 +477,7 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
   
 
-### `jira-link-type-on-creation`
+### `jira-link-type-on-creation` (v2.2.1)
 
   
 
@@ -525,7 +525,7 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
   
 
-### `jira-link-direction-on-creation`
+### `jira-link-direction-on-creation` (v2.2.1)
 
   
 
@@ -539,7 +539,7 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
 **Description:** Specifies the direction of the issue link in Jira, which can be either 'inward' or 'outward'. 'Inward' means the new issue will be linked to the feature issue, while 'outward' means the feature issue will be linked to the new issue.
 
-### `jira-link-id-on-closure`
+### `jira-link-id-on-closure` (v2.2.1)
 
   
 
@@ -555,7 +555,7 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
   
 
-### `jira-link-type-on-creation`
+### `jira-link-type-on-closure` (v2.2.1)
 
   
 
@@ -569,7 +569,7 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 
 **Description:** Defines the type of relationship between the closed issue and the linking issue specified by the `jira-link-id-on-closure`. The default relationship is 'Relates'. Other types can be used depending on your Jira configuration, such as 'Blocks', 'Is blocked by', or 'Duplicates'.
 
-### `jira-link-direction-on-closure`
+### `jira-link-direction-on-closure` (v2.2.1)
 
   
 
@@ -601,7 +601,7 @@ Example: `jira-labels-config:` `"[{\"labelField\":\"ProductName\",\"labelPrefix\
 
 Result of the custom labeling above the labels on the issues created will be: "product:Tenable" "High" "account:abc123" "us-east-1"
 
-## CVE Label Handling Behavior
+## CVE Label Handling Behavior (v2.2.2)
 
 If the **CVE** field is specified in the labels configuration, the automation applies special handling to avoid errors caused by label length limits.
 
