@@ -555,7 +555,21 @@ Execute a sync but only log API calls to Jira which would create/modify Jira Iss
 Example: `jira-labels-config:` `"[{\"labelField\":\"ProductName\",\"labelPrefix\":\"product\",\"labelDelimiter\":\":\"},{\"labelField\":\"severity\"},{\"labelField\":\"accountId\",\"labelDelimiter\":\":\",\"labelPrefix\":\"account\"},{\"labelField\":\"region\"}]"`
 
 Result of the custom labeling above the labels on the issues created will be: "product:Tenable" "High" "account:abc123" "us-east-1"
-  
+
+## CVE Label Handling Behavior
+
+If the **CVE** field is specified in the labels configuration, the automation applies special handling to avoid errors caused by label length limits.
+
+### Behavior
+
+- If the **CVE** field contains **multiple CVE entries**, the system assigns a **`multi-cve`** label.  
+  The individual CVE IDs can be found in the issue description.
+
+- If the **CVE** field contains **a single CVE entry**, that CVE ID is added directly as a label.
+
+### Purpose
+
+This approach prevents errors that may occur when label values exceed the allowed length.
 
 ### `jira-watchers`
 
