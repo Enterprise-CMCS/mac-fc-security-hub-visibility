@@ -1326,11 +1326,20 @@ export class SecurityHubJiraSync {
             )
           }
         } else {
-          const value = (finding[field] ?? '')
-            .toString()
-            .trim()
-            .replace(/ /g, '')
-          labels.push(`${labelPrefix}${delimiter}${value}`)
+          if(field == "CVE") {
+            const cveValue = (finding.CVE ?? '')
+            if(cveValue.split(',').length > 1) {
+              labels.push(`multi-cve`)
+            } else {
+              labels.push(`${labelPrefix}${delimiter}${cveValue.trim().replace(/ /g, '')}`)
+            } 
+          }else {
+            const value = (finding[field] ?? '')
+              .toString()
+              .trim()
+              .replace(/ /g, '')
+            labels.push(`${labelPrefix}${delimiter}${value}`)
+          }
         }
       }
     )
