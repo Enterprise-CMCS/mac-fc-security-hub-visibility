@@ -5,6 +5,33 @@ import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts'
 import {AwsSecurityFinding} from '@aws-sdk/client-securityhub'
 import {Resource} from './libs'
 
+/**
+ * Retry helper for Jira transient 503 errors.
+ */
+async function retryOn503<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  baseDelayMs = 1000
+): Promise<T> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      return await fn()
+    } catch (err: any) {
+      const status = err?.response?.status
+      if (status !== 503 || attempt === retries) {
+        throw err
+      }
+
+      const delay = baseDelayMs * attempt
+      console.warn(
+        `Jira returned 503 (attempt ${attempt}/${retries}). Retrying in ${delay}ms...`
+      )
+      await new Promise(resolve => setTimeout(resolve, delay))
+    }
+  }
+  throw new Error('Retry attempts exhausted')
+}
+
 interface UpdateForReturn {
   action: string
   webUrl: string
@@ -388,10 +415,29 @@ export class SecurityHubJiraSync {
               webUrl: `${this.jiraBaseURI}/browse/${jiraIssues[i].key}`,
               summary: jiraIssues[i].fields.summary
             })
-            await this.jira.addCommentToIssueById(
-              jiraIssues[i].id,
-              makeComment()
-            )
+            try {
+          await this.jira.closeIssue(jiraIssues[i].key)
+
+updatesForReturn.push({
+  action: 'closed',
+  webUrl: `${this.jiraBaseURI}/browse/${jiraIssues[i].key}`,
+  summary: jiraIssues[i].fields.summary
+})
+
+try {
+  await retryOn503(() =>
+    this.jira.addCommentToIssueById(
+      jiraIssues[i].id,
+      makeComment()
+    )
+  )
+} catch (err: any) {
+  console.warn(
+    `Failed to add Jira comment for issue ${jiraIssues[i].id}. Continuing.`,
+    err?.response?.status
+  )
+}
+
           const issue_id = this.jiraLinkIdOnClosure
           if (issue_id) {
             const linkType = this.jiraLinkTypeOnClosure
@@ -425,10 +471,19 @@ export class SecurityHubJiraSync {
                   summary: `Resolved ${jiraIssues[i].fields.summary}`
                 }
               })
-              await this.jira.addCommentToIssueById(
-                jiraIssues[i].id,
-                makeComment()
-              )
+              try {
+  await retryOn503(() =>
+    this.jira.addCommentToIssueById(
+      jiraIssues[i].id,
+      makeComment()
+    )
+  )
+} catch (err: any) {
+  console.warn(
+    `Failed to add Jira comment for issue ${jiraIssues[i].id}. Continuing.`,
+    err?.response?.status
+  )
+}
             } catch (e) {
               console.log(
                 `Title of ISSUE with id ${
