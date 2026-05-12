@@ -1,43 +1,15 @@
-import { extractErrorMessage } from './index'
-import { Jira, SecurityHub, SecurityHubFinding } from './libs'
-import { Issue, NewIssueData, CustomFields, JiraConfig } from './libs/jira-lib'
-import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts'
-import { AwsSecurityFinding } from '@aws-sdk/client-securityhub'
-import { Resource } from './libs'
-
-/**
- * Retry helper for Jira transient 503 errors.
- */
-async function retryOn503<T>(
-  fn: () => Promise<T>,
-  retries = 3,
-  baseDelayMs = 1000
-): Promise<T> {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      return await fn()
-    } catch (err: any) {
-      const status = err?.response?.status
-      if (status !== 503 || attempt === retries) {
-        throw err
-      }
-
-      const delay = baseDelayMs * attempt
-      console.warn(
-        `Jira returned 503 (attempt ${attempt}/${retries}). Retrying in ${delay}ms...`
-      )
-      await new Promise(resolve => setTimeout(resolve, delay))
-    }
-  }
-  throw new Error('Retry attempts exhausted')
-}
+import {extractErrorMessage} from 'index'
+import {Jira, SecurityHub, SecurityHubFinding} from './libs'
+import {Issue, NewIssueData, CustomFields, JiraConfig} from './libs/jira-lib'
+import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts'
+import {AwsSecurityFinding} from '@aws-sdk/client-securityhub'
+import {Resource} from './libs'
 
 interface UpdateForReturn {
   action: string
   webUrl: string
   summary: string
 }
-
 interface GeneralObj {
   [key: string]: number
 }
@@ -57,6 +29,12 @@ export interface SecurityHubJiraSyncConfig {
   includeAllProducts: boolean
   consolidateTickets: boolean
 }
+export interface SecurityHubJiraSyncConfig {
+  region: string
+  severities: string[]
+  customJiraFields?: CustomFields
+  newIssueDelay: string
+}
 
 export class SecurityHubJiraSync {
   private readonly jira: Jira
@@ -66,25 +44,20 @@ export class SecurityHubJiraSync {
   private readonly severities
   private readonly autoClose: boolean
   private readonly jiraBaseURI: string
-
   private jiraLinkIdOnCreation?: string
   private jiraLinkTypeOnCreation?: string
   private jiraLinkDirectionOnCreation?: string
   private jiraLinkIdOnClosure?: string
   private jiraLinkTypeOnClosure?: string
   private jiraLinkDirectionOnClosure?: string
-
   public jiraLabelsConfig?: LabelConfig[]
   private jiraAddLabels?: string[]
-
-  private createIssueErrors = 0
-  private linkIssueErrors = 0
-  private closureLinkIssueErrors = 0
-
+  private createIssueErrors: number = 0
+  private linkIssueErrors: number = 0
+  private closureLinkIssueErrors: number = 0
   private jiraConsolidateTickets?: boolean
   private testFindings: AwsSecurityFinding[] = []
   private apiVersion: string
-
   constructor(
     jiraConfig: JiraConfig,
     securityHubConfig: SecurityHubJiraSyncConfig,
@@ -97,127 +70,1428 @@ export class SecurityHubJiraSync {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.customJiraFields = securityHubConfig.customJiraFields
     this.autoClose = autoClose
-
     this.jiraLinkIdOnCreation = jiraConfig.jiraLinkIdOnCreation
     this.jiraLinkTypeOnCreation = jiraConfig.jiraLinkTypeOnCreation
     this.jiraLinkDirectionOnCreation = jiraConfig.jiraLinkDirectionOnCreation
     this.jiraLinkIdOnClosure = jiraConfig.jiraLinkIdOnClosure
     this.jiraLinkTypeOnClosure = jiraConfig.jiraLinkTypeOnClosure
     this.jiraLinkDirectionOnClosure = jiraConfig.jiraLinkDirectionOnClosure
-
     this.jiraAddLabels = jiraConfig.jiraAddLabels
       ?.split(',')
       .map(label => label.trim())
-
     if (jiraConfig.jiraLabelsConfig) {
       this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig)
     }
-
     if (securityHubConfig.consolidateTickets) {
-      this.jiraConsolidateTickets = true
+      this.jiraConsolidateTickets = securityHubConfig.consolidateTickets
     }
-
     if (jiraConfig.testFindingsData) {
       this.testFindings = JSON.parse(jiraConfig.testFindingsData)
+      console.log('parsed', this.testFindings)
     }
-
     this.apiVersion = jiraConfig.jiraApiVersion || '3'
   }
+  consolidateTickets(arr: SecurityHubFinding[]) {
+    const seen: GeneralObj = {} // Store unique titles
+    const finalList: SecurityHubFinding[] = []
+    arr.forEach(finding => {
+      const title = finding.title ?? ''
+      if (seen[title] >= 0) {
+        const i = seen[title]
+        finalList[i] = {
+          ...finalList[i],
+          consolidated: true,
+          Ids: [
+            ...(finalList[i].Ids ?? []),
+            ...([finding.id ?? ''] as unknown as string[])
+          ],
+          Resources: [
+            ...(finalList[i].Resources ?? []),
+            ...(finding.Resources ?? [])
+          ]
+        }
+      } else {
+        const i = finalList.push(finding)
+        seen[title] = i - 1
+      }
+    })
+    return finalList
+  }
+  areSameLists(A: Resource[], B: Resource[]) {
+    if (A.length == B.length) {
+      let isSimilar = true
+      for (let i = 0; i < A.length; i = i + 1) {
+        let same = false
+        for (let j = 0; j < B.length && !same; j = j + 1) {
+          const a = A[i].Id ?? ''
+          const b = B[j].Id ?? ''
+          same = (a && b && a.includes(b)) as unknown as boolean
+        }
+        isSimilar = isSimilar && same
+      }
+      return isSimilar
+    }
+    return false
+  }
+  isAlreadyInNew(finding: SecurityHubFinding, List: SecurityHubFinding[]) {
+    const filtered = List.filter(
+      f => finding.title && f.title?.includes(finding.title)
+    )
+    if (!filtered.length) {
+      return false
+    }
+    let exists: boolean = false
+    filtered.forEach(f => {
+      exists = (exists ||
+        this.areSameLists(
+          finding.Resources ?? [],
+          f.Resources ?? []
+        )) as unknown as boolean
+    })
+    return exists
+  }
+  isNewFinding(finding: SecurityHubFinding, issues: Issue[]) {
+    const matchingIssues = issues.filter(
+      i => finding.title && i.fields.descriptionText?.includes(finding.title)
+    )
+    if (!matchingIssues.length) {
+      return false
+    }
+    return (
+      matchingIssues.filter(i =>
+        finding.Resources?.every(
+          r => r.Id && i.fields.descriptionText?.includes(r.Id)
+        )
+      ).length == 0
+    )
+  }
+  async sync() {
+    const updatesForReturn: UpdateForReturn[] = []
+    // Step 0. Gather and set some information that will be used throughout this function
+    const accountId = await this.getAWSAccountID()
+    const identifyingLabels: string[] = [accountId, this.region]
 
+    // Step 1. Get all open Security Hub issues from Jira
+    const jiraIssues =
+      await this.jira.getAllSecurityHubIssuesInJiraProject(identifyingLabels)
+
+    // Step 2. Get all current findings from Security Hub
+    console.log(
+      'Getting active Security Hub Findings with severities: ' + this.severities
+    )
+    const shFindingsObj = this.testFindings.length
+      ? this.testFindings.map((finding: AwsSecurityFinding) =>
+          this.securityHub.awsSecurityFindingToSecurityHubFinding(finding)
+        )
+      : await this.securityHub.getAllActiveFindings()
+    const shFindings = Object.values(shFindingsObj).map(finding => {
+      finding.Resources = (finding.Resources ?? []).map(r => {
+        return {
+          ...r,
+          link: this.createSecurityHubFindingUrlThroughFilters(finding.id ?? '')
+        }
+      })
+      const id = finding.id ?? ''
+      finding.Ids = [id]
+      if (
+        finding.ProductName?.toLowerCase().includes('default') &&
+        finding.CompanyName?.toLowerCase().includes('tenable')
+      ) {
+        return {
+          ...finding,
+          ProductName: finding.CompanyName
+        }
+      }
+      return finding
+    })
+    // Step 3. Close existing Jira issues if their finding is no longer active/current
+    const previousFindings: SecurityHubFinding[] = []
+    const newFindings: SecurityHubFinding[] = []
+    const existingTitles = new Set<string>()
+
+    jiraIssues.forEach(issue => {
+      // console.log('checking issue', issue.key)
+      // console.log('checking issue suummary', issue.fields.summary)
+      const descriptionText = issue.fields.descriptionText ?? ''
+
+      // Find all matching Security Hub findings by title
+      const matchingFindings = shFindings.filter(
+        f => f.title && descriptionText.includes(f.title)
+      )
+
+      if (matchingFindings.length >= 1) {
+        // Consolidate multiple findings
+        let consolidatedFinding: SecurityHubFinding | undefined = undefined
+
+        matchingFindings.forEach(finding => {
+          const shouldConsolidate = (finding.Resources ?? []).every(
+            resource =>
+              resource.Id && issue.fields.descriptionText?.includes(resource.Id)
+          )
+
+          if (shouldConsolidate) {
+            if (!consolidatedFinding) {
+              consolidatedFinding = {...finding}
+            } else {
+              consolidatedFinding.Resources = [
+                ...(consolidatedFinding.Resources ?? []),
+                ...(finding.Resources ?? [])
+              ]
+            }
+          } else {
+            if (
+              this.isNewFinding(finding, jiraIssues) &&
+              !this.isAlreadyInNew(finding, newFindings)
+            ) {
+              newFindings.push(finding)
+            }
+          }
+        })
+
+        if (consolidatedFinding) {
+          previousFindings.push(consolidatedFinding)
+          existingTitles.add(
+            (consolidatedFinding as unknown as SecurityHubFinding).title ?? ''
+          )
+        }
+      }
+    })
+
+    // Add new findings not found in previousFindings
+    shFindings.forEach(finding => {
+      if (
+        finding.title &&
+        !existingTitles.has(finding.title) &&
+        !this.isAlreadyInNew(finding, newFindings)
+      ) {
+        newFindings.push(finding)
+      }
+    })
+
+    console.log('previous findings', previousFindings)
+    updatesForReturn.push(
+      ...(await this.closeIssuesForResolvedFindings(
+        jiraIssues,
+        previousFindings
+      ))
+    )
+    console.log('new Findings', newFindings)
+    let consolidationCandidates: SecurityHubFinding[] = newFindings
+    if (this.jiraConsolidateTickets) {
+      consolidationCandidates = this.consolidateTickets(consolidationCandidates)
+      console.log('consolidated findings', consolidationCandidates)
+    }
+    const consolidatedFindings = [...consolidationCandidates]
+    // Step 4. Create Jira issue for current findings that do not already have a Jira issue
+    updatesForReturn.push(
+      ...(await this.createJiraIssuesForNewFindings(
+        jiraIssues,
+        consolidatedFindings,
+        identifyingLabels
+      ))
+    )
+
+    console.log(JSON.stringify(updatesForReturn))
+    return { updatesForReturn, createIssueErrors: this.createIssueErrors,
+       linkIssueErrors: this.linkIssueErrors, closureLinkErrors:this.closureLinkIssueErrors };
+  }
+
+  async getAWSAccountID() {
+    // Reset counters at the start of sync
+    this.createIssueErrors = 0;
+    this.linkIssueErrors = 0;
+    this.closureLinkIssueErrors = 0;
+    const client = new STSClient({
+      region: this.region
+    })
+    const command = new GetCallerIdentityCommand({})
+    let response
+    try {
+      response = await client.send(command)
+    } catch (e: unknown) {
+      throw new Error(`Error getting AWS Account ID: ${extractErrorMessage(e)}`)
+    }
+    const accountID: string = response.Account || ''
+    if (!accountID.match('[0-9]{12}')) {
+      throw new Error(
+        'ERROR:  An issue was encountered when looking up your AWS Account ID.  Refusing to continue.'
+      )
+    }
+    return accountID
+  }
+  shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]) {
+    const matchingTitles = findings.filter(finding => {
+      if (finding.title) {
+        return ticket.fields.descriptionText?.includes(finding.title)
+      }
+      return false
+    })
+    if (matchingTitles.length == 0) {
+      return true
+    }
+    return (
+      matchingTitles.filter(finding => {
+        const resources = finding.Resources ?? []
+        let bool: boolean = true
+        resources.forEach(resource => {
+          const id = resource.Id ?? ''
+          if (id) {
+            bool = (bool &&
+              ticket.fields.descriptionText &&
+              ticket.fields.descriptionText?.includes(id)) as unknown as boolean
+          }
+        })
+        return bool && resources.length
+      }).length == 0
+    )
+  }
   async closeIssuesForResolvedFindings(
     jiraIssues: Issue[],
     shFindings: SecurityHubFinding[]
   ) {
     const updatesForReturn: UpdateForReturn[] = []
-
-    const makeComment = () => {
-      const text = `As of ${new Date().toDateString()}, this Security Hub finding has been marked resolved`
-      return this.apiVersion === '3'
-        ? {
-            type: 'doc',
+    try {
+      const makeComment = () => {
+        const commentText = `As of ${new Date(
+          Date.now()
+        ).toDateString()}, this Security Hub finding has been marked resolved`;
+        
+        if (this.apiVersion === '3') {
+          // Return ADF format for 3
+          return {
+            type: "doc",
             version: 1,
             content: [
               {
-                type: 'paragraph',
-                content: [{ type: 'text', text }]
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: commentText
+                  }
+                ]
               }
             ]
           }
-        : text
-    }
-
-    if (!this.autoClose) {
-      return updatesForReturn
-    }
-
-    for (let i = 0; i < jiraIssues.length; i++) {
-      if (!this.shouldCloseTicket(jiraIssues[i], shFindings)) {
-        continue
+        } else {
+          // Return plain text for v2
+          return commentText;
+        }
       }
+      // close all security-hub labeled Jira issues that do not have an active finding
+      if (this.autoClose) {
+        for (let i = 0; i < jiraIssues.length; i++) {
+          if (this.shouldCloseTicket(jiraIssues[i], shFindings)) {
+            await this.jira.closeIssue(jiraIssues[i].key)
+            updatesForReturn.push({
+              action: 'closed',
+              webUrl: `${this.jiraBaseURI}/browse/${jiraIssues[i].key}`,
+              summary: jiraIssues[i].fields.summary
+            })
+            await this.jira.addCommentToIssueById(
+              jiraIssues[i].id,
+              makeComment()
+            )
+          const issue_id = this.jiraLinkIdOnClosure
+          if (issue_id) {
+            const linkType = this.jiraLinkTypeOnClosure
+            const linkDirection = this.jiraLinkDirectionOnClosure || 'inward'
+            try {
+              await this.jira.linkIssues(
+                jiraIssues[i].key,
+                issue_id,
+                linkType,
+                linkDirection
+              );
+            } catch (linkError: unknown) {
+              this.closureLinkIssueErrors++;
+              const errorMsg = extractErrorMessage(linkError);
+              // Log the error for easier debugging, but don't re-throw
+              console.error(`Error linking issue ${jiraIssues[i].key} to ${issue_id}: ${errorMsg}`);
+            }
+          }
+          }
+        }
+      } else {
+        console.log('Skipping auto closing...')
+        for (let i = 0; i < jiraIssues.length; i++) {
+          if (
+            this.shouldCloseTicket(jiraIssues[i], shFindings) &&
+            !jiraIssues[i].fields.summary.includes('Resolved') // skip already resolved issues
+          ) {
+            try {
+              await this.jira.updateIssueTitleById(jiraIssues[i].id, {
+                fields: {
+                  summary: `Resolved ${jiraIssues[i].fields.summary}`
+                }
+              })
+              await this.jira.addCommentToIssueById(
+                jiraIssues[i].id,
+                makeComment()
+              )
+            } catch (e) {
+              console.log(
+                `Title of ISSUE with id ${
+                  jiraIssues[i].id
+                } is not changed with error: ${JSON.stringify(e)}`
+              )
+            }
+          }
+        }
+      }
+    } catch (e: unknown) {
+      throw new Error(
+        `Error closing Jira issue for resolved finding: ${extractErrorMessage(e)}`
+      )
+    }
+    return updatesForReturn
+  }
+  makeResourceList(resources: Resource[] | undefined) {
+    if (!resources) {
+      return `No Resources`
+    }
+    const maxLength = Math.max(...resources.map(({Id}) => Id?.length || 0))
+    const title = 'Resource Id'.padEnd(maxLength + maxLength / 2 + 4)
 
-      // 1. Close issue (authoritative)
-      await this.jira.closeIssue(jiraIssues[i].key)
+    let Table = `${title}| Partition   | Region     | Type    \n`
+    resources.forEach(({Id, Partition, Region, Type, link}) => {
+      Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} | [FindingURL | ${link}] \n`
+    })
 
-      updatesForReturn.push({
-        action: 'closed',
-        webUrl: `${this.jiraBaseURI}/browse/${jiraIssues[i].key}`,
-        summary: jiraIssues[i].fields.summary
-      })
+    Table += `------------------------------------------------------------------------------------------------`
+    return Table
+  }
 
-      // 2. Best effort comment with retry
+  makeProductFieldSection(finding: SecurityHubFinding) {
+    return `
+    h2. Product Fields:
+    Type                     |    ${finding.Type ?? 'N/A'}
+    Product Name:            |    ${finding.ProductName ?? 'N/A'}
+    Provider Name:           |    ${finding.ProviderName ?? 'N/A'}
+    Provider Version:        |    ${finding.ProviderVersion ?? 'N/A'}
+    Company Name:            |    ${finding.CompanyName ?? 'N/A'}
+    CVE:                     |    ${finding.CVE ?? 'N/A'}
+    --------------------------------------------------------
+    `
+  }
+  createSecurityHubFindingUrlThroughFilters(findingId: string): string {
+    let region: string
+
+    // Function to validate AWS region format
+    function isAwsRegion(region: string): boolean {
+      const pattern = /^[a-z]{2}-[a-z]+-\d+$/
+      return pattern.test(region)
+    }
+
+    // Function to validate URL format
+    function isValidUrl(url: string): boolean {
       try {
-        await retryOn503(() =>
-          this.jira.addCommentToIssueById(jiraIssues[i].id, makeComment())
-        )
-      } catch (err: any) {
-        console.warn(
-          `Failed to add Jira comment for issue ${jiraIssues[i].id}. Continuing.`,
-          err?.response?.status
-        )
+        new URL(url)
+        return true
+      } catch {
+        return false
+      }
+    }
+
+    // Extract region from findingId
+    if (findingId.startsWith('arn:')) {
+      // Extract region from the ARN format
+      const arnParts = findingId.split(':')
+      region = arnParts[3]
+    } else {
+      // Extract region from non-ARN format (e.g., "us-west-2/finding-id")
+      const parts = findingId.split('/')
+      region = parts[0]
+    }
+
+    // Validate the extracted region
+    if (!isAwsRegion(region)) {
+      //console.error(`Invalid AWS region: ${region}`)
+      region = 'us-east-1' // Fallback to default region
+    }
+
+    // Encode the findingId and operator for URL
+    const idPart = encodeURIComponent('Id=')
+    const operator = encodeURIComponent(
+      encodeURIComponent('\\operator\\:EQUALS\\:')
+    )
+    const searchParam = `${idPart}${operator}${encodeURIComponent(findingId)}`
+
+    // Construct the URL
+    const baseUrl = `https://${region}.console.aws.amazon.com/securityhub/home?region=${region}`
+    const url = `${baseUrl}#/findings?search=${searchParam}`
+
+    // Validate the constructed URL
+    if (!isValidUrl(url)) {
+      console.error(`Invalid URL constructed: ${url}`)
+      return ''
+    }
+
+    return url
+  }
+  createFindingUrlSection(Ids: string[]) {
+    let sectionText = `\n---------------------------------------------------------------------------------------------------------------------\n`
+    Ids.forEach(
+      (id, i) =>
+        (sectionText += `\n ${i + 1}. [${id}|${this.createSecurityHubFindingUrlThroughFilters(id)}] \n`)
+    )
+    sectionText += `\n---------------------------------------------------------------------------------------------------------------------\n`
+    return sectionText
+  }
+  createIssueBody(finding: SecurityHubFinding) {
+    const {
+      remediation: {
+        Recommendation: {
+          Url: remediationUrl = '',
+          Text: remediationText = ''
+        } = {}
+      } = {},
+      id = '',
+      title = '',
+      description = '',
+      accountAlias = '',
+      awsAccountId = '',
+      severity = '',
+      standardsControlArn = '',
+      consolidated = false
+    } = finding
+
+    // Return different formats based on API version
+    if (this.apiVersion === '2') {
+      // Return old text format for v2
+      return `----
+
+      *This issue was generated from Security Hub data and is managed through automation.*
+      Please do not edit the title or body of this issue, or remove the security-hub tag.  All other edits/comments are welcome.
+      Finding Title: ${title}
+
+      ----
+
+      h2. Type of Issue:
+
+      * Security Hub Finding
+
+      h2. Title:
+
+      ${title}
+
+      h2. Description:
+
+      ${description}
+
+      ${
+        remediationText || remediationUrl
+          ? `
+      h2. Remediation:
+
+      ${remediationUrl}
+      ${remediationText}
+        `
+          : ''
       }
 
-      // 3. Optional linking
-      if (this.jiraLinkIdOnClosure) {
+      h2. AWS Account:
+      ${awsAccountId} (${accountAlias})
+
+      h2. Severity:
+      ${severity}
+
+      ${this.makeProductFieldSection(finding)}
+
+      h2. Resources:
+      Following are the resources with their corresponding finding url that were non-compliant at the time of the issue creation
+      ${this.makeResourceList(finding.Resources)}
+
+      To check the latest list of resources, kindly refer to the finding url
+      h2. AC:
+
+      * All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed.  (Note:  this ticket will automatically close when the AC is met.)`;
+    }
+
+    // Create ADF format content for v3
+    const content = [
+      // Horizontal rule
+      {
+        type: "rule"
+      },
+      // Intro paragraph
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "This issue was generated from Security Hub data and is managed through automation.",
+            marks: [{ type: "strong" }]
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Please do not edit the title or body of this issue, or remove the security-hub tag. All other edits/comments are welcome."
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: `Finding Title: ${title}`
+          }
+        ]
+      },
+      // Horizontal rule
+      {
+        type: "rule"
+      },
+      // Type of Issue header
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Type of Issue:"
+          }
+        ]
+      },
+      {
+        type: "bulletList",
+        content: [
+          {
+            type: "listItem",
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: "Security Hub Finding"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      // Title header
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Title:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: title
+          }
+        ]
+      },
+      // Description header
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Description:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: description
+          }
+        ]
+      }
+    ];
+
+    // Add remediation section if present
+    if (remediationText || remediationUrl) {
+      content.push(
+        {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [
+            {
+              type: "text",
+              text: "Remediation:"
+            }
+          ]
+        }
+      );
+      
+      if (remediationUrl) {
+        content.push({
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: remediationUrl
+            }
+          ]
+        });
+      }
+      
+      if (remediationText) {
+        content.push({
+          type: "paragraph",
+          content: [
+            {
+              type: "text",
+              text: remediationText
+            }
+          ]
+        });
+      }
+    }
+
+    // AWS Account section
+    content.push(
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "AWS Account:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: `${awsAccountId} (${accountAlias})`
+          }
+        ]
+      }
+    );
+
+    // Severity section
+    content.push(
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Severity:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: severity
+          }
+        ]
+      }
+    );
+
+    // Product fields section as table
+    const productSection = this.makeProductFieldSection(finding);
+    if (productSection.trim()) {
+      content.push(
+        {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [
+            {
+              type: "text",
+              text: "Product Fields:"
+            }
+          ]
+        },
+        {
+          type: "table",
+          content: [
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Type"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.ProductName || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Product Name"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.ProductName || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Provider Name"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.ProviderName || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Provider Version"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.ProviderVersion || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "Company Name"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.CompanyName || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableRow",
+              content: [
+                {
+                  type: "tableHeader",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: "CVE"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  type: "tableCell",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [
+                        {
+                          type: "text",
+                          text: finding.CVE || "N/A"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        } as any
+      );
+    }
+
+    // Resources section as table
+    content.push(
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "Resources:"
+          }
+        ]
+      },
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "Following are the resources with their corresponding finding url that were non-compliant at the time of the issue creation"
+          }
+        ]
+      }
+    );
+
+    // Create resources table
+    if (finding.Resources && finding.Resources.length > 0) {
+      const resourceTableContent: any[] = [
+        // Header row
+        {
+          type: "tableRow",
+          content: [
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Resource Id"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Partition"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Region"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Type"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableHeader",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: "Finding URL"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ];
+
+      // Add resource rows
+      finding.Resources.forEach((resource: any) => {
+        const resourceId = resource.Id || "N/A";
+        const partition = resource.Partition || "aws";
+        const region = resource.Region || "N/A";
+        const type = resource.Type || "N/A";
+        const findingUrl = this.createSecurityHubFindingUrlThroughFilters(resource.Id) || "N/A";
+
+        resourceTableContent.push({
+          type: "tableRow",
+          content: [
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: String(resourceId)
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: String(partition)
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: String(region)
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: String(type)
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              type: "tableCell",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [
+                    {
+                      type: "text",
+                      text: String(findingUrl)
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        });
+      });
+
+      content.push({
+        type: "table",
+        content: resourceTableContent
+      } as any);
+    }
+
+    content.push(
+      {
+        type: "paragraph",
+        content: [
+          {
+            type: "text",
+            text: "To check the latest list of resources, kindly refer to the finding url"
+          }
+        ]
+      },
+      // AC section
+      {
+        type: "heading",
+        attrs: { level: 2 },
+        content: [
+          {
+            type: "text",
+            text: "AC:"
+          }
+        ]
+      },
+      {
+        type: "bulletList",
+        content: [
+          {
+            type: "listItem",
+            content: [
+              {
+                type: "paragraph",
+                content: [
+                  {
+                    type: "text",
+                    text: "All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed. (Note: this ticket will automatically close when the AC is met.)"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    );
+
+    return {
+      type: "doc",
+      version: 1,
+      content
+    };
+  }
+
+  createSecurityHubFindingUrl(standardsControlArn = '') {
+    if (!standardsControlArn) {
+      return ''
+    }
+
+    const [
+      ,
+      partition,
+      ,
+      region,
+      ,
+      ,
+      securityStandards,
+      ,
+      securityStandardsVersion,
+      controlId
+    ] = standardsControlArn.split(/[/:]+/)
+    return `https://${region}.console.${partition}.amazon.com/securityhub/home?region=${region}#/standards/${securityStandards}-${securityStandardsVersion}/${controlId}`
+  }
+  getSeverityMappingToJiraPriority = (severity: string) => {
+    switch (severity) {
+      case 'INFORMATIONAL':
+        return 'Lowest'
+      case 'LOW':
+        return 'Low'
+      case 'MEDIUM':
+        return 'Medium'
+      case 'HIGH':
+        return 'High'
+      case 'CRITICAL':
+        return 'Critical'
+      default:
+        throw new Error(`Invalid severity: ${severity}`)
+    }
+  }
+  createLabels(
+    finding: SecurityHubFinding,
+    identifyingLabels: string[],
+    config: LabelConfig[]
+  ): string[] {
+    const labels: string[] = []
+    const fields = ['accountId', 'region', 'identify']
+    const values = [...identifyingLabels, 'security-hub']
+
+    config.forEach(
+      ({labelField: field, labelDelimiter: delim, labelPrefix: prefix}) => {
+        const delimiter = delim ?? ''
+        const labelPrefix = prefix ?? ''
+
+        if (fields.includes(field)) {
+          const index = fields.indexOf(field)
+          if (index >= 0) {
+            labels.push(
+              `${labelPrefix}${delimiter}${values[index]?.trim().replace(/ /g, '')}`
+            )
+          }
+        } else {
+          if(field == "CVE") {
+            const cveValue = (finding.CVE ?? '')
+            if(cveValue.split(',').length > 1) {
+              labels.push(`multi-cve`)
+            } else {
+              labels.push(`${labelPrefix}${delimiter}${cveValue.trim().replace(/ /g, '')}`)
+            } 
+          }else {
+            const value = (finding[field] ?? '')
+              .toString()
+              .trim()
+              .replace(/ /g, '')
+            labels.push(`${labelPrefix}${delimiter}${value}`)
+          }
+        }
+      }
+    )
+
+    return labels
+  }
+  async createJiraIssueFromFinding(
+    finding: SecurityHubFinding,
+    identifyingLabels: string[]
+  ) {
+    if (!finding.severity) {
+      throw new Error(
+        `Severity must be defined in Security Hub finding: ${finding.title}`
+      )
+    }
+    const newIssueData: NewIssueData = {
+      fields: {
+        summary: `SecurityHub Finding - ${finding.title}`
+          .substring(0, 255)
+          .replaceAll('\n', ''),
+        description: this.createIssueBody(finding),
+        issuetype: {name: 'Task'},
+        labels: [
+          'security-hub',
+          finding.severity,
+          finding.accountAlias,
+          finding.ProductName?.trim().replace(/ /g, ''),
+          ...identifyingLabels
+        ],
+        priority: {
+          name: this.getSeverityMappingToJiraPriority(finding.severity)
+        },
+        ...this.customJiraFields
+      }
+    }
+    if (this.jiraLabelsConfig) {
+      try {
+        const config = this.jiraLabelsConfig
+        newIssueData.fields.labels = this.createLabels(
+          finding,
+          identifyingLabels,
+          config
+        )
+      } catch (e) {
+        console.log('Invalid labels config - going with default labels')
+      }
+    }
+    if (this.jiraAddLabels) {
+      const prevLabels = newIssueData.fields.labels ?? []
+      newIssueData.fields.labels = [...prevLabels, ...this.jiraAddLabels]
+    }
+    let newIssueInfo
+    try {
+      // Create the Jira issue
+      try {
+        newIssueInfo = await this.jira.createNewIssue(newIssueData)
+      } catch (createError: unknown) {
+        this.createIssueErrors++;
+        // Log the error for visibility
+        const errorMsg = extractErrorMessage(createError);
+        console.error(`Error creating Jira issue for finding "${finding.title}": ${errorMsg}`);
+        // Re-throw to potentially fail the action if creation fails
+        throw new Error(`Failed to create Jira issue: ${errorMsg}`);
+      }
+
+      // Link the issue if a link ID is provided
+      const issue_id = this.jiraLinkIdOnCreation
+      if (issue_id) {
+        const linkType = this.jiraLinkTypeOnCreation
+        const linkDirection = this.jiraLinkDirectionOnCreation
         try {
           await this.jira.linkIssues(
-            jiraIssues[i].key,
-            this.jiraLinkIdOnClosure,
-            this.jiraLinkTypeOnClosure,
-            this.jiraLinkDirectionOnClosure || 'inward'
+            newIssueInfo.key,
+            issue_id,
+            linkType,
+            linkDirection
+          );
+        } catch (linkError: unknown) {
+          this.linkIssueErrors++;
+          const errorMsg = extractErrorMessage(linkError);
+          // Log the error for easier debugging, but don't re-throw
+          console.error(`Error linking issue ${newIssueInfo.key} to ${issue_id}: ${errorMsg}`);
+        }
+      }
+    } catch (e: unknown) {
+      // This will catch errors re-thrown from createNewIssue block
+      // Errors from linkIssues are caught and logged above, not re-thrown here.
+      // If createNewIssue failed, newIssueInfo would be undefined, so linking wouldn't be attempted.
+      throw new Error(
+        `Error during Jira issue creation process for finding "${finding.title}": ${extractErrorMessage(e)}`
+      );
+    }
+    return {
+      action: 'created',
+      webUrl: newIssueInfo.webUrl,
+      summary: newIssueData.fields.summary
+    }
+  }
+  shouldCreateIssue(finding: SecurityHubFinding, jiraIssues: Issue[]) {
+    const potentialDuplicates = jiraIssues.filter(issue => {
+      if (!finding.title) {
+        return false
+      }
+      const title = finding.title
+      return issue.fields.descriptionText?.includes(title)
+    })
+    console.log('Potential Duplicates: ', potentialDuplicates.length)
+    if (potentialDuplicates.length == 0) {
+      return true
+    }
+
+    const final = potentialDuplicates.filter(issue => {
+      const duplicate = finding.Resources?.reduce(
+        (should: boolean, resource: Resource): boolean => {
+          const id = resource.Id ?? ''
+          if (!id) {
+            return false
+          }
+          return should && issue.fields.descriptionText?.includes(id) == true
+        },
+        true
+      )
+      return !duplicate
+    })
+
+    return final.length >= 1
+  }
+  async createJiraIssuesForNewFindings(
+    jiraIssues: Issue[],
+    shFindings: SecurityHubFinding[],
+    identifyingLabels: string[]
+  ) {
+    const updatesForReturn: UpdateForReturn[] = []
+    const uniqueSecurityHubFindings = [
+      ...new Set(shFindings.map(finding => JSON.stringify(finding)))
+    ].map(finding => JSON.parse(finding))
+
+    for (let i = 0; i < uniqueSecurityHubFindings.length; i++) {
+      const finding = uniqueSecurityHubFindings[i]
+      if (this.shouldCreateIssue(finding, jiraIssues)) {
+        try {
+          const update = await this.createJiraIssueFromFinding(
+            finding,
+            identifyingLabels
           )
+          updatesForReturn.push(update)
         } catch (e) {
-          this.closureLinkIssueErrors++
-          console.error(
-            `Failed to link closed issue ${jiraIssues[i].key}:`,
-            extractErrorMessage(e)
-          )
+          console.log('Moving forward with next findings', e)
         }
       }
     }
 
     return updatesForReturn
-  }
-
-  /* ────────── Remaining helper methods unchanged ────────── */
-
-  shouldCloseTicket(ticket: Issue, findings: SecurityHubFinding[]) {
-    return !findings.some(
-      f => f.title && ticket.fields.descriptionText?.includes(f.title)
-    )
-  }
-
-  async getAWSAccountID() {
-    this.createIssueErrors = 0
-    this.linkIssueErrors = 0
-    this.closureLinkIssueErrors = 0
-
-    const client = new STSClient({ region: this.region })
-    const response = await client.send(new GetCallerIdentityCommand({}))
-
-    if (!response.Account || !response.Account.match(/^\d{12}$/)) {
-      throw new Error('Invalid AWS Account ID')
-    }
-
-    return response.Account
   }
 }
