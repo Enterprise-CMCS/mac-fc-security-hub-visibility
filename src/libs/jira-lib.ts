@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv'
 import axios, {AxiosError, AxiosInstance} from 'axios'
+import axiosRetry from 'axios-retry'
 import {extractErrorMessage} from '../index'
 import {LabelConfig} from 'macfc-security-hub-sync'
 
@@ -32,6 +33,8 @@ export interface JiraConfig {
   dueDateLow?: string
   jiraDueDateField?: string // Add the new field for due date configuration
   jiraApiVersion?: string // API version to use (v2 or v3)
+  jiraMaxRetries?: number // Maximum number of retries for API calls
+  jiraRetryDelay?: number // Delay between retries in milliseconds
 }
 
 export type CustomFields = {
@@ -276,6 +279,42 @@ export class Jira {
         'Content-Type': 'application/json'
       }
     })
+    // ---------------- Retry configuration ----------------
+    const maxRetries = jiraConfig.jiraMaxRetries ?? 2;
+    const retryDelay = jiraConfig.jiraRetryDelay ?? 3000;
+
+    axiosRetry(this.axiosInstance, {
+      retries: maxRetries,
+      retryDelay: (retryCount) => retryCount * retryDelay, // linear backoff: 1s, 2s, 3s...
+      retryCondition: (error) => {
+        // 1. Network / timeout / DNS errors → always retry (no response from server)
+        if (axiosRetry.isNetworkOrIdempotentRequestError(error)) {
+          return true;
+        }
+
+        const status = error.response?.status;
+
+        // 2. Retry server errors (5xx) and rate limits (429)
+        if (status && (status >= 500 || status === 429)) {
+          // BUT if it's a POST request, only retry when there is NO response at all.
+          // If we got a 5xx/429 response, the server might have processed the request.
+          const method = error.config?.method?.toUpperCase();
+          if (method === 'POST') {
+            return false;   // safer: do not retry POST that reached the server
+          }
+          return true;
+        }
+
+        // 3. All 4xx client errors → do NOT retry
+        return false;
+      },
+      onRetry: (retryCount, error, requestConfig) => {
+        console.warn(
+          `[Jira Retry] ${requestConfig?.method?.toUpperCase()} ${requestConfig?.url} failed (attempt ${retryCount}/${maxRetries}). Error: ${error.message}`
+        );
+      }
+    });
+    // --------------------------------------------------
   }
 
   private getApiPath(endpoint: string): string {
