@@ -29,6 +29,8 @@ export interface JiraConfig {
     dueDateLow?: string;
     jiraDueDateField?: string;
     jiraApiVersion?: string;
+    jiraMaxRetries?: number;
+    jiraRetryDelay?: number;
 }
 export type CustomFields = {
     [key: string]: string;
