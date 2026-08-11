@@ -25,7 +25,7 @@ jobs:
           role-to-assume: ${{ secrets.AWS_OIDC_ROLE_TO_ASSUME }}
       - name: Sync Security Hub and Jira
         id: sync_step
-        uses: Enterprise-CMCS/mac-fc-security-hub-visibility@v2.0.8
+        uses: Enterprise-CMCS/mac-fc-security-hub-visibility@v2.1.11
         with:
           jira-token: ${{ secrets.JIRA_TEST_TOKEN }}
           jira-username: username # required variable for package but not for Enterprise Jira
