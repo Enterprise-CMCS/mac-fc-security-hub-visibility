@@ -1,6 +1,12 @@
-import {extractErrorMessage} from 'index'
+import {extractErrorMessage} from './libs/error-lib'
 import {Jira, SecurityHub, SecurityHubFinding} from './libs'
-import {Issue, NewIssueData, CustomFields, JiraConfig} from './libs/jira-lib'
+import {
+  Issue,
+  NewIssueData,
+  CustomFields,
+  JiraConfig,
+  LabelConfig
+} from './libs/jira-lib'
 import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts'
 import {AwsSecurityFinding} from '@aws-sdk/client-securityhub'
 import {Resource} from './libs'
@@ -12,12 +18,6 @@ interface UpdateForReturn {
 }
 interface GeneralObj {
   [key: string]: number
-}
-
-export interface LabelConfig {
-  labelField: string
-  labelPrefix?: string
-  labelDelimiter?: string
 }
 
 export interface SecurityHubJiraSyncConfig {

@@ -3,14 +3,12 @@ import {
   SecurityHubJiraSync,
   SecurityHubJiraSyncConfig
 } from './macfc-security-hub-sync'
-import {JiraConfig, CustomFields, Jira} from './libs/jira-lib'
+import {JiraConfig, CustomFields} from './libs/jira-lib'
+import {GlobalFindingsJiraSync} from './global-findings-jira-sync'
+import {SnowflakeAuthenticator} from './libs/snowflake-lib'
+import {extractErrorMessage} from './libs/error-lib'
 
-export function extractErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message
-  }
-  return 'An unknown error occurred'
-}
+export {extractErrorMessage} from './libs/error-lib'
 
 // Utility function to get input with fallback to environment variable, can return undefined
 function getInputOrEnv(inputName: string, envName: string): string | undefined {
@@ -74,6 +72,26 @@ function validateAndFilterSeverities(inputSeverities: string): string[] {
   })
 
   return inputSeveritiesArray
+}
+
+function parseList(value: string | undefined): string[] {
+  return (value ?? '')
+    .split(',')
+    .map(item => item.trim().toUpperCase())
+    .filter(Boolean)
+}
+
+function parseNonNegativeInteger(value: string, inputName: string): number {
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`${inputName} must be a non-negative integer.`)
+  }
+  const parsed = Number(value)
+  if (!Number.isSafeInteger(parsed)) {
+    throw new Error(
+      `${inputName} is larger than JavaScript can safely represent.`
+    )
+  }
+  return parsed
 }
 
 function parseAndValidateTransitionMap(
@@ -163,7 +181,10 @@ async function run(): Promise<void> {
         'DRY_RUN_TEST_DATA',
         false
       ),
-      jiraLinkIdOnCreation: getInputOrEnv('jira-link-id-on-creation', 'JIRA_LINK_ID'),
+      jiraLinkIdOnCreation: getInputOrEnv(
+        'jira-link-id-on-creation',
+        'JIRA_LINK_ID'
+      ),
       jiraLinkTypeOnCreation: getDefaultInputOrEnv(
         'jira-link-type-on-creation',
         'JIRA_LINK_TYPE',
@@ -174,7 +195,10 @@ async function run(): Promise<void> {
         'JIRA_LINK_DIRECTION',
         'inward'
       ),
-      jiraLinkIdOnClosure: getInputOrEnv('jira-link-id-on-closure', 'JIRA_LINK_ID_ON_CLOSURE'),
+      jiraLinkIdOnClosure: getInputOrEnv(
+        'jira-link-id-on-closure',
+        'JIRA_LINK_ID_ON_CLOSURE'
+      ),
       jiraLinkTypeOnClosure: getDefaultInputOrEnv(
         'jira-link-type-on-closure',
         'JIRA_LINK_TYPE_ON_CLOSURE',
@@ -200,22 +224,15 @@ async function run(): Promise<void> {
         'DUE_DATE_CRITICAL',
         '15'
       ),
-      dueDateHigh: getDefaultInputOrEnv(
-        'due-date-high',
-        'DUE_DATE_HIGH',
-        '30'
-      ),
+      dueDateHigh: getDefaultInputOrEnv('due-date-high', 'DUE_DATE_HIGH', '30'),
       dueDateModerate: getDefaultInputOrEnv(
         'due-date-moderate',
         'DUE_DATE_MODERATE',
         '90'
       ),
-      dueDateLow: getDefaultInputOrEnv(
-        'due-date-low',
-        'DUE_DATE_LOW',
-        '365'
-      ),
-      jiraDueDateField: getDefaultInputOrEnv( // Add the new input reading
+      dueDateLow: getDefaultInputOrEnv('due-date-low', 'DUE_DATE_LOW', '365'),
+      jiraDueDateField: getDefaultInputOrEnv(
+        // Add the new input reading
         'jira-duedate-field',
         'JIRA_DUEDATE_FIELD',
         ''
@@ -225,6 +242,105 @@ async function run(): Promise<void> {
         'JIRA_API_VERSION',
         '3'
       )
+    }
+
+    const findingSource = getDefaultInputOrEnv(
+      'finding-source',
+      'FINDING_SOURCE',
+      'aws-security-hub'
+    ).toLowerCase()
+
+    if (!['aws-security-hub', 'snowflake'].includes(findingSource)) {
+      throw new Error(
+        "finding-source must be either 'aws-security-hub' or 'snowflake'."
+      )
+    }
+
+    const autoClose = getInputOrEnvAndConvertToBool(
+      'auto-close',
+      'AUTO_CLOSE',
+      findingSource === 'aws-security-hub'
+    )
+
+    if (findingSource === 'snowflake') {
+      const authenticator = getDefaultInputOrEnv(
+        'snowflake-authenticator',
+        'SNOWFLAKE_AUTHENTICATOR',
+        'SNOWFLAKE_JWT'
+      ).toUpperCase() as SnowflakeAuthenticator
+      if (!['SNOWFLAKE', 'SNOWFLAKE_JWT'].includes(authenticator)) {
+        throw new Error(
+          'snowflake-authenticator must be SNOWFLAKE or SNOWFLAKE_JWT.'
+        )
+      }
+
+      const privateKey = getInputOrEnv(
+        'snowflake-private-key',
+        'SNOWFLAKE_PRIVATE_KEY'
+      )?.replace(/\\n/g, '\n')
+      const maxRows = parseNonNegativeInteger(
+        getDefaultInputOrEnv(
+          'snowflake-max-rows',
+          'SNOWFLAKE_MAX_ROWS',
+          '5000'
+        ),
+        'snowflake-max-rows'
+      )
+
+      core.info('Syncing Snowflake global security findings and Jira')
+      await new GlobalFindingsJiraSync(
+        jiraConfig,
+        {
+          account: getRequiredInputOrEnv(
+            'snowflake-account',
+            'SNOWFLAKE_ACCOUNT'
+          ),
+          username: getRequiredInputOrEnv(
+            'snowflake-username',
+            'SNOWFLAKE_USERNAME'
+          ),
+          password: getInputOrEnv('snowflake-password', 'SNOWFLAKE_PASSWORD'),
+          privateKey,
+          privateKeyPassphrase: getInputOrEnv(
+            'snowflake-private-key-passphrase',
+            'SNOWFLAKE_PRIVATE_KEY_PASSPHRASE'
+          ),
+          authenticator,
+          warehouse: getRequiredInputOrEnv(
+            'snowflake-warehouse',
+            'SNOWFLAKE_WAREHOUSE'
+          ),
+          role: getInputOrEnv('snowflake-role', 'SNOWFLAKE_ROLE'),
+          database: getDefaultInputOrEnv(
+            'snowflake-database',
+            'SNOWFLAKE_DATABASE',
+            'BUS_CMCS'
+          ),
+          schema: getDefaultInputOrEnv(
+            'snowflake-schema',
+            'SNOWFLAKE_SCHEMA',
+            'PRIVATE'
+          ),
+          view: getDefaultInputOrEnv(
+            'snowflake-view',
+            'SNOWFLAKE_VIEW',
+            'BUS_CMCS.PRIVATE.VW_GLOBAL_SECURITY_FINDINGS'
+          ),
+          fismaIds: parseList(
+            getInputOrEnv('snowflake-fisma-ids', 'SNOWFLAKE_FISMA_IDS')
+          ),
+          fismaAcronyms: parseList(
+            getInputOrEnv(
+              'snowflake-fisma-acronyms',
+              'SNOWFLAKE_FISMA_ACRONYMS'
+            )
+          ),
+          maxRows,
+          customJiraFields
+        },
+        autoClose
+      ).sync()
+      return
     }
 
     const severitiesStr = getDefaultInputOrEnv(
@@ -254,12 +370,6 @@ async function run(): Promise<void> {
       )
     }
 
-    const autoClose = getInputOrEnvAndConvertToBool(
-      'auto-close',
-      'AUTO_CLOSE',
-      true
-    )
-
     core.info('Syncing Security Hub and Jira')
     const secHub = new SecurityHubJiraSync(
       jiraConfig,
@@ -267,7 +377,7 @@ async function run(): Promise<void> {
       autoClose
     )
     const syncResult = await secHub.sync()
-    const resultUpdates = syncResult.updatesForReturn; // Extract the updates array
+    const resultUpdates = syncResult.updatesForReturn // Extract the updates array
 
     // Construct the JQL
     const jqlQuery = `issueKey in ( ${resultUpdates
@@ -304,27 +414,29 @@ async function run(): Promise<void> {
       'closed',
       resultUpdates.filter(update => update.action == 'closed').length
     )
-    
+
     // Set the new error count outputs
-    core.setOutput('create-issue-errors', syncResult.createIssueErrors);
-    core.setOutput('link-issue-errors-on-creation', syncResult.linkIssueErrors);
-    core.setOutput('link-issue-errors-on-closure', syncResult.closureLinkErrors);
+    core.setOutput('create-issue-errors', syncResult.createIssueErrors)
+    core.setOutput('link-issue-errors-on-creation', syncResult.linkIssueErrors)
+    core.setOutput('link-issue-errors-on-closure', syncResult.closureLinkErrors)
 
     // Fail the job if there are any create issue errors or link issue errors
     if (syncResult.createIssueErrors > 0 || syncResult.linkIssueErrors > 0) {
-      throw new Error(`Job failed due to errors: ${syncResult.createIssueErrors} create issue errors, ${syncResult.linkIssueErrors} link issue errors`);
+      throw new Error(
+        `Job failed due to errors: ${syncResult.createIssueErrors} create issue errors, ${syncResult.linkIssueErrors} link issue errors`
+      )
     }
 
     // log into console also
     core.info(
       `Jira URL: ${jiraUrl} \n` +
         `Total Issues: ${resultUpdates.length} \n` +
-        `Created Issues: ${resultUpdates.filter(
-          update => update.action == 'created'
-        ).length} \n` +
-        `Closed Issues: ${resultUpdates.filter(
-          update => update.action == 'closed'
-        ).length}`
+        `Created Issues: ${
+          resultUpdates.filter(update => update.action == 'created').length
+        } \n` +
+        `Closed Issues: ${
+          resultUpdates.filter(update => update.action == 'closed').length
+        }`
     )
   } catch (error: unknown) {
     core.setFailed(`Sync failed: ${extractErrorMessage(error)}`)

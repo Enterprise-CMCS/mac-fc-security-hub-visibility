@@ -1,4 +1,3 @@
-import { LabelConfig } from 'macfc-security-hub-sync';
 export interface JiraConfig {
     jiraBaseURI: string;
     jiraUsername: string;
@@ -31,6 +30,11 @@ export interface JiraConfig {
     jiraApiVersion?: string;
     jiraMaxRetries?: number;
     jiraRetryDelay?: number;
+}
+export interface LabelConfig {
+    labelField: string;
+    labelPrefix?: string;
+    labelDelimiter?: string;
 }
 export type CustomFields = {
     [key: string]: string;
@@ -113,6 +117,7 @@ export declare class Jira {
     addUserAsWatcher(issueId: string, watcher: string, isEnterprise?: boolean): Promise<void>;
     removeCurrentUserAsWatcher(issueId: string): Promise<void>;
     private static formatLabelQuery;
+    getAllManagedIssuesInJiraProject(requiredLabels: string[]): Promise<Issue[]>;
     static createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
     createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
     getAllSecurityHubIssuesInJiraProject(identifyingLabels: string[]): Promise<Issue[]>;

@@ -1,15 +1,10 @@
 import { SecurityHubFinding } from './libs';
-import { Issue, CustomFields, JiraConfig } from './libs/jira-lib';
+import { Issue, CustomFields, JiraConfig, LabelConfig } from './libs/jira-lib';
 import { Resource } from './libs';
 interface UpdateForReturn {
     action: string;
     webUrl: string;
     summary: string;
-}
-export interface LabelConfig {
-    labelField: string;
-    labelPrefix?: string;
-    labelDelimiter?: string;
 }
 export interface SecurityHubJiraSyncConfig {
     region: string;
@@ -115,7 +110,7 @@ export declare class SecurityHubJiraSync {
         })[];
     };
     createSecurityHubFindingUrl(standardsControlArn?: string): string;
-    getSeverityMappingToJiraPriority: (severity: string) => "Lowest" | "Low" | "Medium" | "High" | "Critical";
+    getSeverityMappingToJiraPriority: (severity: string) => "Critical" | "High" | "Medium" | "Low" | "Lowest";
     createLabels(finding: SecurityHubFinding, identifyingLabels: string[], config: LabelConfig[]): string[];
     createJiraIssueFromFinding(finding: SecurityHubFinding, identifyingLabels: string[]): Promise<{
         action: string;

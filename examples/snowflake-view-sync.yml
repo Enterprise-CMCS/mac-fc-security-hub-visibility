@@ -1,0 +1,33 @@
+name: Sync Snowflake security findings to Jira
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      # Replace the placeholder with a reviewed immutable commit SHA.
+      - uses: enterprise-cmcs/macfc-security-hub-sync@<pinned-commit-sha>
+        with:
+          finding-source: snowflake
+          jira-base-uri: https://jiraent.cms.gov
+          jira-username: ${{ secrets.JIRA_USERNAME }}
+          jira-token: ${{ secrets.JIRA_TOKEN }}
+          jira-project-key: MACFC
+          jira-transition-map: '*:Done'
+          jira-api-version: '2'
+          snowflake-account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          snowflake-username: ${{ secrets.SNOWFLAKE_USERNAME }}
+          snowflake-authenticator: SNOWFLAKE_JWT
+          snowflake-private-key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+          snowflake-private-key-passphrase: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+          snowflake-warehouse: TEAM_CMCS_WH
+          snowflake-role: MACFC_JIRA_SYNC_ROLE
+          snowflake-fisma-acronyms: MAC-FC
+          dry-run-test-data: 'true'

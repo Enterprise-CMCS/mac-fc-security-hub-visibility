@@ -1,7 +1,10 @@
-name: 'Security Hub Visibility'
-description: 'Syncs AWS Security Hub findings with Jira issues'
+name: 'Security Findings Visibility'
+description: 'Syncs AWS Security Hub or Snowflake global security findings with Jira issues'
 author: 'MAC-FC'
 inputs:
+  finding-source:
+    description: "Finding source: 'aws-security-hub' (default) or 'snowflake'"
+    required: false
   # The application has its own built in default values for unset inputs. Double check index.ts for the current default values.
   # Jira
   jira-base-uri:
@@ -37,7 +40,7 @@ inputs:
   jira-add-labels:
     description: 'Comma separated list of labels to add in newly created tickets'
     default: ''
-# AWS
+  # AWS
   aws-region:
     description: 'Target AWS region for Security Hub findings'
     required: false
@@ -46,8 +49,11 @@ inputs:
     description: 'Comma-separated list of Security Hub finding severities to sync'
     required: false
     # Application Default - 'CRITICAL,HIGH,MEDIUM'
+  security-hub-new-issue-delay:
+    description: 'Minimum finding age in milliseconds before creating an AWS Security Hub issue'
+    required: false
   auto-close:
-    description: 'a boolean to support auto closing for issue'
+    description: 'Auto-close Jira issues missing from the active source set; defaults true for AWS and false for Snowflake'
     required: false
     # Application Default - true
   dry-run-test-data:
@@ -61,7 +67,7 @@ inputs:
     description: "this defines the relation of the new issue with feature issue specified and default value for this is 'Relates'"
     required: false
   jira-link-direction-on-creation:
-    description: "this variable is to specify the direction of linked issue either inward or outward"
+    description: 'this variable is to specify the direction of linked issue either inward or outward'
     required: false
   jira-link-id-on-closure:
     description: 'the closed issue will be linked to this link id'
@@ -70,22 +76,22 @@ inputs:
     description: "this defines the relation of the closed issue with feature issue specified and default value for this is 'Relates'"
     required: false
   jira-link-direction-on-closure:
-    description: "this variable is to specify the direction of linked issue either inward or outward"
+    description: 'this variable is to specify the direction of linked issue either inward or outward'
     required: false
   include-all-products:
-    description: "a boolean to enable findings from other products"
+    description: 'a boolean to enable findings from other products'
     required: false
   skip-products:
-    description: "comma separated list of product names for those the findings should be skipped"
+    description: 'comma separated list of product names for those the findings should be skipped'
     required: false
   jira-duedate-field:
     description: 'The Jira field ID to use for setting the due date (e.g., duedate, customfield_xxxxx). Defaults to duedate.'
     required: false
     default: ''
   due-date-critical:
-      description: 'Number of days within which a Jira issue should be due for critical findings'
-      required: false
-      default: '15'
+    description: 'Number of days within which a Jira issue should be due for critical findings'
+    required: false
+    default: '15'
   due-date-high:
     description: 'Number of days within which a Jira issue should be due for high findings'
     required: false
@@ -99,35 +105,78 @@ inputs:
     required: false
     default: '365'
   jira-labels-config:
-    description: "This variable is to specify stringified labels config"
+    description: 'This variable is to specify stringified labels config'
     required: false
   jira-consolidate-tickets:
-    description: "True/False value to enable/disable the consolidation of tickets"
+    description: 'True/False value to enable/disable the consolidation of tickets'
     required: false
   test-findings-data:
-    description: "JSON string of findings list"
+    description: 'JSON string of findings list'
     required: false
   jira-api-version:
     description: 'Jira API version to use (v2 or v3). v3 uses ADF format for descriptions/comments, v2 uses plain text.'
     required: false
-    default: '2'
+    default: '3'
+  # Snowflake global-findings view
+  snowflake-account:
+    description: 'Snowflake account identifier (required when finding-source is snowflake)'
+    required: false
+  snowflake-username:
+    description: 'Snowflake service user (required when finding-source is snowflake)'
+    required: false
+  snowflake-authenticator:
+    description: 'SNOWFLAKE_JWT (default) or SNOWFLAKE'
+    required: false
+  snowflake-private-key:
+    description: 'PEM private key for SNOWFLAKE_JWT; store this value in a GitHub secret'
+    required: false
+  snowflake-private-key-passphrase:
+    description: 'Passphrase for an encrypted Snowflake private key'
+    required: false
+  snowflake-password:
+    description: 'Password used only with the SNOWFLAKE authenticator; store this value in a GitHub secret'
+    required: false
+  snowflake-warehouse:
+    description: 'Warehouse used to query the findings view (required when finding-source is snowflake)'
+    required: false
+  snowflake-role:
+    description: 'Least-privilege Snowflake role used by the sync'
+    required: false
+  snowflake-database:
+    description: 'Snowflake database; default BUS_CMCS'
+    required: false
+  snowflake-schema:
+    description: 'Snowflake schema; default PRIVATE'
+    required: false
+  snowflake-view:
+    description: 'Qualified findings view; default BUS_CMCS.PRIVATE.VW_GLOBAL_SECURITY_FINDINGS'
+    required: false
+  snowflake-fisma-ids:
+    description: 'One FISMA ID; exactly one FISMA ID or acronym is required in Snowflake mode'
+    required: false
+  snowflake-fisma-acronyms:
+    description: 'One FISMA acronym; exactly one FISMA ID or acronym is required in Snowflake mode'
+    required: false
+  snowflake-max-rows:
+    description: 'Safety ceiling for one Snowflake sync; default 5000 and reconciliation aborts if exceeded'
+    required: false
 outputs:
   updates:
-    description: "List of urls of created issues"
+    description: 'List of urls of created issues'
   total:
-    description: "count of updates"
+    description: 'count of updates'
   created:
-    description: "count of created issues"
+    description: 'count of created issues'
   closed:
-    description: "count of closed issues"
+    description: 'count of closed issues'
   create-issue-errors:
-    description: "count of errors encountered during Jira issue creation"
+    description: 'count of errors encountered during Jira issue creation'
   link-issue-errors-on-creation:
-    description: "count of errors encountered during Jira issue linking on creation"
+    description: 'count of errors encountered during Jira issue linking on creation'
   link-issue-errors-on-closure:
-    description: "count of errors encountered during Jira issue linking on closure" 
+    description: 'count of errors encountered during Jira issue linking on closure'
   jql:
-    description: "the jql query for new updates"
+    description: 'the jql query for new updates'
 runs:
   using: 'node20'
   main: 'dist/index.js'
