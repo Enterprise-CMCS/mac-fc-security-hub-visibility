@@ -543,7 +543,7 @@ export class Jira {
   }
 
   private static formatLabelQuery(label: string): string {
-    return `labels = '${label.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`
+    return `labels = '${label}'`
   }
 
   async getAllManagedIssuesInJiraProject(

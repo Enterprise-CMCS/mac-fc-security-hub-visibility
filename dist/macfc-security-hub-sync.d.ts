@@ -1,6 +1,7 @@
 import { SecurityHubFinding } from './libs';
 import { Issue, CustomFields, JiraConfig, LabelConfig } from './libs/jira-lib';
 import { Resource } from './libs';
+export type { LabelConfig } from './libs/jira-lib';
 interface UpdateForReturn {
     action: string;
     webUrl: string;
@@ -120,4 +121,3 @@ export declare class SecurityHubJiraSync {
     shouldCreateIssue(finding: SecurityHubFinding, jiraIssues: Issue[]): boolean;
     createJiraIssuesForNewFindings(jiraIssues: Issue[], shFindings: SecurityHubFinding[], identifyingLabels: string[]): Promise<UpdateForReturn[]>;
 }
-export {};

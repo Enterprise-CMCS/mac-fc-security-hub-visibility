@@ -116,7 +116,7 @@ inputs:
   jira-api-version:
     description: 'Jira API version to use (v2 or v3). v3 uses ADF format for descriptions/comments, v2 uses plain text.'
     required: false
-    default: '3'
+    default: '2'
   # Snowflake global-findings view
   snowflake-account:
     description: 'Snowflake account identifier (required when finding-source is snowflake)'
