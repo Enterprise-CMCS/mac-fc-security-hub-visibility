@@ -13,6 +13,7 @@ export interface SnowflakeFindingsConfig {
     view: string;
     fismaIds: string[];
     fismaAcronyms: string[];
+    toolName?: string;
     maxRows: number;
 }
 export interface GlobalSecurityFinding {

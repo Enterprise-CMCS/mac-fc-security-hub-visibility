@@ -37,10 +37,17 @@ the configured project and the exact FISMA label requested by the run, so manual
 issues and issues created by other systems are excluded.
 
 Snowflake mode queries every `OPEN` finding for exactly one configured FISMA ID
-or acronym across all tools and severities. Automatic close defaults to `false`
-in Snowflake mode and remains `true` in AWS mode. Enable Snowflake auto-close
-only after validating that every expected tool supplied a complete authoritative
-result and that absence from the view reliably means resolution.
+or acronym across all tools and severities by default. Set the optional
+`snowflake-tool` input to one `TOOL_NAME`, such as `KUBEBENCH`, to process only
+that tool. A tool-filtered run also requires the matching canonical Jira label
+(for example, `tool-kubebench`) during reconciliation. This prevents a run for
+one tool from closing tickets owned by another tool. Omit `snowflake-tool` to
+retain the FISMA-wide, all-tools behavior.
+
+Automatic close defaults to `false` in Snowflake mode and remains `true` in AWS
+mode. Enable Snowflake auto-close only after validating that every expected tool
+in the selected boundary supplied a complete authoritative result and that
+absence from the view reliably means resolution.
 
 The view must expose these columns:
 
@@ -101,6 +108,7 @@ jobs:
           snowflake-warehouse: TEAM_CMCS_WH
           snowflake-role: MACFC_JIRA_SYNC_ROLE
           snowflake-fisma-acronyms: MAC-FC
+          # snowflake-tool: KUBEBENCH # Optional; omit to reconcile every tool
           dry-run-test-data: 'true'
 ```
 

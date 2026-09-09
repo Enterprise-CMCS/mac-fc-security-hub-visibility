@@ -286,6 +286,7 @@ async function run(): Promise<void> {
         ),
         'snowflake-max-rows'
       )
+      const toolName = getInputOrEnv('snowflake-tool', 'SNOWFLAKE_TOOL')?.trim()
 
       core.info('Syncing Snowflake global security findings and Jira')
       await new GlobalFindingsJiraSync(
@@ -335,6 +336,7 @@ async function run(): Promise<void> {
               'SNOWFLAKE_FISMA_ACRONYMS'
             )
           ),
+          toolName: toolName ? toolName.toUpperCase() : undefined,
           maxRows,
           customJiraFields
         },

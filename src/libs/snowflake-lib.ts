@@ -16,6 +16,7 @@ export interface SnowflakeFindingsConfig {
   view: string
   fismaIds: string[]
   fismaAcronyms: string[]
+  toolName?: string
   maxRows: number
 }
 
@@ -108,6 +109,9 @@ export class SnowflakeFindings {
         'Exactly one snowflake-fisma-id or snowflake-fisma-acronym is required. Refusing a global-view query without one authoritative FISMA boundary.'
       )
     }
+    if (config.toolName !== undefined && !config.toolName.trim()) {
+      throw new Error('snowflake-tool must not be blank when supplied.')
+    }
     if (!Number.isSafeInteger(config.maxRows) || config.maxRows < 1) {
       throw new Error('snowflake-max-rows must be a positive integer.')
     }
@@ -133,6 +137,11 @@ export class SnowflakeFindings {
     } else {
       predicates.push('UPPER(FISMA_ACRONYM) = ?')
       binds.push(...this.config.fismaAcronyms)
+    }
+
+    if (this.config.toolName) {
+      predicates.push('UPPER(TOOL_NAME) = ?')
+      binds.push(this.config.toolName.trim().toUpperCase())
     }
 
     const rowLimit = this.config.maxRows + 1

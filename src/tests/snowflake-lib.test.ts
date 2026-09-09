@@ -105,4 +105,26 @@ describe('Snowflake query safety', () => {
     expect(query.sqlText).not.toContain('UPPER(NORMALIZED_SEVERITY) IN')
     expect(query.binds).toEqual(['FISMA-1'])
   })
+
+  it('optionally binds one tool after the authoritative FISMA filter', () => {
+    const client = new SnowflakeFindings({
+      ...baseConfig,
+      toolName: ' kubebench '
+    }) as unknown as {
+      buildQuery(): {sqlText: string; binds: Array<string | number>}
+    }
+    const query = client.buildQuery()
+
+    expect(query.sqlText).toContain('UPPER(FISMA_ACRONYM) = ?')
+    expect(query.sqlText).toContain('UPPER(TOOL_NAME) = ?')
+    expect(query.sqlText).not.toContain('KUBEBENCH')
+    expect(query.binds).toEqual(['MAC-FC', 'KUBEBENCH'])
+    expect(query.sqlText.match(/\?/g)).toHaveLength(query.binds.length)
+  })
+
+  it('rejects a supplied tool filter that is blank', () => {
+    expect(
+      () => new SnowflakeFindings({...baseConfig, toolName: '   '})
+    ).toThrow(/snowflake-tool must not be blank/)
+  })
 })

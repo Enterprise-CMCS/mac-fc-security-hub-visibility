@@ -151,6 +151,9 @@ inputs:
   snowflake-view:
     description: 'Qualified findings view; default BUS_CMCS.PRIVATE.VW_GLOBAL_SECURITY_FINDINGS'
     required: false
+  snowflake-tool:
+    description: 'Optional single TOOL_NAME filter; Jira reconciliation is restricted to the matching tool label'
+    required: false
   snowflake-fisma-ids:
     description: 'One FISMA ID; exactly one FISMA ID or acronym is required in Snowflake mode'
     required: false

@@ -8,6 +8,8 @@ export declare function findingIdentity(finding: GlobalSecurityFinding): string;
 export declare function findingIdentityLabel(finding: GlobalSecurityFinding): string;
 export declare function findingFismaLabels(finding: GlobalSecurityFinding): string[];
 export declare function reconciliationFismaLabel(config: Pick<SnowflakeFindingsConfig, 'fismaIds' | 'fismaAcronyms'>): string;
+export declare function reconciliationToolLabel(toolName?: string): string | undefined;
+export declare function reconciliationLabels(config: Pick<SnowflakeFindingsConfig, 'fismaIds' | 'fismaAcronyms' | 'toolName'>): string[];
 export declare function findingTitle(finding: GlobalSecurityFinding): string;
 export declare class GlobalFindingsJiraSync {
     private readonly jira;
@@ -16,6 +18,7 @@ export declare class GlobalFindingsJiraSync {
     private readonly autoClose;
     private readonly customJiraFields?;
     private readonly fismaLabel;
+    private readonly reconciliationLabels;
     private readonly view;
     constructor(jiraConfig: JiraConfig, findingsConfig: GlobalFindingsJiraSyncConfig, autoClose: boolean);
     private summary;

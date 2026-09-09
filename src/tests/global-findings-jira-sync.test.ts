@@ -4,6 +4,8 @@ import {
   findingIdentityLabel,
   findingFismaLabels,
   reconciliationFismaLabel,
+  reconciliationLabels,
+  reconciliationToolLabel,
   findingTitle,
   SNOWFLAKE_FINDINGS_LABEL
 } from '../global-findings-jira-sync'
@@ -59,5 +61,29 @@ describe('global finding identity', () => {
     expect(
       reconciliationFismaLabel({fismaIds: [], fismaAcronyms: ['MAC-FC']})
     ).toBe('fisma-acronym-mac-fc')
+    expect(reconciliationToolLabel('KUBEBENCH')).toBe('tool-kubebench')
+    expect(reconciliationToolLabel()).toBeUndefined()
+    expect(
+      reconciliationLabels({
+        fismaIds: [],
+        fismaAcronyms: ['MAC-FC']
+      })
+    ).toEqual([
+      'global-security-findings',
+      'snowflake-findings',
+      'fisma-acronym-mac-fc'
+    ])
+    expect(
+      reconciliationLabels({
+        fismaIds: [],
+        fismaAcronyms: ['MAC-FC'],
+        toolName: 'KUBEBENCH'
+      })
+    ).toEqual([
+      'global-security-findings',
+      'snowflake-findings',
+      'fisma-acronym-mac-fc',
+      'tool-kubebench'
+    ])
   })
 })

@@ -88,6 +88,27 @@ export function reconciliationFismaLabel(
   )
 }
 
+export function reconciliationToolLabel(toolName?: string): string | undefined {
+  const value = toolName?.trim()
+  return value ? `tool-${normalizeLabel(value)}` : undefined
+}
+
+export function reconciliationLabels(
+  config: Pick<
+    SnowflakeFindingsConfig,
+    'fismaIds' | 'fismaAcronyms' | 'toolName'
+  >
+): string[] {
+  const labels = [
+    MANAGED_LABEL,
+    SNOWFLAKE_FINDINGS_LABEL,
+    reconciliationFismaLabel(config)
+  ]
+  const toolLabel = reconciliationToolLabel(config.toolName)
+  if (toolLabel) labels.push(toolLabel)
+  return labels
+}
+
 export function findingTitle(finding: GlobalSecurityFinding): string {
   return (
     rawString(finding.rawFinding, [
@@ -130,6 +151,7 @@ export class GlobalFindingsJiraSync {
   private readonly autoClose: boolean
   private readonly customJiraFields?: CustomFields
   private readonly fismaLabel: string
+  private readonly reconciliationLabels: string[]
   private readonly view: string
 
   constructor(
@@ -144,6 +166,7 @@ export class GlobalFindingsJiraSync {
     this.customJiraFields = findingsConfig.customJiraFields
     this.view = findingsConfig.view
     this.fismaLabel = reconciliationFismaLabel(findingsConfig)
+    this.reconciliationLabels = reconciliationLabels(findingsConfig)
   }
 
   private summary(finding: GlobalSecurityFinding): string {
@@ -260,11 +283,9 @@ h2. Acceptance criteria
   }
 
   async sync(): Promise<void> {
-    const jiraIssues = await this.jira.getAllManagedIssuesInJiraProject([
-      MANAGED_LABEL,
-      SNOWFLAKE_FINDINGS_LABEL,
-      this.fismaLabel
-    ])
+    const jiraIssues = await this.jira.getAllManagedIssuesInJiraProject(
+      this.reconciliationLabels
+    )
     const findings = await this.snowflake.getOpenFindings()
     const activeIdentityLabels = new Set(findings.map(findingIdentityLabel))
     const existingIdentityLabels = new Set(
