@@ -37,6 +37,7 @@ export interface GlobalSecurityFinding {
 }
 
 type SnowflakeRow = Record<string, unknown>
+type UnknownRecord = Record<string, unknown>
 
 const OBJECT_NAME_PART = '[A-Za-z_][A-Za-z0-9_$]*'
 const QUALIFIED_OBJECT_NAME = new RegExp(
@@ -78,6 +79,52 @@ function parseRawFinding(value: unknown): Record<string, unknown> {
   } catch {
     return {}
   }
+}
+
+function asRecord(value: unknown): UnknownRecord | undefined {
+  return value && typeof value === 'object'
+    ? (value as UnknownRecord)
+    : undefined
+}
+
+export function describeSnowflakeError(error: unknown): string {
+  const details = asRecord(error)
+  if (!details) return String(error)
+
+  const parts: string[] = []
+  const add = (label: string, value: unknown): void => {
+    if (value !== undefined && value !== null && String(value).trim()) {
+      parts.push(`${label}=${String(value)}`)
+    }
+  }
+
+  add('message', details.message)
+  add('driverCode', details.code)
+  add('sqlState', details.sqlState)
+
+  const response = asRecord(details.response)
+  add('httpStatus', response?.statusCode)
+  add('httpStatusMessage', response?.statusMessage)
+
+  let responseBody: UnknownRecord | undefined
+  if (typeof response?.body === 'string') {
+    try {
+      responseBody = asRecord(JSON.parse(response.body))
+    } catch {
+      // Do not emit an unstructured response body because it can contain
+      // gateway or proxy details that are unrelated to the Snowflake error.
+    }
+  } else {
+    responseBody = asRecord(response?.body)
+  }
+  add('snowflakeCode', responseBody?.code)
+  add('snowflakeMessage', responseBody?.message)
+
+  const cause = asRecord(details.cause)
+  add('causeCode', cause?.code)
+  add('causeMessage', cause?.message)
+
+  return parts.length > 0 ? parts.join('; ') : String(error)
 }
 
 function mapRow(row: SnowflakeRow): GlobalSecurityFinding {
@@ -192,7 +239,11 @@ LIMIT ${rowLimit}`,
     await new Promise<void>((resolve, reject) => {
       connection.connect(error => {
         if (error)
-          reject(new Error(`Unable to connect to Snowflake: ${error.message}`))
+          reject(
+            new Error(
+              `Unable to connect to Snowflake: ${describeSnowflakeError(error)}`
+            )
+          )
         else resolve()
       })
     })

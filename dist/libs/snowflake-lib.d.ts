@@ -32,6 +32,7 @@ export interface GlobalSecurityFinding {
     rawFinding: Record<string, unknown>;
 }
 export declare function validateSnowflakeObjectName(value: string, inputName: string): string;
+export declare function describeSnowflakeError(error: unknown): string;
 export declare class SnowflakeFindings {
     private readonly config;
     constructor(config: SnowflakeFindingsConfig);

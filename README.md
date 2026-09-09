@@ -90,7 +90,7 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
-      - uses: enterprise-cmcs/mac-fc-security-hub-sync@<pinned-commit-sha>
+      - uses: Enterprise-CMCS/mac-fc-security-hub-visibility@<pinned-commit-sha>
         with:
           finding-source: snowflake
           jira-base-uri: https://jiraent.cms.gov

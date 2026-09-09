@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Replace the placeholder with a reviewed immutable commit SHA.
-      - uses: enterprise-cmcs/macfc-security-hub-sync@<pinned-commit-sha>
+      - uses: Enterprise-CMCS/mac-fc-security-hub-visibility@<pinned-commit-sha>
         with:
           finding-source: snowflake
           jira-base-uri: https://sfji.atlassian.net
@@ -21,7 +21,7 @@ jobs:
           jira-token: ${{ secrets.ARAYA_JIRA_TOKEN }}
           jira-project-key: macfc
           jira-transition-map: '*:Done'
-          jira-api-version: '2'
+          jira-api-version: '3'
           snowflake-account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
           snowflake-username: ${{ secrets.SNOWFLAKE_USER }}
           snowflake-authenticator: SNOWFLAKE_JWT

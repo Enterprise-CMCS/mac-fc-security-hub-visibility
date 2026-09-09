@@ -181,5 +181,5 @@ outputs:
   jql:
     description: 'the jql query for new updates'
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'

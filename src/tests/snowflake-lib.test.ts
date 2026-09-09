@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest'
 import {
   SnowflakeFindings,
   SnowflakeFindingsConfig,
+  describeSnowflakeError,
   validateSnowflakeObjectName
 } from '../libs/snowflake-lib'
 
@@ -36,6 +37,26 @@ describe('Snowflake object-name validation', () => {
     expect(() =>
       validateSnowflakeObjectName('A.B.C.D', 'snowflake-view')
     ).toThrow(/unquoted Snowflake identifier/)
+  })
+})
+
+describe('Snowflake connection diagnostics', () => {
+  it('reports safe driver and HTTP response details', () => {
+    const error = Object.assign(new Error('Request to Snowflake failed.'), {
+      code: 401002,
+      response: {
+        statusCode: 403,
+        statusMessage: 'Forbidden',
+        body: JSON.stringify({
+          code: '390422',
+          message: 'Incoming request rejected by network policy.'
+        })
+      }
+    })
+
+    expect(describeSnowflakeError(error)).toBe(
+      'message=Request to Snowflake failed.; driverCode=401002; httpStatus=403; httpStatusMessage=Forbidden; snowflakeCode=390422; snowflakeMessage=Incoming request rejected by network policy.'
+    )
   })
 })
 
