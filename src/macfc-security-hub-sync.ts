@@ -1,9 +1,17 @@
-import {extractErrorMessage} from 'index'
+import {extractErrorMessage} from './libs/error-lib'
 import {Jira, SecurityHub, SecurityHubFinding} from './libs'
-import {Issue, NewIssueData, CustomFields, JiraConfig} from './libs/jira-lib'
+import {
+  Issue,
+  NewIssueData,
+  CustomFields,
+  JiraConfig,
+  LabelConfig
+} from './libs/jira-lib'
 import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts'
 import {AwsSecurityFinding} from '@aws-sdk/client-securityhub'
 import {Resource} from './libs'
+
+export type {LabelConfig} from './libs/jira-lib'
 
 interface UpdateForReturn {
   action: string
@@ -12,12 +20,6 @@ interface UpdateForReturn {
 }
 interface GeneralObj {
   [key: string]: number
-}
-
-export interface LabelConfig {
-  labelField: string
-  labelPrefix?: string
-  labelDelimiter?: string
 }
 
 export interface SecurityHubJiraSyncConfig {
@@ -292,15 +294,19 @@ export class SecurityHubJiraSync {
     )
 
     console.log(JSON.stringify(updatesForReturn))
-    return { updatesForReturn, createIssueErrors: this.createIssueErrors,
-       linkIssueErrors: this.linkIssueErrors, closureLinkErrors:this.closureLinkIssueErrors };
+    return {
+      updatesForReturn,
+      createIssueErrors: this.createIssueErrors,
+      linkIssueErrors: this.linkIssueErrors,
+      closureLinkErrors: this.closureLinkIssueErrors
+    }
   }
 
   async getAWSAccountID() {
     // Reset counters at the start of sync
-    this.createIssueErrors = 0;
-    this.linkIssueErrors = 0;
-    this.closureLinkIssueErrors = 0;
+    this.createIssueErrors = 0
+    this.linkIssueErrors = 0
+    this.closureLinkIssueErrors = 0
     const client = new STSClient({
       region: this.region
     })
@@ -354,19 +360,19 @@ export class SecurityHubJiraSync {
       const makeComment = () => {
         const commentText = `As of ${new Date(
           Date.now()
-        ).toDateString()}, this Security Hub finding has been marked resolved`;
-        
+        ).toDateString()}, this Security Hub finding has been marked resolved`
+
         if (this.apiVersion === '3') {
           // Return ADF format for 3
           return {
-            type: "doc",
+            type: 'doc',
             version: 1,
             content: [
               {
-                type: "paragraph",
+                type: 'paragraph',
                 content: [
                   {
-                    type: "text",
+                    type: 'text',
                     text: commentText
                   }
                 ]
@@ -375,7 +381,7 @@ export class SecurityHubJiraSync {
           }
         } else {
           // Return plain text for v2
-          return commentText;
+          return commentText
         }
       }
       // close all security-hub labeled Jira issues that do not have an active finding
@@ -392,24 +398,26 @@ export class SecurityHubJiraSync {
               jiraIssues[i].id,
               makeComment()
             )
-          const issue_id = this.jiraLinkIdOnClosure
-          if (issue_id) {
-            const linkType = this.jiraLinkTypeOnClosure
-            const linkDirection = this.jiraLinkDirectionOnClosure || 'inward'
-            try {
-              await this.jira.linkIssues(
-                jiraIssues[i].key,
-                issue_id,
-                linkType,
-                linkDirection
-              );
-            } catch (linkError: unknown) {
-              this.closureLinkIssueErrors++;
-              const errorMsg = extractErrorMessage(linkError);
-              // Log the error for easier debugging, but don't re-throw
-              console.error(`Error linking issue ${jiraIssues[i].key} to ${issue_id}: ${errorMsg}`);
+            const issue_id = this.jiraLinkIdOnClosure
+            if (issue_id) {
+              const linkType = this.jiraLinkTypeOnClosure
+              const linkDirection = this.jiraLinkDirectionOnClosure || 'inward'
+              try {
+                await this.jira.linkIssues(
+                  jiraIssues[i].key,
+                  issue_id,
+                  linkType,
+                  linkDirection
+                )
+              } catch (linkError: unknown) {
+                this.closureLinkIssueErrors++
+                const errorMsg = extractErrorMessage(linkError)
+                // Log the error for easier debugging, but don't re-throw
+                console.error(
+                  `Error linking issue ${jiraIssues[i].key} to ${issue_id}: ${errorMsg}`
+                )
+              }
             }
-          }
           }
         }
       } else {
@@ -605,71 +613,71 @@ export class SecurityHubJiraSync {
       To check the latest list of resources, kindly refer to the finding url
       h2. AC:
 
-      * All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed.  (Note:  this ticket will automatically close when the AC is met.)`;
+      * All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed.  (Note:  this ticket will automatically close when the AC is met.)`
     }
 
     // Create ADF format content for v3
     const content = [
       // Horizontal rule
       {
-        type: "rule"
+        type: 'rule'
       },
       // Intro paragraph
       {
-        type: "paragraph",
+        type: 'paragraph',
         content: [
           {
-            type: "text",
-            text: "This issue was generated from Security Hub data and is managed through automation.",
-            marks: [{ type: "strong" }]
+            type: 'text',
+            text: 'This issue was generated from Security Hub data and is managed through automation.',
+            marks: [{type: 'strong'}]
           }
         ]
       },
       {
-        type: "paragraph",
+        type: 'paragraph',
         content: [
           {
-            type: "text",
-            text: "Please do not edit the title or body of this issue, or remove the security-hub tag. All other edits/comments are welcome."
+            type: 'text',
+            text: 'Please do not edit the title or body of this issue, or remove the security-hub tag. All other edits/comments are welcome.'
           }
         ]
       },
       {
-        type: "paragraph",
+        type: 'paragraph',
         content: [
           {
-            type: "text",
+            type: 'text',
             text: `Finding Title: ${title}`
           }
         ]
       },
       // Horizontal rule
       {
-        type: "rule"
+        type: 'rule'
       },
       // Type of Issue header
       {
-        type: "heading",
-        attrs: { level: 2 },
+        type: 'heading',
+        attrs: {level: 2},
         content: [
           {
-            type: "text",
-            text: "Type of Issue:"
+            type: 'text',
+            text: 'Type of Issue:'
           }
         ]
       },
       {
-        type: "bulletList",
+        type: 'bulletList',
         content: [
           {
-            type: "listItem",
+            type: 'listItem',
             content: [
               {
-                type: "paragraph",
+                type: 'paragraph',
                 content: [
                   {
-                    type: "text",
-                    text: "Security Hub Finding"
+                    type: 'text',
+                    text: 'Security Hub Finding'
                   }
                 ]
               }
@@ -679,175 +687,173 @@ export class SecurityHubJiraSync {
       },
       // Title header
       {
-        type: "heading",
-        attrs: { level: 2 },
+        type: 'heading',
+        attrs: {level: 2},
         content: [
           {
-            type: "text",
-            text: "Title:"
+            type: 'text',
+            text: 'Title:'
           }
         ]
       },
       {
-        type: "paragraph",
+        type: 'paragraph',
         content: [
           {
-            type: "text",
+            type: 'text',
             text: title
           }
         ]
       },
       // Description header
       {
-        type: "heading",
-        attrs: { level: 2 },
+        type: 'heading',
+        attrs: {level: 2},
         content: [
           {
-            type: "text",
-            text: "Description:"
+            type: 'text',
+            text: 'Description:'
           }
         ]
       },
       {
-        type: "paragraph",
+        type: 'paragraph',
         content: [
           {
-            type: "text",
+            type: 'text',
             text: description
           }
         ]
       }
-    ];
+    ]
 
     // Add remediation section if present
     if (remediationText || remediationUrl) {
-      content.push(
-        {
-          type: "heading",
-          attrs: { level: 2 },
-          content: [
-            {
-              type: "text",
-              text: "Remediation:"
-            }
-          ]
-        }
-      );
-      
+      content.push({
+        type: 'heading',
+        attrs: {level: 2},
+        content: [
+          {
+            type: 'text',
+            text: 'Remediation:'
+          }
+        ]
+      })
+
       if (remediationUrl) {
         content.push({
-          type: "paragraph",
+          type: 'paragraph',
           content: [
             {
-              type: "text",
+              type: 'text',
               text: remediationUrl
             }
           ]
-        });
+        })
       }
-      
+
       if (remediationText) {
         content.push({
-          type: "paragraph",
+          type: 'paragraph',
           content: [
             {
-              type: "text",
+              type: 'text',
               text: remediationText
             }
           ]
-        });
+        })
       }
     }
 
     // AWS Account section
     content.push(
       {
-        type: "heading",
-        attrs: { level: 2 },
+        type: 'heading',
+        attrs: {level: 2},
         content: [
           {
-            type: "text",
-            text: "AWS Account:"
+            type: 'text',
+            text: 'AWS Account:'
           }
         ]
       },
       {
-        type: "paragraph",
+        type: 'paragraph',
         content: [
           {
-            type: "text",
+            type: 'text',
             text: `${awsAccountId} (${accountAlias})`
           }
         ]
       }
-    );
+    )
 
     // Severity section
     content.push(
       {
-        type: "heading",
-        attrs: { level: 2 },
+        type: 'heading',
+        attrs: {level: 2},
         content: [
           {
-            type: "text",
-            text: "Severity:"
+            type: 'text',
+            text: 'Severity:'
           }
         ]
       },
       {
-        type: "paragraph",
+        type: 'paragraph',
         content: [
           {
-            type: "text",
+            type: 'text',
             text: severity
           }
         ]
       }
-    );
+    )
 
     // Product fields section as table
-    const productSection = this.makeProductFieldSection(finding);
+    const productSection = this.makeProductFieldSection(finding)
     if (productSection.trim()) {
       content.push(
         {
-          type: "heading",
-          attrs: { level: 2 },
+          type: 'heading',
+          attrs: {level: 2},
           content: [
             {
-              type: "text",
-              text: "Product Fields:"
+              type: 'text',
+              text: 'Product Fields:'
             }
           ]
         },
         {
-          type: "table",
+          type: 'table',
           content: [
             {
-              type: "tableRow",
+              type: 'tableRow',
               content: [
                 {
-                  type: "tableHeader",
+                  type: 'tableHeader',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: "Type"
+                          type: 'text',
+                          text: 'Type'
                         }
                       ]
                     }
                   ]
                 },
                 {
-                  type: "tableCell",
+                  type: 'tableCell',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: finding.ProductName || "N/A"
+                          type: 'text',
+                          text: finding.ProductName || 'N/A'
                         }
                       ]
                     }
@@ -856,31 +862,31 @@ export class SecurityHubJiraSync {
               ]
             },
             {
-              type: "tableRow",
+              type: 'tableRow',
               content: [
                 {
-                  type: "tableHeader",
+                  type: 'tableHeader',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: "Product Name"
+                          type: 'text',
+                          text: 'Product Name'
                         }
                       ]
                     }
                   ]
                 },
                 {
-                  type: "tableCell",
+                  type: 'tableCell',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: finding.ProductName || "N/A"
+                          type: 'text',
+                          text: finding.ProductName || 'N/A'
                         }
                       ]
                     }
@@ -889,31 +895,31 @@ export class SecurityHubJiraSync {
               ]
             },
             {
-              type: "tableRow",
+              type: 'tableRow',
               content: [
                 {
-                  type: "tableHeader",
+                  type: 'tableHeader',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: "Provider Name"
+                          type: 'text',
+                          text: 'Provider Name'
                         }
                       ]
                     }
                   ]
                 },
                 {
-                  type: "tableCell",
+                  type: 'tableCell',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: finding.ProviderName || "N/A"
+                          type: 'text',
+                          text: finding.ProviderName || 'N/A'
                         }
                       ]
                     }
@@ -922,31 +928,31 @@ export class SecurityHubJiraSync {
               ]
             },
             {
-              type: "tableRow",
+              type: 'tableRow',
               content: [
                 {
-                  type: "tableHeader",
+                  type: 'tableHeader',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: "Provider Version"
+                          type: 'text',
+                          text: 'Provider Version'
                         }
                       ]
                     }
                   ]
                 },
                 {
-                  type: "tableCell",
+                  type: 'tableCell',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: finding.ProviderVersion || "N/A"
+                          type: 'text',
+                          text: finding.ProviderVersion || 'N/A'
                         }
                       ]
                     }
@@ -955,31 +961,31 @@ export class SecurityHubJiraSync {
               ]
             },
             {
-              type: "tableRow",
+              type: 'tableRow',
               content: [
                 {
-                  type: "tableHeader",
+                  type: 'tableHeader',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: "Company Name"
+                          type: 'text',
+                          text: 'Company Name'
                         }
                       ]
                     }
                   ]
                 },
                 {
-                  type: "tableCell",
+                  type: 'tableCell',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: finding.CompanyName || "N/A"
+                          type: 'text',
+                          text: finding.CompanyName || 'N/A'
                         }
                       ]
                     }
@@ -988,31 +994,31 @@ export class SecurityHubJiraSync {
               ]
             },
             {
-              type: "tableRow",
+              type: 'tableRow',
               content: [
                 {
-                  type: "tableHeader",
+                  type: 'tableHeader',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: "CVE"
+                          type: 'text',
+                          text: 'CVE'
                         }
                       ]
                     }
                   ]
                 },
                 {
-                  type: "tableCell",
+                  type: 'tableCell',
                   content: [
                     {
-                      type: "paragraph",
+                      type: 'paragraph',
                       content: [
                         {
-                          type: "text",
-                          text: finding.CVE || "N/A"
+                          type: 'text',
+                          text: finding.CVE || 'N/A'
                         }
                       ]
                     }
@@ -1022,104 +1028,104 @@ export class SecurityHubJiraSync {
             }
           ]
         } as any
-      );
+      )
     }
 
     // Resources section as table
     content.push(
       {
-        type: "heading",
-        attrs: { level: 2 },
+        type: 'heading',
+        attrs: {level: 2},
         content: [
           {
-            type: "text",
-            text: "Resources:"
+            type: 'text',
+            text: 'Resources:'
           }
         ]
       },
       {
-        type: "paragraph",
+        type: 'paragraph',
         content: [
           {
-            type: "text",
-            text: "Following are the resources with their corresponding finding url that were non-compliant at the time of the issue creation"
+            type: 'text',
+            text: 'Following are the resources with their corresponding finding url that were non-compliant at the time of the issue creation'
           }
         ]
       }
-    );
+    )
 
     // Create resources table
     if (finding.Resources && finding.Resources.length > 0) {
       const resourceTableContent: any[] = [
         // Header row
         {
-          type: "tableRow",
+          type: 'tableRow',
           content: [
             {
-              type: "tableHeader",
+              type: 'tableHeader',
               content: [
                 {
-                  type: "paragraph",
+                  type: 'paragraph',
                   content: [
                     {
-                      type: "text",
-                      text: "Resource Id"
+                      type: 'text',
+                      text: 'Resource Id'
                     }
                   ]
                 }
               ]
             },
             {
-              type: "tableHeader",
+              type: 'tableHeader',
               content: [
                 {
-                  type: "paragraph",
+                  type: 'paragraph',
                   content: [
                     {
-                      type: "text",
-                      text: "Partition"
+                      type: 'text',
+                      text: 'Partition'
                     }
                   ]
                 }
               ]
             },
             {
-              type: "tableHeader",
+              type: 'tableHeader',
               content: [
                 {
-                  type: "paragraph",
+                  type: 'paragraph',
                   content: [
                     {
-                      type: "text",
-                      text: "Region"
+                      type: 'text',
+                      text: 'Region'
                     }
                   ]
                 }
               ]
             },
             {
-              type: "tableHeader",
+              type: 'tableHeader',
               content: [
                 {
-                  type: "paragraph",
+                  type: 'paragraph',
                   content: [
                     {
-                      type: "text",
-                      text: "Type"
+                      type: 'text',
+                      text: 'Type'
                     }
                   ]
                 }
               ]
             },
             {
-              type: "tableHeader",
+              type: 'tableHeader',
               content: [
                 {
-                  type: "paragraph",
+                  type: 'paragraph',
                   content: [
                     {
-                      type: "text",
-                      text: "Finding URL"
+                      type: 'text',
+                      text: 'Finding URL'
                     }
                   ]
                 }
@@ -1127,27 +1133,28 @@ export class SecurityHubJiraSync {
             }
           ]
         }
-      ];
+      ]
 
       // Add resource rows
       finding.Resources.forEach((resource: any) => {
-        const resourceId = resource.Id || "N/A";
-        const partition = resource.Partition || "aws";
-        const region = resource.Region || "N/A";
-        const type = resource.Type || "N/A";
-        const findingUrl = this.createSecurityHubFindingUrlThroughFilters(resource.Id) || "N/A";
+        const resourceId = resource.Id || 'N/A'
+        const partition = resource.Partition || 'aws'
+        const region = resource.Region || 'N/A'
+        const type = resource.Type || 'N/A'
+        const findingUrl =
+          this.createSecurityHubFindingUrlThroughFilters(resource.Id) || 'N/A'
 
         resourceTableContent.push({
-          type: "tableRow",
+          type: 'tableRow',
           content: [
             {
-              type: "tableCell",
+              type: 'tableCell',
               content: [
                 {
-                  type: "paragraph",
+                  type: 'paragraph',
                   content: [
                     {
-                      type: "text",
+                      type: 'text',
                       text: String(resourceId)
                     }
                   ]
@@ -1155,13 +1162,13 @@ export class SecurityHubJiraSync {
               ]
             },
             {
-              type: "tableCell",
+              type: 'tableCell',
               content: [
                 {
-                  type: "paragraph",
+                  type: 'paragraph',
                   content: [
                     {
-                      type: "text",
+                      type: 'text',
                       text: String(partition)
                     }
                   ]
@@ -1169,13 +1176,13 @@ export class SecurityHubJiraSync {
               ]
             },
             {
-              type: "tableCell",
+              type: 'tableCell',
               content: [
                 {
-                  type: "paragraph",
+                  type: 'paragraph',
                   content: [
                     {
-                      type: "text",
+                      type: 'text',
                       text: String(region)
                     }
                   ]
@@ -1183,13 +1190,13 @@ export class SecurityHubJiraSync {
               ]
             },
             {
-              type: "tableCell",
+              type: 'tableCell',
               content: [
                 {
-                  type: "paragraph",
+                  type: 'paragraph',
                   content: [
                     {
-                      type: "text",
+                      type: 'text',
                       text: String(type)
                     }
                   ]
@@ -1197,13 +1204,13 @@ export class SecurityHubJiraSync {
               ]
             },
             {
-              type: "tableCell",
+              type: 'tableCell',
               content: [
                 {
-                  type: "paragraph",
+                  type: 'paragraph',
                   content: [
                     {
-                      type: "text",
+                      type: 'text',
                       text: String(findingUrl)
                     }
                   ]
@@ -1211,48 +1218,48 @@ export class SecurityHubJiraSync {
               ]
             }
           ]
-        });
-      });
+        })
+      })
 
       content.push({
-        type: "table",
+        type: 'table',
         content: resourceTableContent
-      } as any);
+      } as any)
     }
 
     content.push(
       {
-        type: "paragraph",
+        type: 'paragraph',
         content: [
           {
-            type: "text",
-            text: "To check the latest list of resources, kindly refer to the finding url"
+            type: 'text',
+            text: 'To check the latest list of resources, kindly refer to the finding url'
           }
         ]
       },
       // AC section
       {
-        type: "heading",
-        attrs: { level: 2 },
+        type: 'heading',
+        attrs: {level: 2},
         content: [
           {
-            type: "text",
-            text: "AC:"
+            type: 'text',
+            text: 'AC:'
           }
         ]
       },
       {
-        type: "bulletList",
+        type: 'bulletList',
         content: [
           {
-            type: "listItem",
+            type: 'listItem',
             content: [
               {
-                type: "paragraph",
+                type: 'paragraph',
                 content: [
                   {
-                    type: "text",
-                    text: "All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed. (Note: this ticket will automatically close when the AC is met.)"
+                    type: 'text',
+                    text: 'All findings of this type are resolved or suppressed, indicated by a Workflow Status of Resolved or Suppressed. (Note: this ticket will automatically close when the AC is met.)'
                   }
                 ]
               }
@@ -1260,13 +1267,13 @@ export class SecurityHubJiraSync {
           }
         ]
       }
-    );
+    )
 
     return {
-      type: "doc",
+      type: 'doc',
       version: 1,
       content
-    };
+    }
   }
 
   createSecurityHubFindingUrl(standardsControlArn = '') {
@@ -1326,14 +1333,16 @@ export class SecurityHubJiraSync {
             )
           }
         } else {
-          if(field == "CVE") {
-            const cveValue = (finding.CVE ?? '')
-            if(cveValue.split(',').length > 1) {
+          if (field == 'CVE') {
+            const cveValue = finding.CVE ?? ''
+            if (cveValue.split(',').length > 1) {
               labels.push(`multi-cve`)
             } else {
-              labels.push(`${labelPrefix}${delimiter}${cveValue.trim().replace(/ /g, '')}`)
-            } 
-          }else {
+              labels.push(
+                `${labelPrefix}${delimiter}${cveValue.trim().replace(/ /g, '')}`
+              )
+            }
+          } else {
             const value = (finding[field] ?? '')
               .toString()
               .trim()
@@ -1397,12 +1406,14 @@ export class SecurityHubJiraSync {
       try {
         newIssueInfo = await this.jira.createNewIssue(newIssueData)
       } catch (createError: unknown) {
-        this.createIssueErrors++;
+        this.createIssueErrors++
         // Log the error for visibility
-        const errorMsg = extractErrorMessage(createError);
-        console.error(`Error creating Jira issue for finding "${finding.title}": ${errorMsg}`);
+        const errorMsg = extractErrorMessage(createError)
+        console.error(
+          `Error creating Jira issue for finding "${finding.title}": ${errorMsg}`
+        )
         // Re-throw to potentially fail the action if creation fails
-        throw new Error(`Failed to create Jira issue: ${errorMsg}`);
+        throw new Error(`Failed to create Jira issue: ${errorMsg}`)
       }
 
       // Link the issue if a link ID is provided
@@ -1416,12 +1427,14 @@ export class SecurityHubJiraSync {
             issue_id,
             linkType,
             linkDirection
-          );
+          )
         } catch (linkError: unknown) {
-          this.linkIssueErrors++;
-          const errorMsg = extractErrorMessage(linkError);
+          this.linkIssueErrors++
+          const errorMsg = extractErrorMessage(linkError)
           // Log the error for easier debugging, but don't re-throw
-          console.error(`Error linking issue ${newIssueInfo.key} to ${issue_id}: ${errorMsg}`);
+          console.error(
+            `Error linking issue ${newIssueInfo.key} to ${issue_id}: ${errorMsg}`
+          )
         }
       }
     } catch (e: unknown) {
@@ -1430,7 +1443,7 @@ export class SecurityHubJiraSync {
       // If createNewIssue failed, newIssueInfo would be undefined, so linking wouldn't be attempted.
       throw new Error(
         `Error during Jira issue creation process for finding "${finding.title}": ${extractErrorMessage(e)}`
-      );
+      )
     }
     return {
       action: 'created',

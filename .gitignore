@@ -2,3 +2,6 @@ node_modules
 .secrets
 .env
 .vscode
+graphify-out/
+.graphify*
+
