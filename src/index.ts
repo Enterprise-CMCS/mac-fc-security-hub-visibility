@@ -3,7 +3,7 @@ import {
   SecurityHubJiraSync,
   SecurityHubJiraSyncConfig
 } from './macfc-security-hub-sync'
-import {JiraConfig, CustomFields} from './libs/jira-lib'
+import {JiraConfig, CustomFields, resolveJiraApiVersion} from './libs/jira-lib'
 import {GlobalFindingsJiraSync} from './global-findings-jira-sync'
 import {SnowflakeAuthenticator} from './libs/snowflake-lib'
 import {extractErrorMessage} from './libs/error-lib'
@@ -148,13 +148,28 @@ async function run(): Promise<void> {
       }
     }
     const transitionMap = parseAndValidateTransitionMap(transitionMapStr)
+    const jiraBaseURI = getDefaultInputOrEnv(
+      'jira-base-uri',
+      'JIRA_BASE_URI',
+      'https://jiraent.cms.gov'
+    )
+    const configuredJiraApiVersion = getDefaultInputOrEnv(
+      'jira-api-version',
+      'JIRA_API_VERSION',
+      '3'
+    )
+    const jiraApiVersion = resolveJiraApiVersion(
+      jiraBaseURI,
+      configuredJiraApiVersion
+    )
+    if (jiraApiVersion !== configuredJiraApiVersion) {
+      core.warning(
+        `Ignoring Jira API v${configuredJiraApiVersion} for Atlassian Cloud; using Jira API v3.`
+      )
+    }
 
     const jiraConfig: JiraConfig = {
-      jiraBaseURI: getDefaultInputOrEnv(
-        'jira-base-uri',
-        'JIRA_BASE_URI',
-        'https://jiraent.cms.gov'
-      ),
+      jiraBaseURI,
       jiraUsername: getRequiredInputOrEnv('jira-username', 'JIRA_USERNAME'),
       jiraToken: getRequiredInputOrEnv('jira-token', 'JIRA_TOKEN'),
       jiraProjectKey: getRequiredInputOrEnv('jira-project-key', 'JIRA_PROJECT'),
@@ -237,11 +252,7 @@ async function run(): Promise<void> {
         'JIRA_DUEDATE_FIELD',
         ''
       ),
-      jiraApiVersion: getDefaultInputOrEnv(
-        'jira-api-version',
-        'JIRA_API_VERSION',
-        '3'
-      )
+      jiraApiVersion
     }
 
     const findingSource = getDefaultInputOrEnv(

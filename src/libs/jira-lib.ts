@@ -218,6 +218,22 @@ function handleAxiosError(error: unknown): string {
   return `${extractErrorMessage(error)}`
 }
 
+export function resolveJiraApiVersion(
+  jiraBaseURI: string,
+  configuredVersion?: string
+): string {
+  const requestedVersion = configuredVersion || '3'
+  try {
+    const hostname = new URL(jiraBaseURI).hostname.toLowerCase()
+    if (hostname === 'atlassian.net' || hostname.endsWith('.atlassian.net')) {
+      return '3'
+    }
+  } catch {
+    // Preserve existing validation/error behavior for malformed base URLs.
+  }
+  return requestedVersion
+}
+
 export class Jira {
   private jiraBaseURI: string
   private jiraProject: string
@@ -270,18 +286,24 @@ export class Jira {
 
     // Initialize the due date field, defaulting to ''
     this.jiraDueDateField = jiraConfig.jiraDueDateField || ''
-    // Set API version, defaulting to 'v3'
-    this.apiVersion = jiraConfig.jiraApiVersion || ''
+    this.apiVersion = resolveJiraApiVersion(
+      jiraConfig.jiraBaseURI,
+      jiraConfig.jiraApiVersion
+    )
 
     this.axiosInstance = axios.create({
       baseURL: jiraConfig.jiraBaseURI,
       headers: {
-        Authorization: jiraConfig.jiraBaseURI.includes('atlassian')
-          ? 'Basic ' +
-            Buffer.from(
-              `${jiraConfig.jiraUsername}:${jiraConfig.jiraToken}`
-            ).toString('base64')
-          : `Bearer ${jiraConfig.jiraToken}`,
+        Authorization:
+          this.apiVersion === '3' &&
+          new URL(jiraConfig.jiraBaseURI).hostname
+            .toLowerCase()
+            .endsWith('.atlassian.net')
+            ? 'Basic ' +
+              Buffer.from(
+                `${jiraConfig.jiraUsername}:${jiraConfig.jiraToken}`
+              ).toString('base64')
+            : `Bearer ${jiraConfig.jiraToken}`,
         'Content-Type': 'application/json'
       }
     })

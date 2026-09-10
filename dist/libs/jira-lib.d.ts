@@ -88,6 +88,7 @@ export interface ADFNode {
     content?: ADFNode[];
 }
 export declare function getDescriptionText(issue: Issue): string;
+export declare function resolveJiraApiVersion(jiraBaseURI: string, configuredVersion?: string): string;
 export declare class Jira {
     private jiraBaseURI;
     private jiraProject;
