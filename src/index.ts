@@ -3,12 +3,12 @@ import {
   SecurityHubJiraSync,
   SecurityHubJiraSyncConfig
 } from './macfc-security-hub-sync'
-import {JiraConfig, CustomFields, resolveJiraApiVersion} from './libs/jira-lib'
-import {GlobalFindingsJiraSync} from './global-findings-jira-sync'
-import {SnowflakeAuthenticator} from './libs/snowflake-lib'
-import {extractErrorMessage} from './libs/error-lib'
+import { JiraConfig, CustomFields, resolveJiraApiVersion } from './libs/jira-lib'
+import { GlobalFindingsJiraSync } from './global-findings-jira-sync'
+import { SnowflakeAuthenticator } from './libs/snowflake-lib'
+import { extractErrorMessage } from './libs/error-lib'
 
-export {extractErrorMessage} from './libs/error-lib'
+export { extractErrorMessage } from './libs/error-lib'
 
 // Utility function to get input with fallback to environment variable, can return undefined
 function getInputOrEnv(inputName: string, envName: string): string | undefined {
@@ -96,7 +96,7 @@ function parseNonNegativeInteger(value: string, inputName: string): number {
 
 function parseAndValidateTransitionMap(
   transitionMapStr: string | undefined
-): Array<{status: string; transition: string}> {
+): Array<{ status: string; transition: string }> {
   if (!transitionMapStr) {
     return [] // Defaults to wildcard status and transition of 'DONE' if no map is provided
   }
@@ -111,7 +111,7 @@ function parseAndValidateTransitionMap(
       )
     }
 
-    return {status, transition}
+    return { status, transition }
   })
 
   // Check for the presence of a wildcard transition and validate its uniqueness
@@ -394,7 +394,7 @@ async function run(): Promise<void> {
 
     // Construct the JQL
     const jqlQuery = `issueKey in ( ${resultUpdates
-      .map(({webUrl: url}) => {
+      .map(({ webUrl: url }) => {
         const regex = /\/browse\/([A-Z]+-\d+)/
         const match = url.match(regex)
         return match ? match[1] : '' // Returns the issue key or an empty string
@@ -413,7 +413,7 @@ async function run(): Promise<void> {
       'updates',
       resultUpdates
         .filter(update => update.action == 'created')
-        .map(({webUrl}) => {
+        .map(({ webUrl }) => {
           return webUrl
         })
         .join(',')
@@ -443,13 +443,11 @@ async function run(): Promise<void> {
     // log into console also
     core.info(
       `Jira URL: ${jiraUrl} \n` +
-        `Total Issues: ${resultUpdates.length} \n` +
-        `Created Issues: ${
-          resultUpdates.filter(update => update.action == 'created').length
-        } \n` +
-        `Closed Issues: ${
-          resultUpdates.filter(update => update.action == 'closed').length
-        }`
+      `Total Issues: ${resultUpdates.length} \n` +
+      `Created Issues: ${resultUpdates.filter(update => update.action == 'created').length
+      } \n` +
+      `Closed Issues: ${resultUpdates.filter(update => update.action == 'closed').length
+      }`
     )
   } catch (error: unknown) {
     core.setFailed(`Sync failed: ${extractErrorMessage(error)}`)
