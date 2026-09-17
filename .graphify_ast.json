@@ -1,0 +1,1904 @@
+{
+  "nodes": [
+    {
+      "id": "src_macfc_security_hub_sync_ts",
+      "label": "macfc-security-hub-sync.ts",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_updateforreturn",
+      "label": "UpdateForReturn",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L16"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_generalobj",
+      "label": "GeneralObj",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L21"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasyncconfig",
+      "label": "SecurityHubJiraSyncConfig",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L25"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync",
+      "label": "SecurityHubJiraSync",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L41"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L63"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_consolidatetickets",
+      "label": ".consolidateTickets()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L96"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_aresamelists",
+      "label": ".areSameLists()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L122"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_isalreadyinnew",
+      "label": ".isAlreadyInNew()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L138"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_isnewfinding",
+      "label": ".isNewFinding()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L155"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_sync",
+      "label": ".sync()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L170"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_getawsaccountid",
+      "label": ".getAWSAccountID()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L305"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_shouldcloseticket",
+      "label": ".shouldCloseTicket()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L328"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_closeissuesforresolvedfindings",
+      "label": ".closeIssuesForResolvedFindings()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L354"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_makeresourcelist",
+      "label": ".makeResourceList()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L457"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_makeproductfieldsection",
+      "label": ".makeProductFieldSection()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L473"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_createsecurityhubfindingurlthroughfilters",
+      "label": ".createSecurityHubFindingUrlThroughFilters()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L485"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_createfindingurlsection",
+      "label": ".createFindingUrlSection()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L540"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_createissuebody",
+      "label": ".createIssueBody()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L549"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_createsecurityhubfindingurl",
+      "label": ".createSecurityHubFindingUrl()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1279"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_createlabels",
+      "label": ".createLabels()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1314"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_createjiraissuefromfinding",
+      "label": ".createJiraIssueFromFinding()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1358"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_shouldcreateissue",
+      "label": ".shouldCreateIssue()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1454"
+    },
+    {
+      "id": "src_macfc_security_hub_sync_securityhubjirasync_createjiraissuesfornewfindings",
+      "label": ".createJiraIssuesForNewFindings()",
+      "file_type": "code",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1483"
+    },
+    {
+      "id": "src_libs_jira_lib_ts",
+      "label": "jira-lib.ts",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1"
+    },
+    {
+      "id": "libs_jira_lib_jiraconfig",
+      "label": "JiraConfig",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L8"
+    },
+    {
+      "id": "libs_jira_lib_labelconfig",
+      "label": "LabelConfig",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L39"
+    },
+    {
+      "id": "libs_jira_lib_customfields",
+      "label": "CustomFields",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L45"
+    },
+    {
+      "id": "libs_jira_lib_issuetype",
+      "label": "IssueType",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L49"
+    },
+    {
+      "id": "libs_jira_lib_priorityfield",
+      "label": "PriorityField",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L53"
+    },
+    {
+      "id": "libs_jira_lib_issuefields",
+      "label": "IssueFields",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L58"
+    },
+    {
+      "id": "libs_jira_lib_newissuedata",
+      "label": "NewIssueData",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L73"
+    },
+    {
+      "id": "libs_jira_lib_issue",
+      "label": "Issue",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L77"
+    },
+    {
+      "id": "libs_jira_lib_transition",
+      "label": "Transition",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L83"
+    },
+    {
+      "id": "libs_jira_lib_adfnode",
+      "label": "ADFNode",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L90"
+    },
+    {
+      "id": "libs_jira_lib_adftotext",
+      "label": "adfToText()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L100"
+    },
+    {
+      "id": "libs_jira_lib_getdescriptiontext",
+      "label": "getDescriptionText()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L135"
+    },
+    {
+      "id": "libs_jira_lib_enhanceissuewithdescriptiontext",
+      "label": "enhanceIssueWithDescriptionText()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L147"
+    },
+    {
+      "id": "libs_jira_lib_enhanceissueswithdescriptiontext",
+      "label": "enhanceIssuesWithDescriptionText()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L158"
+    },
+    {
+      "id": "libs_jira_lib_texttoadf",
+      "label": "textToAdf()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L162"
+    },
+    {
+      "id": "libs_jira_lib_handleaxioserror",
+      "label": "handleAxiosError()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L191"
+    },
+    {
+      "id": "libs_jira_lib_jira",
+      "label": "Jira",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L221"
+    },
+    {
+      "id": "libs_jira_lib_jira_constructor",
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L239"
+    },
+    {
+      "id": "libs_jira_lib_jira_getapipath",
+      "label": ".getApiPath()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L326"
+    },
+    {
+      "id": "libs_jira_lib_jira_getcurrentuser",
+      "label": ".getCurrentUser()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L330"
+    },
+    {
+      "id": "libs_jira_lib_jira_getissue",
+      "label": ".getIssue()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L338"
+    },
+    {
+      "id": "libs_jira_lib_jira_getcurrentstatus",
+      "label": ".getCurrentStatus()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L350"
+    },
+    {
+      "id": "libs_jira_lib_jira_getissuetransitions",
+      "label": ".getIssueTransitions()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L359"
+    },
+    {
+      "id": "libs_jira_lib_jira_transitionissuebyname",
+      "label": ".transitionIssueByName()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L381"
+    },
+    {
+      "id": "libs_jira_lib_jira_transitionissuebyid",
+      "label": ".transitionIssueById()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L431"
+    },
+    {
+      "id": "libs_jira_lib_jira_adduseraswatcher",
+      "label": ".addUserAsWatcher()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L469"
+    },
+    {
+      "id": "libs_jira_lib_jira_removecurrentuseraswatcher",
+      "label": ".removeCurrentUserAsWatcher()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L506"
+    },
+    {
+      "id": "libs_jira_lib_jira_formatlabelquery",
+      "label": ".formatLabelQuery()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L545"
+    },
+    {
+      "id": "libs_jira_lib_jira_getallmanagedissuesinjiraproject",
+      "label": ".getAllManagedIssuesInJiraProject()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L549"
+    },
+    {
+      "id": "libs_jira_lib_jira_createsearchlabels",
+      "label": ".createSearchLabels()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L634"
+    },
+    {
+      "id": "libs_jira_lib_jira_getallsecurityhubissuesinjiraproject",
+      "label": ".getAllSecurityHubIssuesInJiraProject()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L686"
+    },
+    {
+      "id": "libs_jira_lib_jira_getcisaduedate",
+      "label": ".getCisaDueDate()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L796"
+    },
+    {
+      "id": "libs_jira_lib_jira_createnewissue",
+      "label": ".createNewIssue()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L826"
+    },
+    {
+      "id": "libs_jira_lib_jira_linkissues",
+      "label": ".linkIssues()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L945"
+    },
+    {
+      "id": "libs_jira_lib_jira_updateissuetitlebyid",
+      "label": ".updateIssueTitleById()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L984"
+    },
+    {
+      "id": "libs_jira_lib_jira_addcommenttoissuebyid",
+      "label": ".addCommentToIssueById()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1003"
+    },
+    {
+      "id": "libs_jira_lib_jira_getnexttransition",
+      "label": ".getNextTransition()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1055"
+    },
+    {
+      "id": "libs_jira_lib_jira_applywildcardtransition",
+      "label": ".applyWildcardTransition()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1071"
+    },
+    {
+      "id": "libs_jira_lib_jira_closeissueusingtransitionmap",
+      "label": ".closeIssueUsingTransitionMap()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1087"
+    },
+    {
+      "id": "libs_jira_lib_jira_completeworkflow",
+      "label": ".completeWorkflow()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1129"
+    },
+    {
+      "id": "libs_jira_lib_jira_closeissue",
+      "label": ".closeIssue()",
+      "file_type": "code",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1199"
+    }
+  ],
+  "edges": [
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "src_libs_error_lib_ts",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "libs_error_lib_extracterrormessage",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "src_libs_index_ts",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "libs_index_jira",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "libs_index_securityhub",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "libs_index_securityhubfinding",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "src_libs_jira_lib_ts",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "libs_jira_lib_issue",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "libs_jira_lib_newissuedata",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "libs_jira_lib_customfields",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "libs_jira_lib_jiraconfig",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "libs_jira_lib_labelconfig",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "client_sts",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L10",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "client_securityhub",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L11",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "src_libs_index_ts",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "libs_index_resource",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "src_macfc_security_hub_sync_updateforreturn",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "src_macfc_security_hub_sync_generalobj",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "src_macfc_security_hub_sync_securityhubjirasyncconfig",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L25",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "src_macfc_security_hub_sync_securityhubjirasyncconfig",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_ts",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L41",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L63",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_consolidatetickets",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_aresamelists",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L122",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_isalreadyinnew",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L138",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_isnewfinding",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L155",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_sync",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L170",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_getawsaccountid",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L305",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_shouldcloseticket",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L328",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_closeissuesforresolvedfindings",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L354",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_makeresourcelist",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L457",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_makeproductfieldsection",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L473",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_createsecurityhubfindingurlthroughfilters",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L485",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_createfindingurlsection",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L540",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_createissuebody",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L549",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_createsecurityhubfindingurl",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1279",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_createlabels",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1314",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_createjiraissuefromfinding",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1358",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_shouldcreateissue",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1454",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_createjiraissuesfornewfindings",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1483",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync_sync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_getawsaccountid",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L173",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync_sync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_closeissuesforresolvedfindings",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L275",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync_sync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_consolidatetickets",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L283",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync_sync",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_createjiraissuesfornewfindings",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L289",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync_closeissuesforresolvedfindings",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_shouldcloseticket",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L390",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync_createissuebody",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_makeproductfieldsection",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L607",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync_createissuebody",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_makeresourcelist",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L611",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync_createjiraissuefromfinding",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_createissuebody",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1372",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync_createjiraissuefromfinding",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_createlabels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1390",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync_createjiraissuesfornewfindings",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_shouldcreateissue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1495",
+      "weight": 1.0
+    },
+    {
+      "source": "src_macfc_security_hub_sync_securityhubjirasync_createjiraissuesfornewfindings",
+      "target": "src_macfc_security_hub_sync_securityhubjirasync_createjiraissuefromfinding",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/macfc-security-hub-sync.ts",
+      "source_location": "L1497",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "dotenv",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "axios",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "axios_retry",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "src_libs_error_lib_ts",
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_error_lib_extracterrormessage",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_jiraconfig",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_labelconfig",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_customfields",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_issuetype",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L49",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_priorityfield",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L53",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_issuefields",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L58",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_newissuedata",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L73",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_issue",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L77",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_transition",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_adfnode",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L90",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_adftotext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L100",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_getdescriptiontext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L135",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_enhanceissuewithdescriptiontext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L147",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_enhanceissueswithdescriptiontext",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L158",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_texttoadf",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L162",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L191",
+      "weight": 1.0
+    },
+    {
+      "source": "src_libs_jira_lib_ts",
+      "target": "libs_jira_lib_jira",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L221",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_constructor",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L239",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L326",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_getcurrentuser",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L330",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_getissue",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L338",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_getcurrentstatus",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L350",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_getissuetransitions",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L359",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_transitionissuebyname",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L381",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_transitionissuebyid",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L431",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_adduseraswatcher",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L469",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_removecurrentuseraswatcher",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L506",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_formatlabelquery",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L545",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_getallmanagedissuesinjiraproject",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L549",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_createsearchlabels",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L634",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_createsearchlabels",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L660",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_getallsecurityhubissuesinjiraproject",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L686",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_getcisaduedate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L796",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_createnewissue",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L826",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_linkissues",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L945",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_updateissuetitlebyid",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L984",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_addcommenttoissuebyid",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1003",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_getnexttransition",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1055",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_applywildcardtransition",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1071",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_closeissueusingtransitionmap",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1087",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_completeworkflow",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1129",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira",
+      "target": "libs_jira_lib_jira_closeissue",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1199",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_getdescriptiontext",
+      "target": "libs_jira_lib_adftotext",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L144",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_enhanceissuewithdescriptiontext",
+      "target": "libs_jira_lib_getdescriptiontext",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L150",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getcurrentuser",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L332",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getcurrentuser",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L335",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getissue",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L341",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getissue",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L346",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getcurrentstatus",
+      "target": "libs_jira_lib_jira_getissue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L352",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getcurrentstatus",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L355",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getissuetransitions",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L362",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getissuetransitions",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L377",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_transitionissuebyname",
+      "target": "libs_jira_lib_jira_getissuetransitions",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L392",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_transitionissuebyname",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L410",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_transitionissuebyname",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L427",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_transitionissuebyid",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L448",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_transitionissuebyid",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L465",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_adduseraswatcher",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L483",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_adduseraswatcher",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L503",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_removecurrentuseraswatcher",
+      "target": "libs_jira_lib_jira_getcurrentuser",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L508",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_removecurrentuseraswatcher",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L531",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_removecurrentuseraswatcher",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L540",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getallmanagedissuesinjiraproject",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L588",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getallmanagedissuesinjiraproject",
+      "target": "libs_jira_lib_enhanceissueswithdescriptiontext",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L593",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getallmanagedissuesinjiraproject",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L598",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getallsecurityhubissuesinjiraproject",
+      "target": "libs_jira_lib_jira_createsearchlabels",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L695",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getallsecurityhubissuesinjiraproject",
+      "target": "libs_jira_lib_jira_formatlabelquery",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L709",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getallsecurityhubissuesinjiraproject",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L741",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getallsecurityhubissuesinjiraproject",
+      "target": "libs_jira_lib_enhanceissueswithdescriptiontext",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L746",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_getallsecurityhubissuesinjiraproject",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L753",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_createnewissue",
+      "target": "libs_jira_lib_jira_getcisaduedate",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L835",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_createnewissue",
+      "target": "libs_jira_lib_texttoadf",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L887",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_createnewissue",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L917",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_createnewissue",
+      "target": "libs_jira_lib_jira_removecurrentuseraswatcher",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L921",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_createnewissue",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L942",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_linkissues",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L972",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_updateissuetitlebyid",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L995",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_updateissuetitlebyid",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1000",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_addcommenttoissuebyid",
+      "target": "libs_jira_lib_texttoadf",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1016",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_addcommenttoissuebyid",
+      "target": "libs_jira_lib_adftotext",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1035",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_addcommenttoissuebyid",
+      "target": "libs_jira_lib_jira_getapipath",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1043",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_addcommenttoissuebyid",
+      "target": "libs_jira_lib_jira_removecurrentuseraswatcher",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1048",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_addcommenttoissuebyid",
+      "target": "libs_jira_lib_handleaxioserror",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1051",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_applywildcardtransition",
+      "target": "libs_jira_lib_jira_transitionissuebyname",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1080",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_closeissueusingtransitionmap",
+      "target": "libs_jira_lib_jira_applywildcardtransition",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1094",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_closeissueusingtransitionmap",
+      "target": "libs_jira_lib_jira_getcurrentstatus",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1107",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_closeissueusingtransitionmap",
+      "target": "libs_jira_lib_jira_transitionissuebyname",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1120",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_completeworkflow",
+      "target": "libs_jira_lib_jira_getissue",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1149",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_completeworkflow",
+      "target": "libs_jira_lib_jira_getissuetransitions",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1153",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_completeworkflow",
+      "target": "libs_jira_lib_jira_transitionissuebyid",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1181",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_closeissue",
+      "target": "libs_jira_lib_jira_getissuetransitions",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1202",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_closeissue",
+      "target": "libs_jira_lib_jira_closeissueusingtransitionmap",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1210",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_closeissue",
+      "target": "libs_jira_lib_jira_completeworkflow",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1213",
+      "weight": 1.0
+    },
+    {
+      "source": "libs_jira_lib_jira_closeissue",
+      "target": "libs_jira_lib_jira_transitionissuebyname",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "src/libs/jira-lib.ts",
+      "source_location": "L1232",
+      "weight": 1.0
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}
