@@ -1,1 +1,1 @@
-export declare function extractErrorMessage(error: unknown): string;
+export { extractErrorMessage } from './libs/error-lib';
