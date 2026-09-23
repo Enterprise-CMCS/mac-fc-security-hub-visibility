@@ -1,5 +1,5 @@
-import {extractErrorMessage} from './libs/error-lib'
-import {Jira, SecurityHub, SecurityHubFinding} from './libs'
+import { extractErrorMessage } from './libs/error-lib'
+import { Jira, SecurityHub, SecurityHubFinding } from './libs'
 import {
   Issue,
   NewIssueData,
@@ -7,11 +7,11 @@ import {
   JiraConfig,
   LabelConfig
 } from './libs/jira-lib'
-import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts'
-import {AwsSecurityFinding} from '@aws-sdk/client-securityhub'
-import {Resource} from './libs'
+import { STSClient, GetCallerIdentityCommand } from '@aws-sdk/client-sts'
+import { AwsSecurityFinding } from '@aws-sdk/client-securityhub'
+import { Resource } from './libs'
 
-export type {LabelConfig} from './libs/jira-lib'
+export type { LabelConfig } from './libs/jira-lib'
 
 interface UpdateForReturn {
   action: string
@@ -183,8 +183,8 @@ export class SecurityHubJiraSync {
     )
     const shFindingsObj = this.testFindings.length
       ? this.testFindings.map((finding: AwsSecurityFinding) =>
-          this.securityHub.awsSecurityFindingToSecurityHubFinding(finding)
-        )
+        this.securityHub.awsSecurityFindingToSecurityHubFinding(finding)
+      )
       : await this.securityHub.getAllActiveFindings()
     const shFindings = Object.values(shFindingsObj).map(finding => {
       finding.Resources = (finding.Resources ?? []).map(r => {
@@ -233,7 +233,7 @@ export class SecurityHubJiraSync {
 
           if (shouldConsolidate) {
             if (!consolidatedFinding) {
-              consolidatedFinding = {...finding}
+              consolidatedFinding = { ...finding }
             } else {
               consolidatedFinding.Resources = [
                 ...(consolidatedFinding.Resources ?? []),
@@ -439,8 +439,7 @@ export class SecurityHubJiraSync {
               )
             } catch (e) {
               console.log(
-                `Title of ISSUE with id ${
-                  jiraIssues[i].id
+                `Title of ISSUE with id ${jiraIssues[i].id
                 } is not changed with error: ${JSON.stringify(e)}`
               )
             }
@@ -458,11 +457,11 @@ export class SecurityHubJiraSync {
     if (!resources) {
       return `No Resources`
     }
-    const maxLength = Math.max(...resources.map(({Id}) => Id?.length || 0))
+    const maxLength = Math.max(...resources.map(({ Id }) => Id?.length || 0))
     const title = 'Resource Id'.padEnd(maxLength + maxLength / 2 + 4)
 
     let Table = `${title}| Partition   | Region     | Type    \n`
-    resources.forEach(({Id, Partition, Region, Type, link}) => {
+    resources.forEach(({ Id, Partition, Region, Type, link }) => {
       Table += `${Id?.padEnd(maxLength + 2)}| ${(Partition ?? '').padEnd(11)} | ${(Region ?? '').padEnd(9)} | ${Type ?? ''} | [FindingURL | ${link}] \n`
     })
 
@@ -587,8 +586,7 @@ export class SecurityHubJiraSync {
 
       ${description}
 
-      ${
-        remediationText || remediationUrl
+      ${remediationText || remediationUrl
           ? `
       h2. Remediation:
 
@@ -596,7 +594,7 @@ export class SecurityHubJiraSync {
       ${remediationText}
         `
           : ''
-      }
+        }
 
       h2. AWS Account:
       ${awsAccountId} (${accountAlias})
@@ -629,7 +627,7 @@ export class SecurityHubJiraSync {
           {
             type: 'text',
             text: 'This issue was generated from Security Hub data and is managed through automation.',
-            marks: [{type: 'strong'}]
+            marks: [{ type: 'strong' }]
           }
         ]
       },
@@ -658,7 +656,7 @@ export class SecurityHubJiraSync {
       // Type of Issue header
       {
         type: 'heading',
-        attrs: {level: 2},
+        attrs: { level: 2 },
         content: [
           {
             type: 'text',
@@ -688,7 +686,7 @@ export class SecurityHubJiraSync {
       // Title header
       {
         type: 'heading',
-        attrs: {level: 2},
+        attrs: { level: 2 },
         content: [
           {
             type: 'text',
@@ -708,7 +706,7 @@ export class SecurityHubJiraSync {
       // Description header
       {
         type: 'heading',
-        attrs: {level: 2},
+        attrs: { level: 2 },
         content: [
           {
             type: 'text',
@@ -731,7 +729,7 @@ export class SecurityHubJiraSync {
     if (remediationText || remediationUrl) {
       content.push({
         type: 'heading',
-        attrs: {level: 2},
+        attrs: { level: 2 },
         content: [
           {
             type: 'text',
@@ -769,7 +767,7 @@ export class SecurityHubJiraSync {
     content.push(
       {
         type: 'heading',
-        attrs: {level: 2},
+        attrs: { level: 2 },
         content: [
           {
             type: 'text',
@@ -792,7 +790,7 @@ export class SecurityHubJiraSync {
     content.push(
       {
         type: 'heading',
-        attrs: {level: 2},
+        attrs: { level: 2 },
         content: [
           {
             type: 'text',
@@ -817,7 +815,7 @@ export class SecurityHubJiraSync {
       content.push(
         {
           type: 'heading',
-          attrs: {level: 2},
+          attrs: { level: 2 },
           content: [
             {
               type: 'text',
@@ -1035,7 +1033,7 @@ export class SecurityHubJiraSync {
     content.push(
       {
         type: 'heading',
-        attrs: {level: 2},
+        attrs: { level: 2 },
         content: [
           {
             type: 'text',
@@ -1240,7 +1238,7 @@ export class SecurityHubJiraSync {
       // AC section
       {
         type: 'heading',
-        attrs: {level: 2},
+        attrs: { level: 2 },
         content: [
           {
             type: 'text',
@@ -1321,7 +1319,7 @@ export class SecurityHubJiraSync {
     const values = [...identifyingLabels, 'security-hub']
 
     config.forEach(
-      ({labelField: field, labelDelimiter: delim, labelPrefix: prefix}) => {
+      ({ labelField: field, labelDelimiter: delim, labelPrefix: prefix }) => {
         const delimiter = delim ?? ''
         const labelPrefix = prefix ?? ''
 
@@ -1370,7 +1368,7 @@ export class SecurityHubJiraSync {
           .substring(0, 255)
           .replaceAll('\n', ''),
         description: this.createIssueBody(finding),
-        issuetype: {name: 'Task'},
+        issuetype: { name: 'Task' },
         labels: [
           'security-hub',
           finding.severity,

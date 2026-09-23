@@ -1,4 +1,4 @@
-import {createHash} from 'crypto'
+import { createHash } from 'crypto'
 import {
   CustomFields,
   Issue,
@@ -259,7 +259,7 @@ h2. Acceptance criteria
         ...this.customJiraFields,
         summary: this.summary(finding),
         description: this.issueBody(finding),
-        issuetype: {name: 'Task'},
+        issuetype: { name: 'Task' },
         labels: [
           ...new Set([
             MANAGED_LABEL,
@@ -271,7 +271,7 @@ h2. Acceptance criteria
             ...findingFismaLabels(finding)
           ])
         ],
-        priority: {name: jiraPriority(finding.normalizedSeverity)}
+        priority: { name: jiraPriority(finding.normalizedSeverity) }
       }
     }
     const newIssue = await this.jira.createNewIssue(issue)
