@@ -1,8 +1,7 @@
 import * as dotenv from 'dotenv'
 import axios, {AxiosError, AxiosInstance} from 'axios'
 import axiosRetry from 'axios-retry'
-import {extractErrorMessage} from '../index'
-import {LabelConfig} from 'macfc-security-hub-sync'
+import {extractErrorMessage} from './error-lib'
 
 dotenv.config()
 
@@ -37,6 +36,12 @@ export interface JiraConfig {
   jiraRetryDelay?: number // Delay between retries in milliseconds
 }
 
+export interface LabelConfig {
+  labelField: string
+  labelPrefix?: string
+  labelDelimiter?: string
+}
+
 export type CustomFields = {
   [key: string]: string
 }
@@ -60,11 +65,10 @@ interface IssueFields {
   assignee?: {name: string}
   duedate?: string // Add the due date field
   [key: string]: any // Allow indexing by string for custom fields like due date
-  
+
   // Optional getter function for description text
   descriptionText?: string
 }
-
 
 export interface NewIssueData {
   fields: IssueFields
@@ -82,7 +86,6 @@ interface Transition {
   fields?: {
     [fieldName: string]: any
   }
-
 }
 export interface ADFNode {
   type: string
@@ -95,91 +98,94 @@ export interface ADFNode {
 }
 
 function adfToText(node: any): string {
-  if (!node) return "";
+  if (!node) return ''
 
   // Handle array of nodes
   if (Array.isArray(node)) {
-    return node.map(adfToText).join("");
+    return node.map(adfToText).join('')
   }
 
   switch (node.type) {
-    case "doc":
-      return adfToText(node.content);
+    case 'doc':
+      return adfToText(node.content)
 
-    case "paragraph":
-      return adfToText(node.content) + "\n";
+    case 'paragraph':
+      return adfToText(node.content) + '\n'
 
-    case "text":
-      return node.text || "";
+    case 'text':
+      return node.text || ''
 
-    case "bulletList":
-      return node.content.map((item: any) => "• " + adfToText(item)).join("\n") + "\n";
+    case 'bulletList':
+      return (
+        node.content.map((item: any) => '• ' + adfToText(item)).join('\n') +
+        '\n'
+      )
 
-    case "listItem":
-      return adfToText(node.content);
+    case 'listItem':
+      return adfToText(node.content)
 
-    case "embedCard":
-      return (node.attrs && node.attrs.url ? node.attrs.url : "") + "\n";
+    case 'embedCard':
+      return (node.attrs && node.attrs.url ? node.attrs.url : '') + '\n'
 
     default:
-      return node.content ? adfToText(node.content) : "";
+      return node.content ? adfToText(node.content) : ''
   }
 }
 
 export function getDescriptionText(issue: Issue): string {
-  if (!issue.fields.description) return "";
-  
+  if (!issue.fields.description) return ''
+
   // If description is already a string, return it
   if (typeof issue.fields.description === 'string') {
-    return issue.fields.description;
+    return issue.fields.description
   }
-  
+
   // If description is ADF format, convert it to text
-  return adfToText(issue.fields.description);
+  return adfToText(issue.fields.description)
 }
 
 function enhanceIssueWithDescriptionText(issue: Issue): Issue {
   Object.defineProperty(issue.fields, 'descriptionText', {
-    get: function() {
-      return getDescriptionText(issue);
+    get: function () {
+      return getDescriptionText(issue)
     },
     enumerable: false,
     configurable: true
-  });
-  return issue;
+  })
+  return issue
 }
 
 function enhanceIssuesWithDescriptionText(issues: Issue[]): Issue[] {
-  return issues.map(enhanceIssueWithDescriptionText);
+  return issues.map(enhanceIssueWithDescriptionText)
 }
 
 function textToAdf(text: string): any {
   if (!text) {
     return {
-      type: "doc",
+      type: 'doc',
       version: 1,
       content: []
-    };
+    }
   }
 
   // Split text into paragraphs
-  const paragraphs = text.split('\n').filter(line => line.trim() !== '');
-  
+  const paragraphs = text.split('\n').filter(line => line.trim() !== '')
+
   const content = paragraphs.map(paragraph => ({
-    type: "paragraph",
+    type: 'paragraph',
     content: [
       {
-        type: "text",
+        type: 'text',
         text: paragraph
       }
     ]
-  }));
+  }))
 
   return {
-    type: "doc",
+    type: 'doc',
     version: 1,
     content
-  };
+  }
 }
 
 function handleAxiosError(error: unknown): string {
@@ -210,6 +216,22 @@ function handleAxiosError(error: unknown): string {
   }
   // Fallback for non-Axios errors
   return `${extractErrorMessage(error)}`
+}
+
+export function resolveJiraApiVersion(
+  jiraBaseURI: string,
+  configuredVersion?: string
+): string {
+  const requestedVersion = configuredVersion || '3'
+  try {
+    const hostname = new URL(jiraBaseURI).hostname.toLowerCase()
+    if (hostname === 'atlassian.net' || hostname.endsWith('.atlassian.net')) {
+      return '3'
+    }
+  } catch {
+    // Preserve existing validation/error behavior for malformed base URLs.
+  }
+  return requestedVersion
 }
 
 export class Jira {
@@ -264,56 +286,62 @@ export class Jira {
 
     // Initialize the due date field, defaulting to ''
     this.jiraDueDateField = jiraConfig.jiraDueDateField || ''
-    // Set API version, defaulting to 'v3'
-    this.apiVersion = jiraConfig.jiraApiVersion || ''
+    this.apiVersion = resolveJiraApiVersion(
+      jiraConfig.jiraBaseURI,
+      jiraConfig.jiraApiVersion
+    )
 
     this.axiosInstance = axios.create({
       baseURL: jiraConfig.jiraBaseURI,
       headers: {
-        Authorization: jiraConfig.jiraBaseURI.includes('atlassian')
-          ? 'Basic ' +
-            Buffer.from(
-              `${jiraConfig.jiraUsername}:${jiraConfig.jiraToken}`
-            ).toString('base64')
-          : `Bearer ${jiraConfig.jiraToken}`,
+        Authorization:
+          this.apiVersion === '3' &&
+          new URL(jiraConfig.jiraBaseURI).hostname
+            .toLowerCase()
+            .endsWith('.atlassian.net')
+            ? 'Basic ' +
+              Buffer.from(
+                `${jiraConfig.jiraUsername}:${jiraConfig.jiraToken}`
+              ).toString('base64')
+            : `Bearer ${jiraConfig.jiraToken}`,
         'Content-Type': 'application/json'
       }
     })
     // ---------------- Retry configuration ----------------
-    const maxRetries = jiraConfig.jiraMaxRetries ?? 2;
-    const retryDelay = jiraConfig.jiraRetryDelay ?? 3000;
+    const maxRetries = jiraConfig.jiraMaxRetries ?? 2
+    const retryDelay = jiraConfig.jiraRetryDelay ?? 3000
 
     axiosRetry(this.axiosInstance, {
       retries: maxRetries,
-      retryDelay: (retryCount) => retryCount * retryDelay, // linear backoff: 1s, 2s, 3s...
-      retryCondition: (error) => {
+      retryDelay: retryCount => retryCount * retryDelay, // linear backoff: 1s, 2s, 3s...
+      retryCondition: error => {
         // 1. Network / timeout / DNS errors → always retry (no response from server)
         if (axiosRetry.isNetworkOrIdempotentRequestError(error)) {
-          return true;
+          return true
         }
 
-        const status = error.response?.status;
+        const status = error.response?.status
 
         // 2. Retry server errors (5xx) and rate limits (429)
         if (status && (status >= 500 || status === 429)) {
           // BUT if it's a POST request, only retry when there is NO response at all.
           // If we got a 5xx/429 response, the server might have processed the request.
-          const method = error.config?.method?.toUpperCase();
+          const method = error.config?.method?.toUpperCase()
           if (method === 'POST') {
-            return false;   // safer: do not retry POST that reached the server
+            return false // safer: do not retry POST that reached the server
           }
-          return true;
+          return true
         }
 
         // 3. All 4xx client errors → do NOT retry
-        return false;
+        return false
       },
       onRetry: (retryCount, error, requestConfig) => {
         console.warn(
           `[Jira Retry] ${requestConfig?.method?.toUpperCase()} ${requestConfig?.url} failed (attempt ${retryCount}/${maxRetries}). Error: ${error.message}`
-        );
+        )
       }
-    });
+    })
     // --------------------------------------------------
   }
 
@@ -353,7 +381,9 @@ export class Jira {
   async getIssueTransitions(issueId: string): Promise<Transition[]> {
     try {
       const response = await this.axiosInstance.get(
-        this.getApiPath(`/issue/${issueId}/transitions?expand=transitions.fields`)
+        this.getApiPath(
+          `/issue/${issueId}/transitions?expand=transitions.fields`
+        )
       )
       const transitions: Transition[] = response.data.transitions
 
@@ -400,11 +430,11 @@ export class Jira {
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
         this.getApiPath(`/issue/${issueId}/transitions`),
-        transition.fields?.resolution 
+        transition.fields?.resolution
           ? {
               transition: {id: transition.id},
               fields: {
-                resolution: {name: "Done"}
+                resolution: {name: 'Done'}
               }
             }
           : {
@@ -438,11 +468,11 @@ export class Jira {
       // Transition the issue using the found transition ID
       await this.axiosInstance.post(
         this.getApiPath(`/issue/${issueId}/transitions`),
-        transition?.fields?.resolution 
+        transition?.fields?.resolution
           ? {
               transition: {id: transitionId},
               fields: {
-                resolution: {name: "Done"}
+                resolution: {name: 'Done'}
               }
             }
           : {
@@ -519,11 +549,14 @@ export class Jira {
         params.key = 'accountId'
         params.value = currentUser.accountId
       }
-      await this.axiosInstance.delete(this.getApiPath(`/issue/${issueId}/watchers`), {
-        params: {
-          [params.key]: params.value
+      await this.axiosInstance.delete(
+        this.getApiPath(`/issue/${issueId}/watchers`),
+        {
+          params: {
+            [params.key]: params.value
+          }
         }
-      })
+      )
     } catch (error: unknown) {
       throw new Error(
         `Error creating issue or removing watcher: ${handleAxiosError(error)}`
@@ -533,6 +566,92 @@ export class Jira {
 
   private static formatLabelQuery(label: string): string {
     return `labels = '${label}'`
+  }
+
+  async getAllManagedIssuesInJiraProject(
+    requiredLabels: string[]
+  ): Promise<Issue[]> {
+    if (
+      requiredLabels.length < 2 ||
+      !requiredLabels.includes('global-security-findings')
+    ) {
+      throw new Error(
+        "Managed Jira searches require the 'global-security-findings' label and at least one provenance or ownership label."
+      )
+    }
+
+    const labelQuery = requiredLabels
+      .map(label => Jira.formatLabelQuery(label))
+      .join(' AND ')
+    const projectQuery = `project = '${this.jiraProject
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")}'`
+    const statusQuery = `status not in ('${this.jiraIgnoreStatusesList
+      .map(status => status.replace(/\\/g, '\\\\').replace(/'/g, "\\'"))
+      .join("','")}')`
+    const fullQuery = [labelQuery, projectQuery, statusQuery].join(' AND ')
+
+    console.log(fullQuery)
+    let allIssues: Issue[] = []
+
+    if (this.apiVersion === '3') {
+      let nextPageToken: string | null = null
+      do {
+        try {
+          const requestBody: Record<string, unknown> = {
+            jql: fullQuery,
+            maxResults: 50,
+            fields: ['*all'],
+            expand: ''
+          }
+          if (nextPageToken) requestBody.nextPageToken = nextPageToken
+
+          const response = await this.axiosInstance.post(
+            this.getApiPath('/search/jql'),
+            requestBody
+          )
+          const results = response.data
+          allIssues = allIssues.concat(
+            enhanceIssuesWithDescriptionText(results.issues)
+          )
+          nextPageToken = results.nextPageToken || null
+        } catch (error: unknown) {
+          throw new Error(
+            `Error getting managed issues from Jira: ${handleAxiosError(error)}`
+          )
+        }
+      } while (nextPageToken)
+    } else {
+      let totalIssuesReceived = 0
+      let startAt = 0
+      let total = 0
+      do {
+        try {
+          const response = await this.axiosInstance.post(
+            this.getApiPath('/search'),
+            {
+              jql: fullQuery,
+              startAt,
+              maxResults: 50,
+              fields: ['*all']
+            }
+          )
+          const results = response.data
+          allIssues = allIssues.concat(
+            enhanceIssuesWithDescriptionText(results.issues)
+          )
+          totalIssuesReceived += results.issues.length
+          startAt = totalIssuesReceived
+          total = results.total
+        } catch (error: unknown) {
+          throw new Error(
+            `Error getting managed issues from Jira: ${handleAxiosError(error)}`
+          )
+        }
+      } while (totalIssuesReceived < total)
+    }
+
+    return allIssues
   }
   public static createSearchLabels(
     identifyingLabels: string[],
@@ -622,28 +741,33 @@ export class Jira {
     console.log(fullQuery)
 
     let allIssues: Issue[] = []
-    
+
     if (this.apiVersion === '3') {
       // Use v3 API with pagination token
       let nextPageToken: string | null = null
-      
+
       do {
         try {
           const requestBody: any = {
             jql: fullQuery,
             maxResults: 50,
             fields: ['*all'],
-            expand: ""
+            expand: ''
           }
-          
+
           if (nextPageToken) {
             requestBody.nextPageToken = nextPageToken
           }
 
-          const response = await this.axiosInstance.post(this.getApiPath('/search/jql'), requestBody)
-          const results = response.data;
-          console.log(results);
-          const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
+          const response = await this.axiosInstance.post(
+            this.getApiPath('/search/jql'),
+            requestBody
+          )
+          const results = response.data
+          console.log(results)
+          const enhancedIssues = enhanceIssuesWithDescriptionText(
+            results.issues
+          )
           allIssues = allIssues.concat(enhancedIssues)
           nextPageToken = results.nextPageToken || null
         } catch (error: unknown) {
@@ -660,14 +784,19 @@ export class Jira {
 
       do {
         try {
-          const response = await this.axiosInstance.post(this.getApiPath('/search'), {
-            jql: fullQuery,
-            startAt: startAt,
-            maxResults: 50,
-            fields: ['*all']
-          })
+          const response = await this.axiosInstance.post(
+            this.getApiPath('/search'),
+            {
+              jql: fullQuery,
+              startAt: startAt,
+              maxResults: 50,
+              fields: ['*all']
+            }
+          )
           const results = response.data
-          const enhancedIssues = enhanceIssuesWithDescriptionText(results.issues);
+          const enhancedIssues = enhanceIssuesWithDescriptionText(
+            results.issues
+          )
           allIssues = allIssues.concat(enhancedIssues)
           totalIssuesReceived += results.issues.length
           startAt = totalIssuesReceived
@@ -704,7 +833,7 @@ export class Jira {
       }
 
       const match = this.cisaFeedCache.find(
-        (entry) => entry.cveID.toUpperCase() === cveId.toUpperCase()
+        entry => entry.cveID.toUpperCase() === cveId.toUpperCase()
       )
       if (match) {
         // dueDate is in YYYY-MM-DD format
@@ -771,7 +900,10 @@ export class Jira {
       issue.fields.project = {key: this.jiraProject}
 
       // Convert description format based on API version
-      if (issue.fields.description && typeof issue.fields.description === 'string') {
+      if (
+        issue.fields.description &&
+        typeof issue.fields.description === 'string'
+      ) {
         if (this.apiVersion === '3') {
           // Convert string to ADF format for v3
           issue.fields.description = textToAdf(issue.fields.description)
@@ -897,40 +1029,44 @@ export class Jira {
     }
 
     try {
-      let commentBody: any;
-      
+      let commentBody: any
+
       // Handle different comment formats based on API version
       if (this.apiVersion === '3') {
         // v3 requires ADF format
         if (typeof comment === 'string') {
-          commentBody = textToAdf(comment);
-        } else if (typeof comment === 'object' && 
-                   comment.type === 'doc' && 
-                   comment.version === 1) {
+          commentBody = textToAdf(comment)
+        } else if (
+          typeof comment === 'object' &&
+          comment.type === 'doc' &&
+          comment.version === 1
+        ) {
           // Already in ADF format
-          commentBody = comment;
+          commentBody = comment
         } else {
           // Unknown format, try to convert to string first, then to ADF
-          const stringComment = String(comment);
-          commentBody = textToAdf(stringComment);
+          const stringComment = String(comment)
+          commentBody = textToAdf(stringComment)
         }
       } else {
         // v2 uses plain text
         if (typeof comment === 'string') {
-          commentBody = comment;
-        } else if (typeof comment === 'object' && 
-                   comment.type === 'doc') {
+          commentBody = comment
+        } else if (typeof comment === 'object' && comment.type === 'doc') {
           // Convert ADF to plain text for v2
-          commentBody = adfToText(comment);
+          commentBody = adfToText(comment)
         } else {
           // Unknown format, convert to string
-          commentBody = String(comment);
+          commentBody = String(comment)
         }
       }
 
-      await this.axiosInstance.post(this.getApiPath(`/issue/${issueId}/comment`), {
-        body: commentBody
-      })
+      await this.axiosInstance.post(
+        this.getApiPath(`/issue/${issueId}/comment`),
+        {
+          body: commentBody
+        }
+      )
       await this.removeCurrentUserAsWatcher(issueId) // Commenting on the issue adds the user as a watcher, so we remove them
     } catch (error: unknown) {
       throw new Error(
