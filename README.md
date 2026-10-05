@@ -44,6 +44,21 @@ that tool. A tool-filtered run also requires the matching canonical Jira label
 one tool from closing tickets owned by another tool. Omit `snowflake-tool` to
 retain the FISMA-wide, all-tools behavior.
 
+Snowflake-created issues honor the generic Jira configuration inputs for custom
+fields, additional labels, assignees, watchers, due dates, priority, API
+version, dry-run behavior, and issue links on creation and closure. Mandatory
+Snowflake ownership and identity labels are always retained. In addition to the
+canonical `severity-<value>` label, issues receive a plain normalized severity
+label so the existing severity-based due-date configuration applies correctly.
+
+In Snowflake mode, `jira-labels-config` supports `severity`,
+`normalizedSeverity`, `toolName`, `fismaId`, `fismaAcronym`, `resourceId`,
+`findingId`, `source`, `CVE`, and primitive fields found directly in
+`RAW_FINDING`. Security Hub-only fields such as `accountId`, `region`,
+`identify`, `ProductName`, provider fields, company fields, and standards
+control fields are ignored. Snowflake tickets never receive the
+`security-hub` label or fabricated AWS account and region values.
+
 Automatic close defaults to `false` in Snowflake mode and remains `true` in AWS
 mode. Enable Snowflake auto-close only after validating that every expected tool
 in the selected boundary supplied a complete authoritative result and that

@@ -12,6 +12,7 @@ export interface JiraConfig {
   jiraProjectKey: string
   jiraIgnoreStatuses: string
   jiraAssignee?: string
+  jiraAssigneeUseAccountId?: boolean
   jiraWatchers?: string
   jiraAddLabels?: string
   testFindingsData?: string
@@ -62,7 +63,7 @@ interface IssueFields {
   labels?: (string | undefined)[] // Assuming labels can be strings or objects
   priority?: PriorityField
   project?: {key: string}
-  assignee?: {name: string}
+  assignee?: {name?: string; accountId?: string}
   duedate?: string // Add the due date field
   [key: string]: any // Allow indexing by string for custom fields like due date
 
@@ -240,6 +241,7 @@ export class Jira {
   private axiosInstance: AxiosInstance
   private transitionMap: Array<{status: string; transition: string}> = []
   private jiraAssignee?: string
+  private jiraAssigneeUseAccountId: boolean
   private jiraIgnoreStatusesList: string[]
   private isDryRun: boolean
   private dryRunIssueCounter: number = 0
@@ -256,6 +258,7 @@ export class Jira {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.jiraProject = jiraConfig.jiraProjectKey
     this.jiraAssignee = jiraConfig.jiraAssignee
+    this.jiraAssigneeUseAccountId = jiraConfig.jiraAssigneeUseAccountId ?? false
     this.transitionMap = jiraConfig.transitionMap
     this.jiraIgnoreStatusesList = jiraConfig.jiraIgnoreStatuses
       .split(',')
@@ -895,7 +898,9 @@ export class Jira {
       }
 
       if (this.jiraAssignee) {
-        issue.fields.assignee = {name: this.jiraAssignee}
+        issue.fields.assignee = this.jiraAssigneeUseAccountId
+          ? {accountId: this.jiraAssignee}
+          : {name: this.jiraAssignee}
       }
       issue.fields.project = {key: this.jiraProject}
 

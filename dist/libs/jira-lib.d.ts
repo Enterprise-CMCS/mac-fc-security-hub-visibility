@@ -5,6 +5,7 @@ export interface JiraConfig {
     jiraProjectKey: string;
     jiraIgnoreStatuses: string;
     jiraAssignee?: string;
+    jiraAssigneeUseAccountId?: boolean;
     jiraWatchers?: string;
     jiraAddLabels?: string;
     testFindingsData?: string;
@@ -56,7 +57,8 @@ interface IssueFields {
         key: string;
     };
     assignee?: {
-        name: string;
+        name?: string;
+        accountId?: string;
     };
     duedate?: string;
     [key: string]: any;
@@ -95,6 +97,7 @@ export declare class Jira {
     private axiosInstance;
     private transitionMap;
     private jiraAssignee?;
+    private jiraAssigneeUseAccountId;
     private jiraIgnoreStatusesList;
     private isDryRun;
     private dryRunIssueCounter;
