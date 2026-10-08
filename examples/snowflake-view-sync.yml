@@ -1,0 +1,89 @@
+name: Sync Snowflake security findings to Jira
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      # Replace the placeholder with a reviewed immutable commit SHA.
+      - uses: Enterprise-CMCS/mac-fc-security-hub-visibility@<pinned-commit-sha>
+        with:
+          # Select the Snowflake implementation. The default is aws-security-hub.
+          finding-source: snowflake
+
+          # Jira connection and reconciliation boundary.
+          jira-base-uri: https://sfji.atlassian.net
+          jira-username: ${{ secrets.ARAYA_JIRA_USERNAME }}
+          jira-token: ${{ secrets.ARAYA_JIRA_TOKEN }}
+          jira-project-key: macfc
+          jira-ignore-statuses: 'Done, Closed, Resolved'
+          jira-transition-map: '*:Done'
+          jira-api-version: '3'
+
+          # Optional Jira ticket customization.
+          # For Jira Cloud, jira-assignee must be an Atlassian accountId.
+          # jira-assignee: ${{ secrets.JIRA_ASSIGNEE_ACCOUNT_ID }}
+          # jira-watchers: 'user1@example.com,user2@example.com'
+          jira-add-labels: 'sdl,snowflake-managed'
+          # jira-custom-fields: '{"customfield_12345":"SDL"}'
+          jira-labels-config: >-
+            [{"labelField":"severity"},{"labelField":"normalizedSeverity","labelPrefix":"normalized-severity","labelDelimiter":"-"},{"labelField":"toolName","labelPrefix":"source-tool","labelDelimiter":"-"},{"labelField":"fismaAcronym","labelPrefix":"application","labelDelimiter":"-"},{"labelField":"resourceId","labelPrefix":"resource","labelDelimiter":"-"},{"labelField":"findingId","labelPrefix":"finding","labelDelimiter":"-"}]
+
+          # Snowflake auto-close defaults to false. Enable it only when absence
+          # from the selected view/FISMA/tool boundary reliably means resolved.
+          auto-close: 'false'
+
+          # Optional issue linking. Set an existing Jira issue key or ID before
+          # enabling either block.
+          # jira-link-id-on-creation: MACFC-123
+          # jira-link-type-on-creation: Relates
+          # jira-link-direction-on-creation: inward
+          # jira-link-id-on-closure: MACFC-123
+          # jira-link-type-on-closure: Relates
+          # jira-link-direction-on-closure: inward
+
+          # Severity-based due dates. Leave jira-duedate-field empty to use the
+          # standard Jira "duedate" field, or set a custom field ID.
+          # jira-duedate-field: customfield_12346
+          due-date-critical: '15'
+          due-date-high: '30'
+          due-date-moderate: '90'
+          due-date-low: '365'
+
+          # Set true to exercise Jira dry-run behavior without creating,
+          # transitioning, commenting on, linking, or watching Jira issues.
+          dry-run-test-data: 'true'
+
+          # Snowflake connection. Key-pair authentication is recommended.
+          snowflake-account: ${{ secrets.SNOWFLAKE_ACCOUNT }}
+          snowflake-username: ${{ secrets.SNOWFLAKE_USER }}
+          snowflake-authenticator: SNOWFLAKE_JWT
+          snowflake-private-key: ${{ secrets.SNOWFLAKE_PRIVATE_KEY }}
+          # snowflake-private-key-passphrase: ${{ secrets.SNOWFLAKE_PRIVATE_KEY_PASSPHRASE }}
+
+          # Password authentication alternative; do not configure it together
+          # with the key-pair settings above.
+          # snowflake-authenticator: SNOWFLAKE
+          # snowflake-password: ${{ secrets.SNOWFLAKE_PASSWORD }}
+
+          snowflake-warehouse: TEAM_CMCS_WH
+          snowflake-role: TEAM_CMCS_ROLE
+          snowflake-database: BUS_CMCS
+          snowflake-schema: PRIVATE
+          snowflake-view: BUS_CMCS.PRIVATE.VW_GLOBAL_SECURITY_FINDINGS
+          snowflake-max-rows: '5000'
+
+          # Exactly one FISMA boundary is required. Use either one acronym or
+          # one ID, but never both in the same run.
+          snowflake-fisma-acronyms: MACFin
+          # snowflake-fisma-ids: e20df0aa1bf306146122ec20f54bcb84
+
+          # Optional. Omit this input to process all tools in the FISMA boundary.
+          snowflake-tool: KUBEBENCH
