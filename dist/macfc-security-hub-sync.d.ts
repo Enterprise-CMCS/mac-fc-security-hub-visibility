@@ -1,5 +1,5 @@
 import { SecurityHubFinding } from './libs';
-import { Issue, CustomFields, JiraConfig } from './libs/jira-lib';
+import { Issue, CustomFields, JiraConfig, ADFNode } from './libs/jira-lib';
 import { Resource } from './libs';
 interface UpdateForReturn {
     action: string;
@@ -69,50 +69,7 @@ export declare class SecurityHubJiraSync {
     createIssueBody(finding: SecurityHubFinding): string | {
         type: string;
         version: number;
-        content: ({
-            type: string;
-            content?: undefined;
-            attrs?: undefined;
-        } | {
-            type: string;
-            content: {
-                type: string;
-                text: string;
-                marks: {
-                    type: string;
-                }[];
-            }[];
-            attrs?: undefined;
-        } | {
-            type: string;
-            content: {
-                type: string;
-                text: string;
-            }[];
-            attrs?: undefined;
-        } | {
-            type: string;
-            attrs: {
-                level: number;
-            };
-            content: {
-                type: string;
-                text: string;
-            }[];
-        } | {
-            type: string;
-            content: {
-                type: string;
-                content: {
-                    type: string;
-                    content: {
-                        type: string;
-                        text: string;
-                    }[];
-                }[];
-            }[];
-            attrs?: undefined;
-        })[];
+        content: ADFNode[];
     };
     createSecurityHubFindingUrl(standardsControlArn?: string): string;
     getSeverityMappingToJiraPriority: (severity: string) => "Lowest" | "Low" | "Medium" | "High" | "Critical";

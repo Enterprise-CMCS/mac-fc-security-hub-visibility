@@ -1,4 +1,6 @@
+import { AxiosError } from 'axios';
 import { LabelConfig } from 'macfc-security-hub-sync';
+export declare function isRetryableJiraError(error: AxiosError): boolean;
 export interface JiraConfig {
     jiraBaseURI: string;
     jiraUsername: string;
@@ -44,7 +46,7 @@ interface PriorityField {
 }
 interface IssueFields {
     summary: string;
-    description?: string | any;
+    description?: string | ADFNode;
     issuetype?: IssueType;
     labels?: (string | undefined)[];
     priority?: PriorityField;
@@ -55,7 +57,7 @@ interface IssueFields {
         name: string;
     };
     duedate?: string;
-    [key: string]: any;
+    [key: string]: unknown;
     descriptionText?: string;
 }
 export interface NewIssueData {
@@ -71,7 +73,7 @@ interface Transition {
     id: string;
     name: string;
     fields?: {
-        [fieldName: string]: any;
+        [fieldName: string]: unknown;
     };
 }
 export interface ADFNode {
@@ -79,9 +81,15 @@ export interface ADFNode {
     text?: string;
     version?: number;
     attrs?: {
-        [key: string]: any;
+        [key: string]: unknown;
     };
     content?: ADFNode[];
+    marks?: Array<{
+        type: string;
+        attrs?: {
+            [key: string]: unknown;
+        };
+    }>;
 }
 export declare function getDescriptionText(issue: Issue): string;
 export declare class Jira {
