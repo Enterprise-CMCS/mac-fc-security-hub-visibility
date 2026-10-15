@@ -3,7 +3,7 @@ import {
   SecurityHubJiraSync,
   SecurityHubJiraSyncConfig
 } from './macfc-security-hub-sync'
-import {JiraConfig, CustomFields, Jira} from './libs/jira-lib'
+import {JiraConfig, CustomFields} from './libs/jira-lib'
 
 export function extractErrorMessage(error: unknown): string {
   if (error instanceof Error) {

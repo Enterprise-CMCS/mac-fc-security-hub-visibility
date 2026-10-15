@@ -1,6 +1,12 @@
 import {extractErrorMessage} from 'index'
 import {Jira, SecurityHub, SecurityHubFinding} from './libs'
-import {Issue, NewIssueData, CustomFields, JiraConfig} from './libs/jira-lib'
+import {
+  Issue,
+  NewIssueData,
+  CustomFields,
+  JiraConfig,
+  ADFNode
+} from './libs/jira-lib'
 import {STSClient, GetCallerIdentityCommand} from '@aws-sdk/client-sts'
 import {AwsSecurityFinding} from '@aws-sdk/client-securityhub'
 import {Resource} from './libs'
@@ -546,14 +552,11 @@ export class SecurityHubJiraSync {
           Text: remediationText = ''
         } = {}
       } = {},
-      id = '',
       title = '',
       description = '',
       accountAlias = '',
       awsAccountId = '',
-      severity = '',
-      standardsControlArn = '',
-      consolidated = false
+      severity = ''
     } = finding
 
     // Return different formats based on API version
@@ -609,7 +612,7 @@ export class SecurityHubJiraSync {
     }
 
     // Create ADF format content for v3
-    const content = [
+    const content: ADFNode[] = [
       // Horizontal rule
       {
         type: "rule"
@@ -1021,7 +1024,7 @@ export class SecurityHubJiraSync {
               ]
             }
           ]
-        } as any
+        }
       );
     }
 
@@ -1050,7 +1053,7 @@ export class SecurityHubJiraSync {
 
     // Create resources table
     if (finding.Resources && finding.Resources.length > 0) {
-      const resourceTableContent: any[] = [
+      const resourceTableContent: ADFNode[] = [
         // Header row
         {
           type: "tableRow",
@@ -1130,12 +1133,12 @@ export class SecurityHubJiraSync {
       ];
 
       // Add resource rows
-      finding.Resources.forEach((resource: any) => {
+      finding.Resources.forEach((resource: Resource) => {
         const resourceId = resource.Id || "N/A";
         const partition = resource.Partition || "aws";
         const region = resource.Region || "N/A";
         const type = resource.Type || "N/A";
-        const findingUrl = this.createSecurityHubFindingUrlThroughFilters(resource.Id) || "N/A";
+        const findingUrl = this.createSecurityHubFindingUrlThroughFilters(resource.Id as string) || "N/A";
 
         resourceTableContent.push({
           type: "tableRow",
@@ -1217,7 +1220,7 @@ export class SecurityHubJiraSync {
       content.push({
         type: "table",
         content: resourceTableContent
-      } as any);
+      });
     }
 
     content.push(
