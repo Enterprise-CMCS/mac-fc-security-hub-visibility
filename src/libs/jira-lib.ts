@@ -6,6 +6,33 @@ import {LabelConfig} from 'macfc-security-hub-sync'
 
 dotenv.config()
 
+// Read-only POST endpoints. Safe to retry because they don't modify data.
+const SAFE_POST_PATHS = ['/search', '/search/jql']
+
+export function isRetryableJiraError(error: AxiosError): boolean {
+  // No response (DNS, reset, socket timeout): always retry
+  if (!error.response) {
+    return axiosRetry.isNetworkError(error) || error.code === 'ECONNABORTED'
+  }
+
+  const status = error.response.status
+  const method = error.config?.method?.toUpperCase()
+  const url = error.config?.url ?? ''
+  const isSafePost =
+    method === 'POST' && SAFE_POST_PATHS.some(p => url.endsWith(p))
+  const isIdempotent = method !== 'POST' || isSafePost
+
+  // 5xx and 429: retry only when repeating the request can't duplicate data
+  if (status >= 500 || status === 429) return isIdempotent
+
+  // Edge/WAF 403 (HTML body, not Jira JSON). Keep only if Step 0 showed it's intermittent.
+  if (status === 403 && isIdempotent) {
+    const body = error.response.data
+    return typeof body === 'string' && body.includes('<html')
+  }
+
+  return false
+}
 export interface JiraConfig {
   jiraBaseURI: string
   jiraUsername: string
@@ -52,14 +79,14 @@ interface PriorityField {
 
 interface IssueFields {
   summary: string
-  description?: string | any // Can be string or ADF object
+  description?: string | ADFNode // Can be string or ADF object
   issuetype?: IssueType
   labels?: (string | undefined)[] // Assuming labels can be strings or objects
   priority?: PriorityField
   project?: {key: string}
   assignee?: {name: string}
   duedate?: string // Add the due date field
-  [key: string]: any // Allow indexing by string for custom fields like due date
+  [key: string]: unknown // Allow indexing by string for custom fields like due date
   
   // Optional getter function for description text
   descriptionText?: string
@@ -80,7 +107,7 @@ interface Transition {
   id: string
   name: string
   fields?: {
-    [fieldName: string]: any
+    [fieldName: string]: unknown
   }
 
 }
@@ -89,12 +116,13 @@ export interface ADFNode {
   text?: string
   version?: number
   attrs?: {
-    [key: string]: any
+    [key: string]: unknown
   }
   content?: ADFNode[]
+  marks?: Array<{type: string; attrs?: {[key: string]: unknown}}>
 }
 
-function adfToText(node: any): string {
+function adfToText(node: ADFNode | ADFNode[] | undefined): string {
   if (!node) return "";
 
   // Handle array of nodes
@@ -113,7 +141,7 @@ function adfToText(node: any): string {
       return node.text || "";
 
     case "bulletList":
-      return node.content.map((item: any) => "• " + adfToText(item)).join("\n") + "\n";
+      return (node.content ?? []).map((item: ADFNode) => "• " + adfToText(item)).join("\n") + "\n";
 
     case "listItem":
       return adfToText(node.content);
@@ -153,7 +181,7 @@ function enhanceIssuesWithDescriptionText(issues: Issue[]): Issue[] {
   return issues.map(enhanceIssueWithDescriptionText);
 }
 
-function textToAdf(text: string): any {
+function textToAdf(text: string): ADFNode {
   if (!text) {
     return {
       type: "doc",
@@ -196,7 +224,7 @@ function handleAxiosError(error: unknown): string {
     if (error.cause instanceof AggregateError && error.cause.errors) {
       // Map each error in the AggregateError to its message and join them
       const errMsgs = error.cause.errors
-        .map((err: any) => extractErrorMessage(err)) // Add explicit type 'any' to err
+        .map((err: unknown) => extractErrorMessage(err))
         .join(', ')
       return `Errors from Axios request: ${errMsgs}`
     }
@@ -285,29 +313,9 @@ export class Jira {
 
     axiosRetry(this.axiosInstance, {
       retries: maxRetries,
-      retryDelay: (retryCount) => retryCount * retryDelay, // linear backoff: 1s, 2s, 3s...
-      retryCondition: (error) => {
-        // 1. Network / timeout / DNS errors → always retry (no response from server)
-        if (axiosRetry.isNetworkOrIdempotentRequestError(error)) {
-          return true;
-        }
-
-        const status = error.response?.status;
-
-        // 2. Retry server errors (5xx) and rate limits (429)
-        if (status && (status >= 500 || status === 429)) {
-          // BUT if it's a POST request, only retry when there is NO response at all.
-          // If we got a 5xx/429 response, the server might have processed the request.
-          const method = error.config?.method?.toUpperCase();
-          if (method === 'POST') {
-            return false;   // safer: do not retry POST that reached the server
-          }
-          return true;
-        }
-
-        // 3. All 4xx client errors → do NOT retry
-        return false;
-      },
+      retryDelay: retryCount => retryCount * retryDelay, // 3s, 6s
+      shouldResetTimeout: true, // each retry gets a fresh 30s
+      retryCondition: isRetryableJiraError,
       onRetry: (retryCount, error, requestConfig) => {
         console.warn(
           `[Jira Retry] ${requestConfig?.method?.toUpperCase()} ${requestConfig?.url} failed (attempt ${retryCount}/${maxRetries}). Error: ${error.message}`
@@ -482,15 +490,17 @@ export class Jira {
         params.value = user.accountId
         params.key = 'accountId'
       }
-      const res = await this.axiosInstance.post(
+      await this.axiosInstance.post(
         this.getApiPath(`/issue/${issueId}/watchers`),
         params.value
       )
       console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(
         'Error adding watchers:',
-        error.response ? error.response.data : error.message
+        error instanceof AxiosError && error.response
+          ? error.response.data
+          : extractErrorMessage(error)
       )
       throw new Error(`Error adding watcher: ${handleAxiosError(error)}`)
     }
@@ -629,7 +639,7 @@ export class Jira {
       
       do {
         try {
-          const requestBody: any = {
+          const requestBody: Record<string, unknown> = {
             jql: fullQuery,
             maxResults: 50,
             fields: ['*all'],
@@ -897,7 +907,7 @@ export class Jira {
     }
 
     try {
-      let commentBody: any;
+      let commentBody: string | ADFNode;
       
       // Handle different comment formats based on API version
       if (this.apiVersion === '3') {
@@ -1032,7 +1042,7 @@ export class Jira {
       'deployed'
     ]
     try {
-      const issue = await this.getIssue(issueKey)
+      await this.getIssue(issueKey) // confirms the issue exists before transitioning
       const processedTransitions: string[] = []
       do {
         const availableTransitions: Transition[] =
@@ -1116,8 +1126,8 @@ export class Jira {
       }
 
       await this.transitionIssueByName(issueKey, doneTransition.name)
-    } catch (e: any) {
-      throw new Error(`Error closing issue ${issueKey}: ${e.message}`)
+    } catch (e: unknown) {
+      throw new Error(`Error closing issue ${issueKey}: ${extractErrorMessage(e)}`)
     }
   }
 }
