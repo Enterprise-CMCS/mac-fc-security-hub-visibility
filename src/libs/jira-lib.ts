@@ -14,6 +14,8 @@ export interface JiraConfig {
   jiraAssignee?: string
   jiraAssigneeUseAccountId?: boolean
   jiraWatchers?: string
+  jiraReconcileWatchers?: boolean
+  jiraWatcherRecovery?: boolean
   jiraAddLabels?: string
   testFindingsData?: string
   transitionMap: Array<{status: string; transition: string}>
@@ -192,13 +194,6 @@ function textToAdf(text: string): any {
 function handleAxiosError(error: unknown): string {
   // Check if the error is an instance of AxiosError
   if (error instanceof AxiosError) {
-    let errorDetails = JSON.stringify(error.toJSON(), null, 2)
-    // Mask the token in the error details
-    errorDetails = errorDetails.replace(
-      /"Authorization": "Bearer [^"]+"/,
-      `"Authorization": "Bearer <REDACTED_TOKEN>"`
-    )
-    console.log(errorDetails)
     // Check if the cause of the AxiosError is an AggregateError
     if (error.cause instanceof AggregateError && error.cause.errors) {
       // Map each error in the AggregateError to its message and join them
@@ -247,6 +242,7 @@ export class Jira {
   private dryRunIssueCounter: number = 0
   private jiraLabelsConfig?: LabelConfig[]
   private jiraWatchers?: string[]
+  private watcherRecovery: boolean
   private dueDateCritical: number
   private dueDateHigh: number
   private dueDateModerate: number
@@ -259,6 +255,7 @@ export class Jira {
     this.jiraProject = jiraConfig.jiraProjectKey
     this.jiraAssignee = jiraConfig.jiraAssignee
     this.jiraAssigneeUseAccountId = jiraConfig.jiraAssigneeUseAccountId ?? false
+    this.watcherRecovery = jiraConfig.jiraWatcherRecovery ?? false
     this.transitionMap = jiraConfig.transitionMap
     this.jiraIgnoreStatusesList = jiraConfig.jiraIgnoreStatuses
       .split(',')
@@ -266,6 +263,7 @@ export class Jira {
     this.jiraWatchers = jiraConfig.jiraWatchers
       ?.split(',')
       .map(watcher => watcher.trim())
+      .filter(Boolean)
     this.isDryRun = jiraConfig.dryRunTestData
     if (jiraConfig.jiraLabelsConfig) {
       this.jiraLabelsConfig = JSON.parse(jiraConfig.jiraLabelsConfig)
@@ -318,6 +316,13 @@ export class Jira {
       retries: maxRetries,
       retryDelay: retryCount => retryCount * retryDelay, // linear backoff: 1s, 2s, 3s...
       retryCondition: error => {
+        // A create response can be lost after Jira has committed the issue.
+        if (
+          error.config?.method?.toUpperCase() === 'POST' &&
+          error.config.url === this.getApiPath('/issue')
+        ) {
+          return false
+        }
         // 1. Network / timeout / DNS errors → always retry (no response from server)
         if (axiosRetry.isNetworkOrIdempotentRequestError(error)) {
           return true
@@ -515,22 +520,99 @@ export class Jira {
         params.value = user.accountId
         params.key = 'accountId'
       }
-      const res = await this.axiosInstance.post(
-        this.getApiPath(`/issue/${issueId}/watchers`),
-        params.value
+      await this.retryWatcher404(() =>
+        this.axiosInstance.post(
+          this.getApiPath(`/issue/${issueId}/watchers`),
+          params.value
+        )
       )
-      console.log('Added ' + watcher + 'as watcher ot issue: ' + issueId)
-    } catch (error: any) {
+      console.log(`Added ${watcher} as watcher to issue ${issueId}`)
+    } catch (error: unknown) {
       console.error(
         'Error adding watchers:',
-        error.response ? error.response.data : error.message
+        axios.isAxiosError(error)
+          ? (error.response?.data ?? error.message)
+          : error
       )
       throw new Error(`Error adding watcher: ${handleAxiosError(error)}`)
+    }
+  }
+  private async retryWatcher404<T>(operation: () => Promise<T>): Promise<T> {
+    if (!this.watcherRecovery) return operation()
+    const delays = [1000, 2000, 4000]
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await operation()
+      } catch (error) {
+        if (
+          !axios.isAxiosError(error) ||
+          error.response?.status !== 404 ||
+          attempt >= delays.length
+        ) {
+          throw error
+        }
+        await new Promise(resolve => setTimeout(resolve, delays[attempt]))
+      }
+    }
+  }
+
+  async reconcileWatchers(issueId: string): Promise<void> {
+    if (!this.jiraWatchers?.length) return
+    try {
+      const response = await this.retryWatcher404(() =>
+        this.axiosInstance.get(this.getApiPath(`/issue/${issueId}/watchers`))
+      )
+      const existing = new Set(
+        (response.data.watchers ?? []).flatMap(
+          (user: {name?: string; accountId?: string; emailAddress?: string}) =>
+            [user.name, user.accountId, user.emailAddress]
+              .filter((value): value is string => Boolean(value))
+              .map(value => value.toLowerCase())
+        )
+      )
+      for (const watcher of this.jiraWatchers) {
+        let account = watcher
+        if (this.apiVersion === '3') {
+          const users = await this.axiosInstance.get(
+            this.getApiPath(`/user/search?query=${encodeURIComponent(watcher)}`)
+          )
+          const user = users.data.find(
+            (candidate: {emailAddress?: string; accountId?: string}) =>
+              candidate.emailAddress?.toLowerCase() === watcher.toLowerCase() ||
+              candidate.accountId === watcher
+          )
+          if (!user) throw new Error(`Watcher ${watcher} was not found`)
+          account = user.accountId
+        }
+        if (!existing.has(account.toLowerCase())) {
+          await this.addUserAsWatcher(issueId, watcher, this.apiVersion !== '3')
+          existing.add(account.toLowerCase())
+        }
+      }
+    } catch (error) {
+      console.warn(
+        `[Jira partial success] Issue ${issueId} exists, but watcher reconciliation failed: ${handleAxiosError(error)}`
+      )
     }
   }
   async removeCurrentUserAsWatcher(issueId: string) {
     try {
       const currentUser = await this.getCurrentUser()
+      const currentIdentities = [
+        currentUser.name,
+        currentUser.accountId,
+        currentUser.emailAddress
+      ]
+        .filter((value): value is string => Boolean(value))
+        .map(value => value.toLowerCase())
+      if (
+        this.watcherRecovery &&
+        this.jiraWatchers?.some(watcher =>
+          currentIdentities.includes(watcher.toLowerCase())
+        )
+      ) {
+        return
+      }
       console.log(
         `Remove watcher ${currentUser.name ?? currentUser.displayName} from ${issueId}`
       )
@@ -552,13 +634,11 @@ export class Jira {
         params.key = 'accountId'
         params.value = currentUser.accountId
       }
-      await this.axiosInstance.delete(
-        this.getApiPath(`/issue/${issueId}/watchers`),
-        {
-          params: {
-            [params.key]: params.value
-          }
-        }
+      await this.retryWatcher404(() =>
+        this.axiosInstance.delete(
+          this.getApiPath(`/issue/${issueId}/watchers`),
+          {params: {[params.key]: params.value}}
+        )
       )
     } catch (error: unknown) {
       throw new Error(
@@ -945,24 +1025,23 @@ export class Jira {
       const newIssue = response.data
       // Construct the webUrl for the new issue
       newIssue['webUrl'] = `${this.jiraBaseURI}/browse/${newIssue.key}`
-      await this.removeCurrentUserAsWatcher(newIssue.key)
-      if (this.jiraWatchers && this.jiraWatchers.length >= 1) {
-        try {
+      try {
+        await this.removeCurrentUserAsWatcher(newIssue.key)
+        if (this.jiraWatchers?.length) {
           await Promise.all(
-            this.jiraWatchers.map(
-              (watcher: string) =>
-                watcher &&
-                this.addUserAsWatcher(
-                  newIssue.key,
-                  watcher,
-                  this.jiraBaseURI.includes('atlassian') == false
-                )
+            this.jiraWatchers.map((watcher: string) =>
+              this.addUserAsWatcher(
+                newIssue.key,
+                watcher,
+                this.jiraBaseURI.includes('atlassian') == false
+              )
             )
           )
-        } catch (error: unknown) {
-          console.log('Error: could not add watchers', this.jiraWatchers)
-          return newIssue
         }
+      } catch (error: unknown) {
+        console.warn(
+          `[Jira partial success] Issue ${newIssue.key} was created, but watcher setup failed: ${handleAxiosError(error)}`
+        )
       }
       return newIssue
     } catch (error: unknown) {

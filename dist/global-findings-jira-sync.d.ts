@@ -29,6 +29,7 @@ export declare class GlobalFindingsJiraSync {
     private readonly fismaLabel;
     private readonly reconciliationLabels;
     private readonly view;
+    private readonly reconcileWatchers;
     constructor(jiraConfig: JiraConfig, findingsConfig: GlobalFindingsJiraSyncConfig, autoClose: boolean);
     private summary;
     private issueBody;

@@ -263,4 +263,38 @@ describe('Snowflake Jira configuration', () => {
       'outward'
     )
   })
+
+  it('optionally reconciles watchers on an existing active managed ticket', async () => {
+    const active = finding({toolName: 'KUBEBENCH'})
+    vi.spyOn(
+      Jira.prototype,
+      'getAllManagedIssuesInJiraProject'
+    ).mockResolvedValue([
+      {
+        id: '30',
+        key: 'SCRUM-30',
+        fields: {summary: 'Existing', labels: [findingIdentityLabel(active)]},
+        webUrl: 'https://sfji.atlassian.net/browse/SCRUM-30'
+      }
+    ])
+    vi.spyOn(SnowflakeFindings.prototype, 'getOpenFindings').mockResolvedValue([
+      active
+    ])
+    const reconcile = vi
+      .spyOn(Jira.prototype, 'reconcileWatchers')
+      .mockResolvedValue()
+    const create = vi.spyOn(Jira.prototype, 'createNewIssue')
+
+    await new GlobalFindingsJiraSync(
+      jiraConfig({
+        jiraReconcileWatchers: true,
+        jiraWatchers: 'watcher@example.com'
+      }),
+      snowflakeConfig(),
+      false
+    ).sync()
+
+    expect(reconcile).toHaveBeenCalledWith('SCRUM-30')
+    expect(create).not.toHaveBeenCalled()
+  })
 })

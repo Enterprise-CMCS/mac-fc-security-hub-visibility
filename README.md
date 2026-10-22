@@ -495,6 +495,16 @@ This approach prevents errors that may occur when label values exceed the allowe
 
 **Description:** Comma separated list of User Emails for Atlassion Jira or User EUA IDs for Enterprise Jira.
 
+Watcher operations retry a newly created issue's 404 responses after 1, 2, and 4 seconds. A watcher failure is logged with the issue key as a partial success; issue creation is not retried.
+
+### `jira-reconcile-watchers`
+
+**Required: No**
+
+**Default Value: false**
+
+**Description:** In Snowflake mode, add missing configured watchers to existing active managed tickets on later runs. Set to `true` to repair tickets whose watcher setup previously failed.
+
 ### `jira-add-labels`
 
 **Required: No**

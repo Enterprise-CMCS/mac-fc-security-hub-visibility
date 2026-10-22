@@ -7,6 +7,8 @@ export interface JiraConfig {
     jiraAssignee?: string;
     jiraAssigneeUseAccountId?: boolean;
     jiraWatchers?: string;
+    jiraReconcileWatchers?: boolean;
+    jiraWatcherRecovery?: boolean;
     jiraAddLabels?: string;
     testFindingsData?: string;
     transitionMap: Array<{
@@ -103,6 +105,7 @@ export declare class Jira {
     private dryRunIssueCounter;
     private jiraLabelsConfig?;
     private jiraWatchers?;
+    private watcherRecovery;
     private dueDateCritical;
     private dueDateHigh;
     private dueDateModerate;
@@ -119,6 +122,8 @@ export declare class Jira {
     transitionIssueByName(issueId: string, transitionName: string): Promise<void>;
     transitionIssueById(issueId: string, transitionId: string, transitionName: string, transition?: Transition): Promise<void>;
     addUserAsWatcher(issueId: string, watcher: string, isEnterprise?: boolean): Promise<void>;
+    private retryWatcher404;
+    reconcileWatchers(issueId: string): Promise<void>;
     removeCurrentUserAsWatcher(issueId: string): Promise<void>;
     private static formatLabelQuery;
     getAllManagedIssuesInJiraProject(requiredLabels: string[]): Promise<Issue[]>;

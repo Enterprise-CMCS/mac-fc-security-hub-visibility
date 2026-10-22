@@ -37,6 +37,10 @@ inputs:
     description: 'Comma separated list of Emails for Atlassion Jira and User EUA IDs for Enterprise Jira '
     required: false
     default: ''
+  jira-reconcile-watchers:
+    description: 'For Snowflake sync, add missing configured watchers to existing active managed issues'
+    required: false
+    default: 'false'
   jira-add-labels:
     description: 'Comma separated list of labels to add in newly created tickets'
     default: ''

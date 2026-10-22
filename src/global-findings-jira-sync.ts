@@ -252,6 +252,7 @@ export class GlobalFindingsJiraSync {
   private readonly fismaLabel: string
   private readonly reconciliationLabels: string[]
   private readonly view: string
+  private readonly reconcileWatchers: boolean
 
   constructor(
     jiraConfig: JiraConfig,
@@ -261,6 +262,7 @@ export class GlobalFindingsJiraSync {
     const jiraHostname = new URL(jiraConfig.jiraBaseURI).hostname.toLowerCase()
     this.jira = new Jira({
       ...jiraConfig,
+      jiraWatcherRecovery: true,
       // jira-assignee is documented as an accountId. Limit this compatibility
       // correction to Snowflake mode so the Security Hub path is unchanged.
       jiraAssigneeUseAccountId:
@@ -271,6 +273,7 @@ export class GlobalFindingsJiraSync {
     this.snowflake = new SnowflakeFindings(findingsConfig)
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.autoClose = autoClose
+    this.reconcileWatchers = jiraConfig.jiraReconcileWatchers ?? false
     this.customJiraFields = findingsConfig.customJiraFields
     this.jiraAddLabels = (jiraConfig.jiraAddLabels ?? '')
       .split(',')
@@ -438,6 +441,14 @@ h2. Acceptance criteria
       jiraIssues,
       activeIdentityLabels
     )
+    if (this.reconcileWatchers) {
+      for (const issue of jiraIssues) {
+        const identityLabel = this.managedIdentityLabel(issue)
+        if (identityLabel && activeIdentityLabels.has(identityLabel)) {
+          await this.jira.reconcileWatchers(issue.key)
+        }
+      }
+    }
     for (const finding of findings) {
       if (!existingIdentityLabels.has(findingIdentityLabel(finding))) {
         updates.push(await this.createIssue(finding))
