@@ -180,10 +180,14 @@ export class SnowflakeFindings {
 
     if (this.config.fismaIds.length > 0) {
       predicates.push('UPPER(FISMA_ID) = ?')
-      binds.push(...this.config.fismaIds)
+      binds.push(
+        ...this.config.fismaIds.map(value => value.trim().toUpperCase())
+      )
     } else {
       predicates.push('UPPER(FISMA_ACRONYM) = ?')
-      binds.push(...this.config.fismaAcronyms)
+      binds.push(
+        ...this.config.fismaAcronyms.map(value => value.trim().toUpperCase())
+      )
     }
 
     if (this.config.toolName) {

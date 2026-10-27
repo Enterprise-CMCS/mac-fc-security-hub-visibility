@@ -127,6 +127,22 @@ describe('Snowflake query safety', () => {
     expect(query.binds).toEqual(['FISMA-1'])
   })
 
+  it('normalizes direct FISMA ID and acronym binds', () => {
+    const queryFor = (fismaIds: string[], fismaAcronyms: string[]) =>
+      (
+        new SnowflakeFindings({
+          ...baseConfig,
+          fismaIds,
+          fismaAcronyms
+        }) as unknown as {
+          buildQuery(): {sqlText: string; binds: Array<string | number>}
+        }
+      ).buildQuery()
+
+    expect(queryFor([' fisma-1 '], []).binds).toEqual(['FISMA-1'])
+    expect(queryFor([], [' MACFin ']).binds).toEqual(['MACFIN'])
+  })
+
   it('optionally binds one tool after the authoritative FISMA filter', () => {
     const client = new SnowflakeFindings({
       ...baseConfig,
