@@ -30,10 +30,13 @@ export declare class GlobalFindingsJiraSync {
     private readonly reconciliationLabels;
     private readonly view;
     private readonly reconcileWatchers;
+    private readonly reopenTransition?;
     constructor(jiraConfig: JiraConfig, findingsConfig: GlobalFindingsJiraSyncConfig, autoClose: boolean);
     private summary;
     private issueBody;
     private managedIdentityLabel;
+    private isClosedIssue;
+    private preferredIssue;
     private closeResolvedIssues;
     private createIssue;
     sync(): Promise<void>;

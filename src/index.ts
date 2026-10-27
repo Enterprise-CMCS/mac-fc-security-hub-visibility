@@ -184,6 +184,10 @@ async function run(): Promise<void> {
         'JIRA_RECONCILE_WATCHERS',
         false
       ),
+      jiraReopenTransition: getInputOrEnv(
+        'jira-reopen-transition',
+        'JIRA_REOPEN_TRANSITION'
+      ),
       jiraAddLabels: getDefaultInputOrEnv(
         'jira-add-labels',
         'JIRA_ADD_LABELS',

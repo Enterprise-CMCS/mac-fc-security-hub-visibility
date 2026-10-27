@@ -16,6 +16,7 @@ export interface JiraConfig {
   jiraWatchers?: string
   jiraReconcileWatchers?: boolean
   jiraWatcherRecovery?: boolean
+  jiraReopenTransition?: string
   jiraAddLabels?: string
   testFindingsData?: string
   transitionMap: Array<{status: string; transition: string}>
@@ -86,6 +87,7 @@ export interface Issue {
 interface Transition {
   id: string
   name: string
+  to?: {statusCategory?: {key?: string}}
   fields?: {
     [fieldName: string]: any
   }
@@ -458,6 +460,48 @@ export class Jira {
       )
     }
   }
+  async reopenIssue(issueId: string, transitionName: string): Promise<void> {
+    const requested = transitionName.trim()
+    if (!requested) {
+      throw new Error(
+        `Issue ${issueId} is closed, but jira-reopen-transition is not configured.`
+      )
+    }
+    const transitions = await this.getIssueTransitions(issueId)
+    const transition = transitions.find(
+      item => item.name.trim().toLowerCase() === requested.toLowerCase()
+    )
+    if (!transition) {
+      throw new Error(
+        `Cannot reopen issue ${issueId}: transition '${requested}' is not available. Available transitions: ${transitions.map(item => item.name).join(', ') || '(none)'}.`
+      )
+    }
+    const destinationCategory =
+      transition.to?.statusCategory?.key?.toLowerCase()
+    if (!destinationCategory || destinationCategory === 'done') {
+      throw new Error(
+        `Cannot reopen issue ${issueId}: transition '${requested}' does not lead to a confirmed active status.`
+      )
+    }
+    if (this.isDryRun) {
+      console.log(
+        `[Dry Run] Would reopen issue ${issueId} using '${requested}'.`
+      )
+      return
+    }
+
+    await this.axiosInstance.post(
+      this.getApiPath(`/issue/${issueId}/transitions`),
+      {transition: {id: transition.id}}
+    )
+    const reopened = await this.getIssue(issueId)
+    const category = reopened.fields.status?.statusCategory?.key?.toLowerCase()
+    if (category === 'done' || !category || reopened.fields.resolution) {
+      throw new Error(
+        `Issue ${issueId} used transition '${requested}', but Jira did not confirm an active, unresolved status.`
+      )
+    }
+  }
   async transitionIssueById(
     issueId: string,
     transitionId: string,
@@ -652,7 +696,8 @@ export class Jira {
   }
 
   async getAllManagedIssuesInJiraProject(
-    requiredLabels: string[]
+    requiredLabels: string[],
+    includeIgnoredStatuses = false
   ): Promise<Issue[]> {
     if (
       requiredLabels.length < 2 ||
@@ -672,7 +717,11 @@ export class Jira {
     const statusQuery = `status not in ('${this.jiraIgnoreStatusesList
       .map(status => status.replace(/\\/g, '\\\\').replace(/'/g, "\\'"))
       .join("','")}')`
-    const fullQuery = [labelQuery, projectQuery, statusQuery].join(' AND ')
+    const fullQuery = [
+      labelQuery,
+      projectQuery,
+      ...(!includeIgnoredStatuses ? [statusQuery] : [])
+    ].join(' AND ')
 
     console.log(fullQuery)
     let allIssues: Issue[] = []

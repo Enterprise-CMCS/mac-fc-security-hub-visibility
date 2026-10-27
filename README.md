@@ -64,6 +64,17 @@ mode. Enable Snowflake auto-close only after validating that every expected tool
 in the selected boundary supplied a complete authoritative result and that
 absence from the view reliably means resolution.
 
+When a Snowflake finding returns, the sync searches managed issues across all
+statuses, independently of `jira-ignore-statuses`. It reopens the most recently
+updated closed ticket for that finding identity if no active ticket exists.
+Configure `jira-reopen-transition` with a transition name available in your
+Jira workflow. The sync checks that the transition is available on the issue
+and leads to an active status, then verifies that Jira reports an active,
+unresolved issue afterward. If the
+transition is missing or reopening cannot be verified, the run fails without
+creating a replacement ticket. Multiple tickets with the same identity produce
+a warning; an existing active ticket takes precedence.
+
 The view must expose these columns:
 
 `FISMA_ID`, `FISMA_ACRONYM`, `RESOURCE_ID`, `FINDING_ID`, `TOOL_NAME`,

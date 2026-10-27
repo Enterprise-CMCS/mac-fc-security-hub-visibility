@@ -297,4 +297,145 @@ describe('Snowflake Jira configuration', () => {
     expect(reconcile).toHaveBeenCalledWith('SCRUM-30')
     expect(create).not.toHaveBeenCalled()
   })
+
+  it('reopens a matching closed ticket instead of creating another', async () => {
+    const active = finding({toolName: 'KUBEBENCH'})
+    const search = vi
+      .spyOn(Jira.prototype, 'getAllManagedIssuesInJiraProject')
+      .mockResolvedValue([
+        {
+          id: '30',
+          key: 'SCRUM-30',
+          webUrl: 'https://sfji.atlassian.net/browse/SCRUM-30',
+          fields: {
+            summary: 'Previous finding',
+            labels: [findingIdentityLabel(active)],
+            status: {statusCategory: {key: 'done'}},
+            resolution: {name: 'Done'}
+          }
+        }
+      ])
+    vi.spyOn(SnowflakeFindings.prototype, 'getOpenFindings').mockResolvedValue([
+      active
+    ])
+    const reopen = vi.spyOn(Jira.prototype, 'reopenIssue').mockResolvedValue()
+    const create = vi.spyOn(Jira.prototype, 'createNewIssue')
+
+    await new GlobalFindingsJiraSync(
+      jiraConfig({jiraReopenTransition: 'To Do'}),
+      snowflakeConfig(),
+      false
+    ).sync()
+
+    expect(search).toHaveBeenCalledWith(expect.any(Array), true)
+    expect(reopen).toHaveBeenCalledWith('SCRUM-30', 'To Do')
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('does not create a replacement if reopening fails', async () => {
+    const active = finding({toolName: 'KUBEBENCH'})
+    vi.spyOn(
+      Jira.prototype,
+      'getAllManagedIssuesInJiraProject'
+    ).mockResolvedValue([
+      {
+        id: '30',
+        key: 'SCRUM-30',
+        webUrl: '',
+        fields: {
+          summary: 'Previous finding',
+          labels: [findingIdentityLabel(active)],
+          status: {statusCategory: {key: 'done'}}
+        }
+      }
+    ])
+    vi.spyOn(SnowflakeFindings.prototype, 'getOpenFindings').mockResolvedValue([
+      active
+    ])
+    vi.spyOn(Jira.prototype, 'reopenIssue').mockRejectedValue(
+      new Error('Transition missing')
+    )
+    const create = vi.spyOn(Jira.prototype, 'createNewIssue')
+
+    await expect(
+      new GlobalFindingsJiraSync(jiraConfig(), snowflakeConfig(), false).sync()
+    ).rejects.toThrow('Transition missing')
+    expect(create).not.toHaveBeenCalled()
+  })
+
+  it('keeps the active ticket when a duplicate closed ticket has the same identity', async () => {
+    const active = finding({toolName: 'KUBEBENCH'})
+    const identity = findingIdentityLabel(active)
+    vi.spyOn(
+      Jira.prototype,
+      'getAllManagedIssuesInJiraProject'
+    ).mockResolvedValue([
+      {
+        id: '30',
+        key: 'SCRUM-30',
+        webUrl: '',
+        fields: {
+          summary: 'Closed',
+          labels: [identity],
+          status: {statusCategory: {key: 'done'}}
+        }
+      },
+      {
+        id: '31',
+        key: 'SCRUM-31',
+        webUrl: '',
+        fields: {
+          summary: 'Active',
+          labels: [identity],
+          status: {statusCategory: {key: 'new'}}
+        }
+      }
+    ])
+    vi.spyOn(SnowflakeFindings.prototype, 'getOpenFindings').mockResolvedValue([
+      active
+    ])
+    const reopen = vi.spyOn(Jira.prototype, 'reopenIssue')
+    const create = vi.spyOn(Jira.prototype, 'createNewIssue')
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await new GlobalFindingsJiraSync(
+      jiraConfig(),
+      snowflakeConfig(),
+      false
+    ).sync()
+    expect(reopen).not.toHaveBeenCalled()
+    expect(create).not.toHaveBeenCalled()
+    expect(warning).toHaveBeenCalledWith(
+      expect.stringContaining('SCRUM-30, SCRUM-31')
+    )
+  })
+
+  it('does not close a previously closed ticket again', async () => {
+    vi.spyOn(
+      Jira.prototype,
+      'getAllManagedIssuesInJiraProject'
+    ).mockResolvedValue([
+      {
+        id: '30',
+        key: 'SCRUM-30',
+        webUrl: '',
+        fields: {
+          summary: 'Previous finding',
+          labels: ['global-finding-old'],
+          status: {statusCategory: {key: 'done'}}
+        }
+      }
+    ])
+    vi.spyOn(SnowflakeFindings.prototype, 'getOpenFindings').mockResolvedValue(
+      []
+    )
+    const close = vi.spyOn(Jira.prototype, 'closeIssue')
+
+    await new GlobalFindingsJiraSync(
+      jiraConfig(),
+      snowflakeConfig(),
+      true
+    ).sync()
+    expect(close).not.toHaveBeenCalled()
+  })
 })

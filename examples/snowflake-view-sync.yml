@@ -25,6 +25,9 @@ jobs:
           jira-project-key: macfc
           jira-ignore-statuses: 'Done, Closed, Resolved'
           jira-transition-map: '*:Done'
+          # SCRUM-30 exposed a global To Do transition. Check that this workflow
+          # also clears resolution when a closed issue moves to To Do.
+          jira-reopen-transition: 'To Do'
           jira-api-version: '3'
 
           # Optional Jira ticket customization.

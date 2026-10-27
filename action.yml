@@ -41,6 +41,9 @@ inputs:
     description: 'For Snowflake sync, add missing configured watchers to existing active managed issues'
     required: false
     default: 'false'
+  jira-reopen-transition:
+    description: 'Jira transition name used to reopen a previously closed Snowflake-managed issue when its finding returns'
+    required: false
   jira-add-labels:
     description: 'Comma separated list of labels to add in newly created tickets'
     default: ''

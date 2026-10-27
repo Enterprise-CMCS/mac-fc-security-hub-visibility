@@ -9,6 +9,7 @@ export interface JiraConfig {
     jiraWatchers?: string;
     jiraReconcileWatchers?: boolean;
     jiraWatcherRecovery?: boolean;
+    jiraReopenTransition?: string;
     jiraAddLabels?: string;
     testFindingsData?: string;
     transitionMap: Array<{
@@ -78,6 +79,11 @@ export interface Issue {
 interface Transition {
     id: string;
     name: string;
+    to?: {
+        statusCategory?: {
+            key?: string;
+        };
+    };
     fields?: {
         [fieldName: string]: any;
     };
@@ -120,13 +126,14 @@ export declare class Jira {
     getCurrentStatus(issueId: string): Promise<any>;
     getIssueTransitions(issueId: string): Promise<Transition[]>;
     transitionIssueByName(issueId: string, transitionName: string): Promise<void>;
+    reopenIssue(issueId: string, transitionName: string): Promise<void>;
     transitionIssueById(issueId: string, transitionId: string, transitionName: string, transition?: Transition): Promise<void>;
     addUserAsWatcher(issueId: string, watcher: string, isEnterprise?: boolean): Promise<void>;
     private retryWatcher404;
     reconcileWatchers(issueId: string): Promise<void>;
     removeCurrentUserAsWatcher(issueId: string): Promise<void>;
     private static formatLabelQuery;
-    getAllManagedIssuesInJiraProject(requiredLabels: string[]): Promise<Issue[]>;
+    getAllManagedIssuesInJiraProject(requiredLabels: string[], includeIgnoredStatuses?: boolean): Promise<Issue[]>;
     static createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
     createSearchLabels(identifyingLabels: string[], config: LabelConfig[]): string[];
     getAllSecurityHubIssuesInJiraProject(identifyingLabels: string[]): Promise<Issue[]>;

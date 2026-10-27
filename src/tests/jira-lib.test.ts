@@ -223,3 +223,110 @@ describe('Snowflake watcher recovery', () => {
     expect(adapter).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('Snowflake Jira reopening', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('searches managed identities across ignored statuses when requested', async () => {
+    const jira = new Jira(jiraConfig({dryRunTestData: false}))
+    const client = (jira as unknown as {axiosInstance: AxiosInstance})
+      .axiosInstance
+    const search = vi.spyOn(client, 'post').mockResolvedValue({
+      data: {issues: [], nextPageToken: null}
+    })
+    await jira.getAllManagedIssuesInJiraProject(
+      ['global-security-findings', 'snowflake-findings'],
+      true
+    )
+    expect(search.mock.calls[0][1].jql).not.toContain('status not in')
+  })
+
+  it('checks that the configured transition exists before reopening', async () => {
+    const jira = new Jira(jiraConfig({dryRunTestData: false}))
+    const client = (jira as unknown as {axiosInstance: AxiosInstance})
+      .axiosInstance
+    vi.spyOn(jira, 'getIssueTransitions').mockResolvedValue([
+      {id: '1', name: 'Close'}
+    ])
+    const post = vi.spyOn(client, 'post')
+
+    await expect(jira.reopenIssue('SCRUM-30', 'Reopen Issue')).rejects.toThrow(
+      "transition 'Reopen Issue' is not available"
+    )
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('rejects a closed issue without a configured reopen transition', async () => {
+    const jira = new Jira(jiraConfig({dryRunTestData: false}))
+    const transitions = vi.spyOn(jira, 'getIssueTransitions')
+    await expect(jira.reopenIssue('SCRUM-30', ' ')).rejects.toThrow(
+      'jira-reopen-transition is not configured'
+    )
+    expect(transitions).not.toHaveBeenCalled()
+  })
+
+  it('uses the available transition and verifies active unresolved state', async () => {
+    const jira = new Jira(jiraConfig({dryRunTestData: false}))
+    const client = (jira as unknown as {axiosInstance: AxiosInstance})
+      .axiosInstance
+    vi.spyOn(jira, 'getIssueTransitions').mockResolvedValue([
+      {id: '11', name: 'To Do', to: {statusCategory: {key: 'new'}}}
+    ])
+    const post = vi.spyOn(client, 'post').mockResolvedValue({data: {}})
+    vi.spyOn(jira, 'getIssue').mockResolvedValue({
+      id: '30',
+      key: 'SCRUM-30',
+      webUrl: '',
+      fields: {
+        summary: 'Finding',
+        status: {statusCategory: {key: 'new'}},
+        resolution: null
+      }
+    })
+
+    await jira.reopenIssue('SCRUM-30', ' to do ')
+    expect(post).toHaveBeenCalledWith(
+      '/rest/api/3/issue/SCRUM-30/transitions',
+      {transition: {id: '11'}}
+    )
+  })
+
+  it('rejects a transition whose destination is still Done', async () => {
+    const jira = new Jira(jiraConfig({dryRunTestData: false}))
+    const client = (jira as unknown as {axiosInstance: AxiosInstance})
+      .axiosInstance
+    vi.spyOn(jira, 'getIssueTransitions').mockResolvedValue([
+      {id: '31', name: 'Done', to: {statusCategory: {key: 'done'}}}
+    ])
+    const post = vi.spyOn(client, 'post')
+
+    await expect(jira.reopenIssue('SCRUM-30', 'Done')).rejects.toThrow(
+      'does not lead to a confirmed active status'
+    )
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('rejects a transition that leaves Jira resolved', async () => {
+    const jira = new Jira(jiraConfig({dryRunTestData: false}))
+    const client = (jira as unknown as {axiosInstance: AxiosInstance})
+      .axiosInstance
+    vi.spyOn(jira, 'getIssueTransitions').mockResolvedValue([
+      {id: '11', name: 'To Do', to: {statusCategory: {key: 'new'}}}
+    ])
+    vi.spyOn(client, 'post').mockResolvedValue({data: {}})
+    vi.spyOn(jira, 'getIssue').mockResolvedValue({
+      id: '30',
+      key: 'SCRUM-30',
+      webUrl: '',
+      fields: {
+        summary: 'Finding',
+        status: {statusCategory: {key: 'new'}},
+        resolution: {name: 'Done'}
+      }
+    })
+
+    await expect(jira.reopenIssue('SCRUM-30', 'To Do')).rejects.toThrow(
+      'did not confirm an active, unresolved status'
+    )
+  })
+})

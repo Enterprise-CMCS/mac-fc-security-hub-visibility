@@ -253,6 +253,7 @@ export class GlobalFindingsJiraSync {
   private readonly reconciliationLabels: string[]
   private readonly view: string
   private readonly reconcileWatchers: boolean
+  private readonly reopenTransition?: string
 
   constructor(
     jiraConfig: JiraConfig,
@@ -274,6 +275,7 @@ export class GlobalFindingsJiraSync {
     this.jiraBaseURI = jiraConfig.jiraBaseURI
     this.autoClose = autoClose
     this.reconcileWatchers = jiraConfig.jiraReconcileWatchers ?? false
+    this.reopenTransition = jiraConfig.jiraReopenTransition
     this.customJiraFields = findingsConfig.customJiraFields
     this.jiraAddLabels = (jiraConfig.jiraAddLabels ?? '')
       .split(',')
@@ -346,6 +348,22 @@ h2. Acceptance criteria
     ) as string | undefined
   }
 
+  private isClosedIssue(issue: Issue): boolean {
+    return (
+      issue.fields.status?.statusCategory?.key?.toLowerCase() === 'done' ||
+      Boolean(issue.fields.resolution)
+    )
+  }
+
+  private preferredIssue(issues: Issue[]): Issue {
+    return [...issues].sort((left, right) => {
+      const updated = String(right.fields.updated ?? '').localeCompare(
+        String(left.fields.updated ?? '')
+      )
+      return updated || right.key.localeCompare(left.key)
+    })[0]
+  }
+
   private async closeResolvedIssues(
     jiraIssues: Issue[],
     activeIdentityLabels: Set<string>
@@ -353,7 +371,12 @@ h2. Acceptance criteria
     const updates: UpdateForReturn[] = []
     for (const issue of jiraIssues) {
       const identityLabel = this.managedIdentityLabel(issue)
-      if (!identityLabel || activeIdentityLabels.has(identityLabel)) continue
+      if (
+        !identityLabel ||
+        activeIdentityLabels.has(identityLabel) ||
+        this.isClosedIssue(issue)
+      )
+        continue
 
       if (!this.autoClose) {
         console.log(`Skipping automatic close for ${issue.key}`)
@@ -427,30 +450,51 @@ h2. Acceptance criteria
 
   async sync(): Promise<void> {
     const jiraIssues = await this.jira.getAllManagedIssuesInJiraProject(
-      this.reconciliationLabels
+      this.reconciliationLabels,
+      true
     )
     const findings = await this.snowflake.getOpenFindings()
     const activeIdentityLabels = new Set(findings.map(findingIdentityLabel))
-    const existingIdentityLabels = new Set(
-      jiraIssues
-        .map(issue => this.managedIdentityLabel(issue))
-        .filter((label): label is string => Boolean(label))
-    )
+    const issuesByIdentity = new Map<string, Issue[]>()
+    for (const issue of jiraIssues) {
+      const identity = this.managedIdentityLabel(issue)
+      if (identity) {
+        issuesByIdentity.set(identity, [
+          ...(issuesByIdentity.get(identity) ?? []),
+          issue
+        ])
+      }
+    }
 
     const updates = await this.closeResolvedIssues(
       jiraIssues,
       activeIdentityLabels
     )
-    if (this.reconcileWatchers) {
-      for (const issue of jiraIssues) {
-        const identityLabel = this.managedIdentityLabel(issue)
-        if (identityLabel && activeIdentityLabels.has(identityLabel)) {
-          await this.jira.reconcileWatchers(issue.key)
-        }
-      }
-    }
     for (const finding of findings) {
-      if (!existingIdentityLabels.has(findingIdentityLabel(finding))) {
+      const identity = findingIdentityLabel(finding)
+      const matches = issuesByIdentity.get(identity) ?? []
+      if (matches.length > 1) {
+        console.warn(
+          `[Jira reconciliation] Multiple managed issues share ${identity}: ${matches.map(issue => issue.key).join(', ')}.`
+        )
+      }
+      const active = matches.filter(issue => !this.isClosedIssue(issue))
+      if (active.length > 0) {
+        if (this.reconcileWatchers) {
+          await this.jira.reconcileWatchers(this.preferredIssue(active).key)
+        }
+      } else if (matches.length > 0) {
+        const closed = this.preferredIssue(matches)
+        await this.jira.reopenIssue(closed.key, this.reopenTransition ?? '')
+        if (this.reconcileWatchers) {
+          await this.jira.reconcileWatchers(closed.key)
+        }
+        updates.push({
+          action: 'reopened',
+          webUrl: closed.webUrl || `${this.jiraBaseURI}/browse/${closed.key}`,
+          summary: closed.fields.summary
+        })
+      } else {
         updates.push(await this.createIssue(finding))
       }
     }
