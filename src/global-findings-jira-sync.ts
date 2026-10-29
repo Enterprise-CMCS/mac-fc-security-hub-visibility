@@ -12,6 +12,14 @@ import {
   SnowflakeFindings,
   SnowflakeFindingsConfig
 } from './libs/snowflake-lib'
+import {
+  assertIdentity,
+  creationState,
+  DESCRIPTION_START,
+  DESCRIPTION_END,
+  dueDateAnchor,
+  reconcileFields
+} from './libs/snowflake-jira-reconciliation'
 
 interface UpdateForReturn {
   action: string
@@ -254,6 +262,7 @@ export class GlobalFindingsJiraSync {
   private readonly view: string
   private readonly reconcileWatchers: boolean
   private readonly reopenTransition?: string
+  private readonly dueFields: string[]
 
   constructor(
     jiraConfig: JiraConfig,
@@ -276,7 +285,20 @@ export class GlobalFindingsJiraSync {
     this.autoClose = autoClose
     this.reconcileWatchers = jiraConfig.jiraReconcileWatchers ?? false
     this.reopenTransition = jiraConfig.jiraReopenTransition
+    this.dueFields = [
+      ...new Set(
+        ['duedate', jiraConfig.jiraDueDateField].filter((key): key is string =>
+          Boolean(key)
+        )
+      )
+    ]
     this.customJiraFields = findingsConfig.customJiraFields
+    for (const key of Object.keys(this.customJiraFields ?? {})) {
+      if (!/^customfield_\d+$/.test(key))
+        throw new Error(
+          `Snowflake custom fields must use Jira customfield_<id> keys: ${key}`
+        )
+    }
     this.jiraAddLabels = (jiraConfig.jiraAddLabels ?? '')
       .split(',')
       .map(label => label.trim())
@@ -342,10 +364,19 @@ h2. Acceptance criteria
   }
 
   private managedIdentityLabel(issue: Issue): string | undefined {
-    return issue.fields.labels?.find(
-      label =>
-        typeof label === 'string' && label.startsWith(IDENTITY_LABEL_PREFIX)
-    ) as string | undefined
+    const identities = [
+      ...new Set(
+        issue.fields.labels?.filter(
+          label =>
+            typeof label === 'string' && label.startsWith(IDENTITY_LABEL_PREFIX)
+        )
+      )
+    ]
+    if (identities.length > 1)
+      throw new Error(
+        `Conflicting finding identities on ${issue.key}; refusing reconciliation`
+      )
+    return identities[0]
   }
 
   private isClosedIssue(issue: Issue): boolean {
@@ -405,15 +436,16 @@ h2. Acceptance criteria
     return updates
   }
 
-  private async createIssue(
-    finding: GlobalSecurityFinding
-  ): Promise<UpdateForReturn> {
+  private buildIssue(finding: GlobalSecurityFinding): NewIssueData {
     const identityLabel = findingIdentityLabel(finding)
+    const body = this.issueBody(finding)
+    if (body.includes(DESCRIPTION_START) || body.includes(DESCRIPTION_END))
+      throw new Error('Source finding contains reserved description markers')
     const issue: NewIssueData = {
       fields: {
         ...this.customJiraFields,
         summary: this.summary(finding),
-        description: this.issueBody(finding),
+        description: `${DESCRIPTION_START}\n${body}\n${DESCRIPTION_END}`,
         issuetype: {name: 'Task'},
         labels: [
           ...new Set([
@@ -432,7 +464,25 @@ h2. Acceptance criteria
         priority: {name: jiraPriority(finding.normalizedSeverity)}
       }
     }
-    const newIssue = await this.jira.createNewIssue(issue)
+    assertIdentity(
+      {id: '', key: identityLabel, webUrl: '', fields: issue.fields},
+      identityLabel
+    )
+    return issue
+  }
+
+  private async createIssue(
+    finding: GlobalSecurityFinding
+  ): Promise<UpdateForReturn> {
+    const anchor = dueDateAnchor(undefined, finding.createdAt)
+    const issue = await this.jira.prepareSnowflakeFields(
+      this.buildIssue(finding),
+      anchor
+    )
+    const newIssue = await this.jira.createSnowflakeIssue(
+      issue,
+      creationState(issue, anchor, this.dueFields)
+    )
     if (this.jiraLinkIdOnCreation) {
       await this.jira.linkIssues(
         newIssue.key,
@@ -446,6 +496,27 @@ h2. Acceptance criteria
       webUrl: newIssue.webUrl,
       summary: issue.fields.summary
     }
+  }
+
+  private async reconcileIssue(
+    issue: Issue,
+    finding: GlobalSecurityFinding
+  ): Promise<'updated' | 'reopened' | undefined> {
+    const current = await this.jira.getSnowflakeIssue(issue.key)
+    assertIdentity(current, findingIdentityLabel(finding))
+    const anchor = dueDateAnchor(current, finding.createdAt)
+    const desired = await this.jira.prepareSnowflakeFields(
+      this.buildIssue(finding),
+      anchor
+    )
+    const patch = reconcileFields(current, desired, anchor, this.dueFields)
+    const reopen = this.isClosedIssue(current)
+    if (reopen)
+      await this.jira.reopenIssue(issue.key, this.reopenTransition ?? '')
+    if (patch) await this.jira.updateSnowflakeIssue(issue.key, patch)
+    if (this.reconcileWatchers)
+      await this.jira.reconcileSnowflakeWatchers(issue.key)
+    return reopen ? 'reopened' : patch ? 'updated' : undefined
   }
 
   async sync(): Promise<void> {
@@ -479,21 +550,15 @@ h2. Acceptance criteria
         )
       }
       const active = matches.filter(issue => !this.isClosedIssue(issue))
-      if (active.length > 0) {
-        if (this.reconcileWatchers) {
-          await this.jira.reconcileWatchers(this.preferredIssue(active).key)
-        }
-      } else if (matches.length > 0) {
-        const closed = this.preferredIssue(matches)
-        await this.jira.reopenIssue(closed.key, this.reopenTransition ?? '')
-        if (this.reconcileWatchers) {
-          await this.jira.reconcileWatchers(closed.key)
-        }
-        updates.push({
-          action: 'reopened',
-          webUrl: closed.webUrl || `${this.jiraBaseURI}/browse/${closed.key}`,
-          summary: closed.fields.summary
-        })
+      if (matches.length > 0) {
+        const issue = this.preferredIssue(active.length ? active : matches)
+        const action = await this.reconcileIssue(issue, finding)
+        if (action)
+          updates.push({
+            action,
+            webUrl: `${this.jiraBaseURI}/browse/${issue.key}`,
+            summary: this.summary(finding)
+          })
       } else {
         updates.push(await this.createIssue(finding))
       }

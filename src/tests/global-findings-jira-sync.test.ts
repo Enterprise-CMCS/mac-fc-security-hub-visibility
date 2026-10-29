@@ -1,4 +1,4 @@
-import {afterEach, describe, expect, it, vi} from 'vitest'
+import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest'
 import {
   configuredSnowflakeLabels,
   findingIdentity,
@@ -14,6 +14,7 @@ import {GlobalFindingsJiraSync} from '../global-findings-jira-sync'
 import {Jira, JiraConfig, NewIssueData} from '../libs/jira-lib'
 import {GlobalSecurityFinding} from '../libs/snowflake-lib'
 import {SnowflakeFindings, SnowflakeFindingsConfig} from '../libs/snowflake-lib'
+import {SnowflakeIssue} from '../libs/snowflake-jira-reconciliation'
 
 function finding(
   overrides: Partial<GlobalSecurityFinding> = {}
@@ -175,7 +176,94 @@ function snowflakeConfig(): SnowflakeFindingsConfig {
 }
 
 describe('Snowflake Jira configuration', () => {
+  beforeEach(() => {
+    vi.spyOn(Jira.prototype, 'getSnowflakeIssue').mockImplementation(
+      async key => {
+        const issues = await vi.mocked(
+          Jira.prototype.getAllManagedIssuesInJiraProject
+        ).mock.results[0].value
+        const issue = issues.find(
+          (candidate: {key: string}) => candidate.key === key
+        )
+        return {
+          ...issue,
+          fields: {...issue.fields, created: '2026-10-01T00:00:00Z'}
+        }
+      }
+    )
+  })
   afterEach(() => vi.restoreAllMocks())
+
+  it('refreshes a matched ticket once and never creates a replacement on update failure', async () => {
+    const source = finding({toolName: 'KUBEBENCH'})
+    let issue: SnowflakeIssue = {
+      id: '30',
+      key: 'SCRUM-30',
+      webUrl: '',
+      fields: {
+        summary: 'Old title',
+        description: {
+          type: 'doc',
+          version: 1,
+          content: [
+            {
+              type: 'paragraph',
+              content: [{type: 'text', text: 'Keep analyst notes'}]
+            }
+          ]
+        },
+        labels: [findingIdentityLabel(source), 'human-label'],
+        created: '2026-10-01T00:00:00Z'
+      }
+    }
+    vi.spyOn(
+      Jira.prototype,
+      'getAllManagedIssuesInJiraProject'
+    ).mockImplementation(async () => [issue])
+    vi.mocked(Jira.prototype.getSnowflakeIssue).mockImplementation(
+      async () => issue
+    )
+    vi.spyOn(SnowflakeFindings.prototype, 'getOpenFindings').mockImplementation(
+      async () => [source]
+    )
+    const create = vi.spyOn(Jira.prototype, 'createSnowflakeIssue')
+    const update = vi
+      .spyOn(Jira.prototype, 'updateSnowflakeIssue')
+      .mockImplementation(async (_key, patch) => {
+        const labels = new Set(issue.fields.labels)
+        for (const op of patch.update?.labels ?? []) {
+          if ('add' in op) labels.add(op.add)
+          else labels.delete(op.remove)
+        }
+        issue = {
+          ...issue,
+          fields: {...issue.fields, ...patch.fields, labels: [...labels]},
+          properties: Object.fromEntries(
+            patch.properties.map(p => [p.key, p.value])
+          )
+        }
+      })
+    const sync = new GlobalFindingsJiraSync(
+      jiraConfig(),
+      snowflakeConfig(),
+      false
+    )
+    await sync.sync()
+    expect(update).toHaveBeenCalledTimes(1)
+    const date = issue.fields.duedate
+    await sync.sync()
+    expect(update).toHaveBeenCalledTimes(1)
+    expect(issue.fields.labels).toContain('human-label')
+    expect(issue.fields.labels).toContain(findingIdentityLabel(source))
+    expect(JSON.stringify(issue.fields.description)).toContain(
+      'Keep analyst notes'
+    )
+    expect(issue.fields.duedate).toBe(date)
+    source.rawFinding = {TITLE: 'Updated source title'}
+    update.mockRejectedValueOnce(new Error('Jira update denied'))
+    await expect(sync.sync()).rejects.toThrow('Jira update denied')
+    expect(create).not.toHaveBeenCalled()
+  })
 
   it('applies configured labels and links newly created issues', async () => {
     vi.spyOn(
@@ -186,7 +274,7 @@ describe('Snowflake Jira configuration', () => {
       finding({toolName: 'KUBEBENCH', normalizedSeverity: 'CRITICAL'})
     ])
     const createIssue = vi
-      .spyOn(Jira.prototype, 'createNewIssue')
+      .spyOn(Jira.prototype, 'createSnowflakeIssue')
       .mockImplementation(async (issue: NewIssueData) => ({
         id: '10001',
         key: 'MACFC-3',
@@ -281,9 +369,9 @@ describe('Snowflake Jira configuration', () => {
       active
     ])
     const reconcile = vi
-      .spyOn(Jira.prototype, 'reconcileWatchers')
+      .spyOn(Jira.prototype, 'reconcileSnowflakeWatchers')
       .mockResolvedValue()
-    const create = vi.spyOn(Jira.prototype, 'createNewIssue')
+    const create = vi.spyOn(Jira.prototype, 'createSnowflakeIssue')
 
     await new GlobalFindingsJiraSync(
       jiraConfig({
@@ -319,7 +407,7 @@ describe('Snowflake Jira configuration', () => {
       active
     ])
     const reopen = vi.spyOn(Jira.prototype, 'reopenIssue').mockResolvedValue()
-    const create = vi.spyOn(Jira.prototype, 'createNewIssue')
+    const create = vi.spyOn(Jira.prototype, 'createSnowflakeIssue')
 
     await new GlobalFindingsJiraSync(
       jiraConfig({jiraReopenTransition: 'To Do'}),
@@ -355,7 +443,7 @@ describe('Snowflake Jira configuration', () => {
     vi.spyOn(Jira.prototype, 'reopenIssue').mockRejectedValue(
       new Error('Transition missing')
     )
-    const create = vi.spyOn(Jira.prototype, 'createNewIssue')
+    const create = vi.spyOn(Jira.prototype, 'createSnowflakeIssue')
 
     await expect(
       new GlobalFindingsJiraSync(jiraConfig(), snowflakeConfig(), false).sync()
@@ -395,7 +483,7 @@ describe('Snowflake Jira configuration', () => {
       active
     ])
     const reopen = vi.spyOn(Jira.prototype, 'reopenIssue')
-    const create = vi.spyOn(Jira.prototype, 'createNewIssue')
+    const create = vi.spyOn(Jira.prototype, 'createSnowflakeIssue')
     const warning = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     await new GlobalFindingsJiraSync(

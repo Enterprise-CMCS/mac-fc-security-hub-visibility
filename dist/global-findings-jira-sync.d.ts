@@ -31,6 +31,7 @@ export declare class GlobalFindingsJiraSync {
     private readonly view;
     private readonly reconcileWatchers;
     private readonly reopenTransition?;
+    private readonly dueFields;
     constructor(jiraConfig: JiraConfig, findingsConfig: GlobalFindingsJiraSyncConfig, autoClose: boolean);
     private summary;
     private issueBody;
@@ -38,6 +39,8 @@ export declare class GlobalFindingsJiraSync {
     private isClosedIssue;
     private preferredIssue;
     private closeResolvedIssues;
+    private buildIssue;
     private createIssue;
+    private reconcileIssue;
     sync(): Promise<void>;
 }

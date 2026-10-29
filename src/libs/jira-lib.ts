@@ -2,6 +2,12 @@ import * as dotenv from 'dotenv'
 import axios, {AxiosError, AxiosInstance} from 'axios'
 import axiosRetry from 'axios-retry'
 import {extractErrorMessage} from './error-lib'
+import {
+  SNOWFLAKE_STATE_KEY,
+  SnowflakeIssue,
+  SnowflakePatch,
+  SnowflakeSyncState
+} from './snowflake-jira-reconciliation'
 
 dotenv.config()
 
@@ -975,6 +981,124 @@ export class Jira {
       console.warn(`Failed to fetch or process CISA feed for ${cveId}:`, error)
     }
     return undefined
+  }
+
+  // Explicit Snowflake entry points. The existing Security Hub creation/update
+  // paths below do not call these methods.
+  async prepareSnowflakeFields(
+    issue: NewIssueData,
+    anchor: string
+  ): Promise<NewIssueData> {
+    const fields = {...issue.fields}
+    const cve = fields.labels?.find(label =>
+      /^CVE-\d{4}-\d{4,}$/i.test(String(label))
+    )
+    let date = cve ? await this.getCisaDueDate(String(cve)) : undefined
+    if (!date) {
+      const severity = fields.labels?.find(label =>
+        ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(String(label))
+      )
+      const days =
+        severity === 'CRITICAL'
+          ? this.dueDateCritical
+          : severity === 'HIGH'
+            ? this.dueDateHigh
+            : severity === 'LOW'
+              ? this.dueDateLow
+              : this.dueDateModerate
+      const base = new Date(anchor)
+      base.setUTCDate(base.getUTCDate() + days)
+      date = base.toISOString().slice(0, 10)
+    }
+    fields.duedate = date
+    if (this.jiraDueDateField) fields[this.jiraDueDateField] = date
+    if (this.jiraAssignee)
+      fields.assignee = this.jiraAssigneeUseAccountId
+        ? {accountId: this.jiraAssignee}
+        : {name: this.jiraAssignee}
+    fields.project = {key: this.jiraProject}
+    if (this.apiVersion === '3' && typeof fields.description === 'string')
+      fields.description = textToAdf(fields.description)
+    return {fields}
+  }
+
+  async getSnowflakeIssue(issueId: string): Promise<SnowflakeIssue> {
+    const response = await this.axiosInstance.get(
+      this.getApiPath(`/issue/${issueId}`),
+      {
+        params: {fields: '*all', properties: SNOWFLAKE_STATE_KEY}
+      }
+    )
+    return response.data
+  }
+
+  async updateSnowflakeIssue(
+    issueId: string,
+    patch: SnowflakePatch
+  ): Promise<void> {
+    if (this.isDryRun) {
+      console.log(
+        `[Dry Run] Would reconcile Snowflake issue ${issueId}:`,
+        patch
+      )
+      return
+    }
+    await this.axiosInstance.put(this.getApiPath(`/issue/${issueId}`), patch)
+  }
+
+  async reconcileSnowflakeWatchers(issueId: string): Promise<void> {
+    if (this.isDryRun) {
+      console.log(`[Dry Run] Would reconcile configured watchers on ${issueId}`)
+      return
+    }
+    await this.reconcileWatchers(issueId)
+  }
+
+  async createSnowflakeIssue(
+    issue: NewIssueData,
+    state: SnowflakeSyncState
+  ): Promise<Issue> {
+    if (this.isDryRun) {
+      const key = `DRYRUN-KEY-${++this.dryRunIssueCounter}`
+      console.log('[Dry Run] Would create Snowflake issue:', issue)
+      return {
+        id: key,
+        key,
+        fields: issue.fields,
+        webUrl: `${this.jiraBaseURI}/browse/${key}`
+      }
+    }
+    const response = await this.axiosInstance.post(this.getApiPath('/issue'), {
+      ...issue,
+      properties: [{key: SNOWFLAKE_STATE_KEY, value: state}]
+    })
+    const created: Issue = {
+      ...response.data,
+      fields: issue.fields,
+      webUrl: `${this.jiraBaseURI}/browse/${response.data.key}`
+    }
+    // Issue creation succeeded; watcher failures must never trigger another create.
+    try {
+      await this.removeCurrentUserAsWatcher(created.key)
+    } catch (error) {
+      console.warn(
+        `[Jira partial success] Issue ${created.key} was created, but watcher removal failed: ${extractErrorMessage(error)}`
+      )
+    }
+    for (const watcher of this.jiraWatchers ?? []) {
+      try {
+        await this.addUserAsWatcher(
+          created.key,
+          watcher,
+          !new URL(this.jiraBaseURI).hostname.endsWith('.atlassian.net')
+        )
+      } catch (error) {
+        console.warn(
+          `[Jira partial success] Issue ${created.key} was created, but watcher setup failed: ${extractErrorMessage(error)}`
+        )
+      }
+    }
+    return created
   }
 
   async createNewIssue(issue: NewIssueData): Promise<Issue> {

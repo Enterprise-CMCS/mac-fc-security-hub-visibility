@@ -51,6 +51,33 @@ Snowflake ownership and identity labels are always retained. In addition to the
 canonical `severity-<value>` label, issues receive a plain normalized severity
 label so the existing severity-based due-date configuration applies correctly.
 
+Matched Snowflake tickets are refreshed on each run, including after reopening.
+The sync merges mandatory labels, `jira-add-labels`, and `jira-labels-config`
+labels while preserving the existing `global-finding-*` identity and human
+labels. It removes obsolete labels that it previously added and old canonical
+severity labels. A Jira issue property records label and due-date ownership.
+Unchanged findings and configuration do not produce repeated field updates.
+
+Summary, priority, explicitly configured `customfield_*` fields, and the
+configured assignee follow the current finding/configuration. Unconfigured
+fields are preserved; configured custom-field values (including multi-select
+lists) are authoritative. Description updates replace only the marked
+Snowflake-managed section, preserving notes and formatting outside it. For
+legacy tickets without markers, the existing description is retained and a
+managed section is appended once.
+
+Severity-based due dates use a fixed anchor: the source creation timestamp,
+then the Jira creation timestamp, then the first synchronization time. CISA
+due dates take precedence when available. The anchor is persisted; later runs
+do not extend the deadline simply because time has passed. Existing dates
+with unknown ownership and manual overrides are preserved. Dates last written
+by this sync can change when severity or due-date configuration changes.
+
+Set `jira-reconcile-watchers: 'true'` to add missing configured watchers on
+matched tickets; existing watchers are retained. Watcher failures report
+partial success with the issue key. These reconciliation rules apply only to
+`finding-source: snowflake`; the direct AWS Security Hub sync is unchanged.
+
 In Snowflake mode, `jira-labels-config` supports `severity`,
 `normalizedSeverity`, `toolName`, `fismaId`, `fismaAcronym`, `resourceId`,
 `findingId`, `source`, `CVE`, and primitive fields found directly in

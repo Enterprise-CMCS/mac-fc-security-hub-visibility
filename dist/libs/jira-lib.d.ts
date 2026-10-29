@@ -1,3 +1,4 @@
+import { SnowflakeIssue, SnowflakePatch, SnowflakeSyncState } from './snowflake-jira-reconciliation';
 export interface JiraConfig {
     jiraBaseURI: string;
     jiraUsername: string;
@@ -142,6 +143,11 @@ export declare class Jira {
      * Implements caching to avoid repeated API calls within a session.
      */
     private getCisaDueDate;
+    prepareSnowflakeFields(issue: NewIssueData, anchor: string): Promise<NewIssueData>;
+    getSnowflakeIssue(issueId: string): Promise<SnowflakeIssue>;
+    updateSnowflakeIssue(issueId: string, patch: SnowflakePatch): Promise<void>;
+    reconcileSnowflakeWatchers(issueId: string): Promise<void>;
+    createSnowflakeIssue(issue: NewIssueData, state: SnowflakeSyncState): Promise<Issue>;
     createNewIssue(issue: NewIssueData): Promise<Issue>;
     linkIssues(newIssueKey: string, issueID: string, linkType?: string, linkDirection?: string): Promise<void>;
     updateIssueTitleById(issueId: string, updatedIssue: Partial<Issue>): Promise<void>;
