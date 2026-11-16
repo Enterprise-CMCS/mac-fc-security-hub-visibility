@@ -2,6 +2,8 @@
 
 ## A GitHub Action that syncs AWS Security Hub or Snowflake findings with Jira
 
+For detailed behavior, lifecycle differences, configuration, and the full feature matrix, see [Security Hub and SDL integration documentation](docs/security-hub-and-sdl-integrations.md).
+
 1. Gets all current findings from Security Hub, filtered by the `Severity` of the findings (default is `CRITICAL,HIGH,MEDIUM`)
 
 2. Creates Jira issues for findings that do not already have a Jira issue
