@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it, vi} from 'vitest'
-import {AxiosInstance} from 'axios'
+import {AxiosError, AxiosInstance} from 'axios'
 import {Jira, JiraConfig, NewIssueData} from '../libs/jira-lib'
 import {
   assertIdentity,
@@ -273,6 +273,28 @@ const config = (overrides: Partial<JiraConfig> = {}): JiraConfig => ({
 
 describe('Snowflake Jira transport isolation', () => {
   afterEach(() => vi.restoreAllMocks())
+
+  it('reports Jira field errors without retrying failed creation', async () => {
+    const jira = new Jira(config({dryRunTestData: false}))
+    const client = (jira as unknown as {axiosInstance: AxiosInstance})
+      .axiosInstance
+    const error = new AxiosError('Request failed with status code 400')
+    error.response = {
+      status: 400,
+      data: {errors: {priority: 'Invalid priority name'}},
+      headers: {},
+      statusText: 'Bad Request',
+      config: {} as NonNullable<typeof error.config>
+    }
+    const post = vi.spyOn(client, 'post').mockRejectedValue(error)
+    await expect(
+      jira.createSnowflakeIssue(
+        desired(),
+        creationState(desired(), anchor, ['duedate'])
+      )
+    ).rejects.toThrow('"priority":"Invalid priority name"')
+    expect(post).toHaveBeenCalledTimes(1)
+  })
 
   it('anchors creation and update preparation to the same date', async () => {
     const jira = new Jira(config())

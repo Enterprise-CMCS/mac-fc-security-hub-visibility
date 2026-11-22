@@ -1068,10 +1068,16 @@ export class Jira {
         webUrl: `${this.jiraBaseURI}/browse/${key}`
       }
     }
-    const response = await this.axiosInstance.post(this.getApiPath('/issue'), {
-      ...issue,
-      properties: [{key: SNOWFLAKE_STATE_KEY, value: state}]
-    })
+    const response = await this.axiosInstance
+      .post(this.getApiPath('/issue'), {
+        ...issue,
+        properties: [{key: SNOWFLAKE_STATE_KEY, value: state}]
+      })
+      .catch((error: unknown) => {
+        throw new Error(
+          `Error creating Snowflake Jira issue: ${handleAxiosError(error)}`
+        )
+      })
     const created: Issue = {
       ...response.data,
       fields: issue.fields,
