@@ -242,7 +242,7 @@ export function reconcileFields(
     if (['labels', 'project', 'issuetype'].includes(key)) continue
     const existing = current.fields[key]
     if (
-      key.startsWith('customfield_') &&
+      (key === 'parent' || key.startsWith('customfield_')) &&
       !dueFields.includes(key) &&
       configuredValueMatches(existing, value)
     )

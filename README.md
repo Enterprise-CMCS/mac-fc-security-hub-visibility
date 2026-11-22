@@ -53,6 +53,14 @@ Snowflake ownership and identity labels are always retained. In addition to the
 canonical `severity-<value>` label, issues receive a plain normalized severity
 label so the existing severity-based due-date configuration applies correctly.
 
+To place Snowflake Tasks under an epic in Jira Cloud, set
+`jira-custom-fields: '{"parent":{"key":"KAN-5"}}'`. The configured parent is
+applied on creation and reconciled on existing matched tickets. Removing
+`parent` from configuration preserves the existing parent. Jira validates the
+parent's permissions and issue hierarchy. `jira-link-id-on-creation` creates a
+separate issue link; it does not assign epic membership. Other configured keys
+must use `customfield_<id>`.
+
 Matched Snowflake tickets are refreshed on each run, including after reopening.
 The sync merges mandatory labels, `jira-add-labels`, and `jira-labels-config`
 labels while preserving the existing `global-finding-*` identity and human

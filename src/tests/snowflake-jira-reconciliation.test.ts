@@ -82,6 +82,34 @@ const adf = (text: string) => ({
 })
 
 describe('Snowflake field reconciliation', () => {
+  it('updates the configured epic parent once and preserves it when configuration is absent', () => {
+    const target = desired()
+    target.fields.parent = {key: 'KAN-5'}
+    const initial = existing()
+    const first = reconcileFields(initial, target, anchor, ['duedate'])!
+    expect(first.fields.parent).toEqual({key: 'KAN-5'})
+    const adopted = apply(initial, first)
+    adopted.fields.parent = {
+      key: 'KAN-5',
+      id: '10005',
+      fields: {summary: 'Epic'}
+    }
+    expect(
+      reconcileFields(adopted, target, anchor, ['duedate'])
+    ).toBeUndefined()
+
+    target.fields.parent = {key: 'KAN-6'}
+    const changed = reconcileFields(adopted, target, anchor, ['duedate'])!
+    expect(changed.fields.parent).toEqual({key: 'KAN-6'})
+    const updated = apply(adopted, changed)
+    expect(
+      reconcileFields(updated, target, anchor, ['duedate'])
+    ).toBeUndefined()
+    expect(
+      reconcileFields(updated, desired(), anchor, ['duedate'])
+    ).toBeUndefined()
+  })
+
   it('merges managed fields without deleting human labels, notes or unrelated fields', () => {
     const issue = existing()
     const patch = reconcileFields(issue, desired(), anchor, ['duedate'])!

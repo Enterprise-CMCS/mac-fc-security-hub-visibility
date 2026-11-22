@@ -194,6 +194,17 @@ describe('Snowflake Jira configuration', () => {
   })
   afterEach(() => vi.restoreAllMocks())
 
+  it('rejects unsupported system fields while allowing the configured epic parent', () => {
+    expect(
+      () =>
+        new GlobalFindingsJiraSync(
+          jiraConfig(),
+          {...snowflakeConfig(), customJiraFields: {summary: 'Override'}},
+          false
+        )
+    ).toThrow('customfield_<id> keys or parent: summary')
+  })
+
   it('refreshes a matched ticket once and never creates a replacement on update failure', async () => {
     const source = finding({toolName: 'KUBEBENCH'})
     let issue: SnowflakeIssue = {
@@ -287,11 +298,12 @@ describe('Snowflake Jira configuration', () => {
 
     await new GlobalFindingsJiraSync(
       jiraConfig(),
-      snowflakeConfig(),
+      {...snowflakeConfig(), customJiraFields: {parent: {key: 'KAN-5'}}},
       false
     ).sync()
 
     const created = createIssue.mock.calls[0][0]
+    expect(created.fields.parent).toEqual({key: 'KAN-5'})
     expect(created.fields.labels).toEqual(
       expect.arrayContaining([
         'global-security-findings',

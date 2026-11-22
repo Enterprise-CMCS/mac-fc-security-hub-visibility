@@ -294,9 +294,9 @@ export class GlobalFindingsJiraSync {
     ]
     this.customJiraFields = findingsConfig.customJiraFields
     for (const key of Object.keys(this.customJiraFields ?? {})) {
-      if (!/^customfield_\d+$/.test(key))
+      if (key !== 'parent' && !/^customfield_\d+$/.test(key))
         throw new Error(
-          `Snowflake custom fields must use Jira customfield_<id> keys: ${key}`
+          `Snowflake custom fields must use Jira customfield_<id> keys or parent: ${key}`
         )
     }
     this.jiraAddLabels = (jiraConfig.jiraAddLabels ?? '')
