@@ -220,7 +220,54 @@ export function findingTitle(finding: GlobalSecurityFinding): string {
   )
 }
 
-function jiraPriority(severity: string): string {
+export function parseJiraPriorityMap(input?: string): Record<string, string> {
+  if (!input?.trim()) return {}
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(input)
+  } catch {
+    throw new Error(
+      'jira-priority-map must be a JSON object, e.g. {"CRITICAL":"Highest"}.'
+    )
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+    throw new Error('jira-priority-map must be a JSON object.')
+  const result: Record<string, string> = {}
+  const severities = new Set([
+    'CRITICAL',
+    'HIGH',
+    'MEDIUM',
+    'LOW',
+    'INFO',
+    'INFORMATIONAL',
+    'UNKNOWN'
+  ])
+  for (const [key, value] of Object.entries(parsed)) {
+    const severity = key.trim().toUpperCase()
+    if (!severities.has(severity))
+      throw new Error(
+        `jira-priority-map contains unsupported severity '${key}'. Use normalized severities: ${[...severities].join(', ')}.`
+      )
+    if (typeof value !== 'string' || !value.trim())
+      throw new Error(
+        `jira-priority-map priority for ${severity} must be a non-empty string.`
+      )
+    if (Object.prototype.hasOwnProperty.call(result, severity))
+      throw new Error(
+        `jira-priority-map contains duplicate normalized severity ${severity}.`
+      )
+    result[severity] = value.trim()
+  }
+  return result
+}
+
+export function jiraPriority(
+  severity: string,
+  overrides: Record<string, string> = {}
+): string {
+  severity = severity.trim().toUpperCase()
+  if (Object.prototype.hasOwnProperty.call(overrides, severity))
+    return overrides[severity]
   switch (severity) {
     case 'CRITICAL':
       return 'Critical'
@@ -251,6 +298,7 @@ export class GlobalFindingsJiraSync {
   private readonly customJiraFields?: CustomFields
   private readonly jiraAddLabels: string[]
   private readonly jiraLabelsConfig: LabelConfig[]
+  private readonly priorityMap: Record<string, string>
   private readonly jiraLinkIdOnCreation?: string
   private readonly jiraLinkTypeOnCreation?: string
   private readonly jiraLinkDirectionOnCreation?: string
@@ -269,6 +317,7 @@ export class GlobalFindingsJiraSync {
     findingsConfig: GlobalFindingsJiraSyncConfig,
     autoClose: boolean
   ) {
+    this.priorityMap = parseJiraPriorityMap(jiraConfig.jiraPriorityMap)
     const jiraHostname = new URL(jiraConfig.jiraBaseURI).hostname.toLowerCase()
     this.jira = new Jira({
       ...jiraConfig,
@@ -461,7 +510,9 @@ h2. Acceptance criteria
             ...this.jiraAddLabels
           ])
         ],
-        priority: {name: jiraPriority(finding.normalizedSeverity)}
+        priority: {
+          name: jiraPriority(finding.normalizedSeverity, this.priorityMap)
+        }
       }
     }
     assertIdentity(

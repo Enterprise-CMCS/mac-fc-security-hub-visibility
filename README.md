@@ -62,6 +62,27 @@ separate issue link; it does not assign epic membership. Other configured keys
 must use `customfield_<id>`.
 
 Matched Snowflake tickets are refreshed on each run, including after reopening.
+
+In Snowflake mode, `jira-priority-map` optionally overrides Jira priority names
+by normalized severity. For a Jira project with `Highest` instead of `Critical`:
+
+```yaml
+jira-priority-map: '{"CRITICAL":"Highest"}'
+```
+
+The same input is available as `JIRA_PRIORITY_MAP` when using environment
+variables. Keys are case-insensitive normalized severities (`CRITICAL`, `HIGH`,
+`MEDIUM`, `LOW`, `INFO`, `INFORMATIONAL`, `UNKNOWN`); priority names retain their
+case and must exist and be available in the target Jira project. Invalid JSON,
+unknown severity keys, duplicate normalized keys, and empty/non-string priority
+names fail before external requests. Unmapped severities keep the defaults:
+Critical, High, Medium, Low, and Lowest for INFO/INFORMATIONAL/UNKNOWN. No priority
+is created and no automatic fallback is selected if Jira rejects the name.
+Changes to the mapping reconcile existing tickets, including reopened tickets;
+unchanged mappings do not repeatedly update priority. Severity labels and due
+dates still use finding severity, not the mapped Jira priority. This input does
+not change the direct AWS Security Hub path.
+
 The sync merges mandatory labels, `jira-add-labels`, and `jira-labels-config`
 labels while preserving the existing `global-finding-*` identity and human
 labels. It removes obsolete labels that it previously added and old canonical

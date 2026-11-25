@@ -23,6 +23,7 @@ export interface JiraConfig {
   jiraReconcileWatchers?: boolean
   jiraWatcherRecovery?: boolean
   jiraReopenTransition?: string
+  jiraPriorityMap?: string
   jiraAddLabels?: string
   testFindingsData?: string
   transitionMap: Array<{status: string; transition: string}>

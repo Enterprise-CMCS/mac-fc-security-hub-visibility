@@ -8,6 +8,8 @@ import {
   reconciliationLabels,
   reconciliationToolLabel,
   findingTitle,
+  jiraPriority,
+  parseJiraPriorityMap,
   SNOWFLAKE_FINDINGS_LABEL
 } from '../global-findings-jira-sync'
 import {GlobalFindingsJiraSync} from '../global-findings-jira-sync'
@@ -15,6 +17,49 @@ import {Jira, JiraConfig, NewIssueData} from '../libs/jira-lib'
 import {GlobalSecurityFinding} from '../libs/snowflake-lib'
 import {SnowflakeFindings, SnowflakeFindingsConfig} from '../libs/snowflake-lib'
 import {SnowflakeIssue} from '../libs/snowflake-jira-reconciliation'
+
+describe('Snowflake priority mapping', () => {
+  it.each([
+    ['CRITICAL', 'Critical'],
+    ['HIGH', 'High'],
+    ['MEDIUM', 'Medium'],
+    ['LOW', 'Low'],
+    ['INFO', 'Lowest'],
+    ['INFORMATIONAL', 'Lowest'],
+    ['UNKNOWN', 'Lowest']
+  ])('preserves the default priority for %s', (severity, priority) => {
+    expect(jiraPriority(severity, parseJiraPriorityMap())).toBe(priority)
+  })
+
+  it('normalizes severity keys, preserves Jira name case, and retains unmapped defaults', () => {
+    const map = parseJiraPriorityMap('{" critical ":" Highest ","INFO":"Low"}')
+    expect(jiraPriority('CRITICAL', map)).toBe('Highest')
+    expect(jiraPriority('INFO', map)).toBe('Low')
+    expect(jiraPriority('HIGH', map)).toBe('High')
+    expect(parseJiraPriorityMap('  ')).toEqual({})
+  })
+
+  it.each([
+    'broken',
+    'null',
+    '[]',
+    '"Highest"',
+    '{"FATAL":"Highest"}',
+    '{"CRITICAL":" "}',
+    '{"CRITICAL":1}',
+    '{"CRITICAL":null}',
+    '{"critical":"Highest","CRITICAL":"Critical"}'
+  ])('rejects invalid configuration before external requests: %s', input => {
+    expect(
+      () =>
+        new GlobalFindingsJiraSync(
+          jiraConfig({jiraPriorityMap: input}),
+          snowflakeConfig(),
+          false
+        )
+    ).toThrow('jira-priority-map')
+  })
+})
 
 function finding(
   overrides: Partial<GlobalSecurityFinding> = {}
@@ -255,15 +300,26 @@ describe('Snowflake Jira configuration', () => {
         }
       })
     const sync = new GlobalFindingsJiraSync(
-      jiraConfig(),
+      jiraConfig({jiraPriorityMap: '{"HIGH":"Highest"}'}),
       snowflakeConfig(),
       false
     )
     await sync.sync()
     expect(update).toHaveBeenCalledTimes(1)
+    expect(issue.fields.priority).toEqual({name: 'Highest'})
     const date = issue.fields.duedate
     await sync.sync()
     expect(update).toHaveBeenCalledTimes(1)
+    const remapped = new GlobalFindingsJiraSync(
+      jiraConfig({jiraPriorityMap: '{"HIGH":"High"}'}),
+      snowflakeConfig(),
+      false
+    )
+    await remapped.sync()
+    expect(issue.fields.priority).toEqual({name: 'High'})
+    expect(update).toHaveBeenCalledTimes(2)
+    await remapped.sync()
+    expect(update).toHaveBeenCalledTimes(2)
     expect(issue.fields.labels).toContain('human-label')
     expect(issue.fields.labels).toContain(findingIdentityLabel(source))
     expect(JSON.stringify(issue.fields.description)).toContain(
@@ -297,12 +353,13 @@ describe('Snowflake Jira configuration', () => {
       .mockResolvedValue()
 
     await new GlobalFindingsJiraSync(
-      jiraConfig(),
+      jiraConfig({jiraPriorityMap: '{"CRITICAL":"Highest"}'}),
       {...snowflakeConfig(), customJiraFields: {parent: {key: 'KAN-5'}}},
       false
     ).sync()
 
     const created = createIssue.mock.calls[0][0]
+    expect(created.fields.priority).toEqual({name: 'Highest'})
     expect(created.fields.parent).toEqual({key: 'KAN-5'})
     expect(created.fields.labels).toEqual(
       expect.arrayContaining([

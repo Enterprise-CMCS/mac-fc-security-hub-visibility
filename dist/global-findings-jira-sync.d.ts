@@ -12,6 +12,8 @@ export declare function reconciliationFismaLabel(config: Pick<SnowflakeFindingsC
 export declare function reconciliationToolLabel(toolName?: string): string | undefined;
 export declare function reconciliationLabels(config: Pick<SnowflakeFindingsConfig, 'fismaIds' | 'fismaAcronyms' | 'toolName'>): string[];
 export declare function findingTitle(finding: GlobalSecurityFinding): string;
+export declare function parseJiraPriorityMap(input?: string): Record<string, string>;
+export declare function jiraPriority(severity: string, overrides?: Record<string, string>): string;
 export declare class GlobalFindingsJiraSync {
     private readonly jira;
     private readonly snowflake;
@@ -20,6 +22,7 @@ export declare class GlobalFindingsJiraSync {
     private readonly customJiraFields?;
     private readonly jiraAddLabels;
     private readonly jiraLabelsConfig;
+    private readonly priorityMap;
     private readonly jiraLinkIdOnCreation?;
     private readonly jiraLinkTypeOnCreation?;
     private readonly jiraLinkDirectionOnCreation?;

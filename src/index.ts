@@ -188,6 +188,7 @@ async function run(): Promise<void> {
         'jira-reopen-transition',
         'JIRA_REOPEN_TRANSITION'
       ),
+      jiraPriorityMap: getInputOrEnv('jira-priority-map', 'JIRA_PRIORITY_MAP'),
       jiraAddLabels: getDefaultInputOrEnv(
         'jira-add-labels',
         'JIRA_ADD_LABELS',

@@ -29,6 +29,8 @@ jobs:
           # also clears resolution when a closed issue moves to To Do.
           jira-reopen-transition: 'To Do'
           jira-api-version: '3'
+          # Optional: map CRITICAL to an existing Jira Cloud priority.
+          # jira-priority-map: '{"CRITICAL":"Highest"}'
 
           # Optional Jira ticket customization.
           # For Jira Cloud, jira-assignee must be an Atlassian accountId.
