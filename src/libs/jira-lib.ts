@@ -986,6 +986,70 @@ export class Jira {
 
   // Explicit Snowflake entry points. The existing Security Hub creation/update
   // paths below do not call these methods.
+  async getSnowflakeProjectPriorities(): Promise<string[]> {
+    try {
+      if (this.apiVersion !== '3') {
+        const response = await this.axiosInstance.get(
+          this.getApiPath('/issue/createmeta'),
+          {
+            params: {
+              projectKeys: this.jiraProject,
+              issuetypeNames: 'Task',
+              expand: 'projects.issuetypes.fields'
+            }
+          }
+        )
+        const project = response.data.projects?.find(
+          (item: {key: string}) => item.key === this.jiraProject
+        )
+        const task = project?.issuetypes?.find(
+          (item: {name: string}) => item.name === 'Task'
+        )
+        const values: unknown = task?.fields?.priority?.allowedValues
+        if (!Array.isArray(values))
+          throw new Error('Task priority allowedValues are unavailable')
+        const names = values.map((value: {name: string}) => value?.name)
+        if (!names.every(name => typeof name === 'string' && name.trim()))
+          throw new Error('Priority names are unavailable')
+        return names
+      }
+      const project = await this.axiosInstance.get(
+        this.getApiPath(`/project/${encodeURIComponent(this.jiraProject)}`)
+      )
+      if (!project.data.id) throw new Error('Project ID is unavailable')
+      const names: string[] = []
+      let startAt = 0
+      for (;;) {
+        const response = await this.axiosInstance.get(
+          this.getApiPath('/priority/search'),
+          {
+            params: {projectId: project.data.id, startAt, maxResults: 100}
+          }
+        )
+        const page = response.data
+        if (!Array.isArray(page.values))
+          throw new Error('Priority search returned an invalid page')
+        names.push(...page.values.map((value: {name: string}) => value.name))
+        const next = startAt + page.values.length
+        if (
+          page.isLast === true ||
+          (typeof page.total === 'number' && next >= page.total)
+        )
+          break
+        if (!page.values.length)
+          throw new Error('Priority search pagination did not advance')
+        startAt = next
+      }
+      if (!names.every(name => typeof name === 'string' && name.trim()))
+        throw new Error('Priority names are unavailable')
+      return names
+    } catch (error) {
+      throw new Error(
+        `Unable to discover priorities for Jira project ${this.jiraProject}: ${handleAxiosError(error)}`
+      )
+    }
+  }
+
   async prepareSnowflakeFields(
     issue: NewIssueData,
     anchor: string

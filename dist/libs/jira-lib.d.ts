@@ -144,6 +144,7 @@ export declare class Jira {
      * Implements caching to avoid repeated API calls within a session.
      */
     private getCisaDueDate;
+    getSnowflakeProjectPriorities(): Promise<string[]>;
     prepareSnowflakeFields(issue: NewIssueData, anchor: string): Promise<NewIssueData>;
     getSnowflakeIssue(issueId: string): Promise<SnowflakeIssue>;
     updateSnowflakeIssue(issueId: string, patch: SnowflakePatch): Promise<void>;

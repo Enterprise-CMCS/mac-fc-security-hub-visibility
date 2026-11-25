@@ -28,6 +28,91 @@ function jiraConfig(overrides: Partial<JiraConfig> = {}): JiraConfig {
   }
 }
 
+describe('Snowflake project priorities', () => {
+  afterEach(() => vi.restoreAllMocks())
+
+  it('resolves the Cloud project ID and reads every project-filtered priority page', async () => {
+    const jira = new Jira(jiraConfig())
+    const client = (jira as unknown as {axiosInstance: AxiosInstance})
+      .axiosInstance
+    const get = vi
+      .spyOn(client, 'get')
+      .mockResolvedValueOnce({data: {id: '10001'}})
+      .mockResolvedValueOnce({
+        data: {values: [{name: 'Highest'}], isLast: false, total: 2}
+      })
+      .mockResolvedValueOnce({
+        data: {values: [{name: 'Critical'}], isLast: true, total: 2}
+      })
+    expect(await jira.getSnowflakeProjectPriorities()).toEqual([
+      'Highest',
+      'Critical'
+    ])
+    expect(get).toHaveBeenNthCalledWith(1, '/rest/api/3/project/MACFC')
+    expect(get).toHaveBeenNthCalledWith(2, '/rest/api/3/priority/search', {
+      params: {projectId: '10001', startAt: 0, maxResults: 100}
+    })
+    expect(get).toHaveBeenNthCalledWith(3, '/rest/api/3/priority/search', {
+      params: {projectId: '10001', startAt: 1, maxResults: 100}
+    })
+  })
+
+  it('uses Task creation metadata for Enterprise project priorities', async () => {
+    const jira = new Jira(
+      jiraConfig({jiraBaseURI: 'https://jira.example.org', jiraApiVersion: '2'})
+    )
+    const client = (jira as unknown as {axiosInstance: AxiosInstance})
+      .axiosInstance
+    const get = vi
+      .spyOn(client, 'get')
+      .mockResolvedValue({
+        data: {
+          projects: [
+            {
+              key: 'MACFC',
+              issuetypes: [
+                {
+                  name: 'Task',
+                  fields: {priority: {allowedValues: [{name: 'Critical'}]}}
+                }
+              ]
+            }
+          ]
+        }
+      })
+    expect(await jira.getSnowflakeProjectPriorities()).toEqual(['Critical'])
+    expect(get).toHaveBeenCalledWith('/rest/api/2/issue/createmeta', {
+      params: {
+        projectKeys: 'MACFC',
+        issuetypeNames: 'Task',
+        expand: 'projects.issuetypes.fields'
+      }
+    })
+  })
+
+  it('reports lookup failures without assuming any priority is available', async () => {
+    const jira = new Jira(jiraConfig())
+    const client = (jira as unknown as {axiosInstance: AxiosInstance})
+      .axiosInstance
+    vi.spyOn(client, 'get').mockRejectedValue(new Error('Access denied'))
+    await expect(jira.getSnowflakeProjectPriorities()).rejects.toThrow(
+      'Unable to discover priorities for Jira project MACFC: Access denied'
+    )
+  })
+
+  it('rejects an incomplete page rather than silently missing Critical', async () => {
+    const jira = new Jira(jiraConfig())
+    const client = (jira as unknown as {axiosInstance: AxiosInstance})
+      .axiosInstance
+    vi.spyOn(client, 'get')
+      .mockResolvedValueOnce({data: {id: '10001'}})
+      .mockResolvedValueOnce({data: {values: [], isLast: false, total: 2}})
+    await expect(jira.getSnowflakeProjectPriorities()).rejects.toThrow(
+      'pagination did not advance'
+    )
+  })
+})
+
 describe('Jira API version resolution', () => {
   it('forces Atlassian Cloud onto the supported v3 API', () => {
     expect(resolveJiraApiVersion('https://sfji.atlassian.net', '2')).toBe('3')

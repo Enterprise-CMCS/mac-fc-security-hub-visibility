@@ -29,7 +29,8 @@ jobs:
           # also clears resolution when a closed issue moves to To Do.
           jira-reopen-transition: 'To Do'
           jira-api-version: '3'
-          # Optional: map CRITICAL to an existing Jira Cloud priority.
+          # CRITICAL automatically uses Critical, or Highest if Critical is absent.
+          # Optional: force a particular priority instead of automatic selection.
           # jira-priority-map: '{"CRITICAL":"Highest"}'
 
           # Optional Jira ticket customization.

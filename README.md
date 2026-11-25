@@ -63,8 +63,16 @@ must use `customfield_<id>`.
 
 Matched Snowflake tickets are refreshed on each run, including after reopening.
 
-In Snowflake mode, `jira-priority-map` optionally overrides Jira priority names
-by normalized severity. For a Jira project with `Highest` instead of `Critical`:
+In Snowflake mode, CRITICAL findings automatically use `Critical` when it is
+available in the target project, otherwise `Highest`. No workflow input is
+needed for this fallback. Availability is checked before Jira mutations, once
+per run when CRITICAL findings exist without an explicit override. Jira Cloud
+uses project-filtered priority search; Enterprise/API v2 uses Task creation
+metadata. If neither priority is available, or discovery fails, the run stops
+with an actionable error before creating, updating, reopening, or closing issues.
+
+`jira-priority-map` is optional and takes precedence over automatic selection.
+For example, to always use `Highest`, even when `Critical` is available:
 
 ```yaml
 jira-priority-map: '{"CRITICAL":"Highest"}'
@@ -75,9 +83,10 @@ variables. Keys are case-insensitive normalized severities (`CRITICAL`, `HIGH`,
 `MEDIUM`, `LOW`, `INFO`, `INFORMATIONAL`, `UNKNOWN`); priority names retain their
 case and must exist and be available in the target Jira project. Invalid JSON,
 unknown severity keys, duplicate normalized keys, and empty/non-string priority
-names fail before external requests. Unmapped severities keep the defaults:
-Critical, High, Medium, Low, and Lowest for INFO/INFORMATIONAL/UNKNOWN. No priority
-is created and no automatic fallback is selected if Jira rejects the name.
+names fail before external requests. Other unmapped severities keep the defaults:
+High, Medium, Low, and Lowest for INFO/INFORMATIONAL/UNKNOWN. No priority is
+created. An explicitly configured CRITICAL mapping bypasses discovery and does
+not fall back if Jira rejects the configured name.
 Changes to the mapping reconcile existing tickets, including reopened tickets;
 unchanged mappings do not repeatedly update priority. Severity labels and due
 dates still use finding severity, not the mapped Jira priority. This input does

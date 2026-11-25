@@ -23,6 +23,8 @@ export declare class GlobalFindingsJiraSync {
     private readonly jiraAddLabels;
     private readonly jiraLabelsConfig;
     private readonly priorityMap;
+    private readonly explicitCriticalPriority;
+    private readonly projectKey;
     private readonly jiraLinkIdOnCreation?;
     private readonly jiraLinkTypeOnCreation?;
     private readonly jiraLinkDirectionOnCreation?;

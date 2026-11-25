@@ -222,6 +222,9 @@ function snowflakeConfig(): SnowflakeFindingsConfig {
 
 describe('Snowflake Jira configuration', () => {
   beforeEach(() => {
+    vi.spyOn(Jira.prototype, 'getSnowflakeProjectPriorities').mockResolvedValue(
+      ['Critical', 'Highest', 'High', 'Medium', 'Low', 'Lowest']
+    )
     vi.spyOn(Jira.prototype, 'getSnowflakeIssue').mockImplementation(
       async key => {
         const issues = await vi.mocked(
@@ -239,6 +242,111 @@ describe('Snowflake Jira configuration', () => {
   })
   afterEach(() => vi.restoreAllMocks())
 
+  it('does not discover priorities when there are no CRITICAL findings', async () => {
+    vi.spyOn(
+      Jira.prototype,
+      'getAllManagedIssuesInJiraProject'
+    ).mockResolvedValue([])
+    vi.spyOn(SnowflakeFindings.prototype, 'getOpenFindings').mockResolvedValue(
+      []
+    )
+    await new GlobalFindingsJiraSync(
+      jiraConfig(),
+      snowflakeConfig(),
+      false
+    ).sync()
+    expect(Jira.prototype.getSnowflakeProjectPriorities).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [['Highest', 'Critical'], undefined, 'Critical'],
+    [['Highest', 'Medium'], undefined, 'Highest'],
+    [['HIGHEST'], undefined, 'HIGHEST'],
+    [['Critical', 'Highest'], '{"CRITICAL":"Urgent"}', 'Urgent']
+  ])(
+    'selects the critical priority from %j with override %s',
+    async (available, mapping, expected) => {
+      vi.mocked(Jira.prototype.getSnowflakeProjectPriorities).mockResolvedValue(
+        available as string[]
+      )
+      vi.spyOn(
+        Jira.prototype,
+        'getAllManagedIssuesInJiraProject'
+      ).mockResolvedValue([])
+      const source = finding({normalizedSeverity: 'CRITICAL'})
+      vi.spyOn(
+        SnowflakeFindings.prototype,
+        'getOpenFindings'
+      ).mockResolvedValue([source, {...source, findingId: 'another'}])
+      const create = vi
+        .spyOn(Jira.prototype, 'createSnowflakeIssue')
+        .mockResolvedValue({
+          id: '1',
+          key: 'KAN-1',
+          webUrl: '',
+          fields: {summary: ''}
+        })
+      vi.spyOn(Jira.prototype, 'linkIssues').mockResolvedValue()
+      await new GlobalFindingsJiraSync(
+        jiraConfig({jiraPriorityMap: mapping as string | undefined}),
+        snowflakeConfig(),
+        false
+      ).sync()
+      expect(create).toHaveBeenCalledTimes(2)
+      for (const [issue] of create.mock.calls)
+        expect(issue.fields.priority).toEqual({name: expected})
+      expect(
+        Jira.prototype.getSnowflakeProjectPriorities
+      ).toHaveBeenCalledTimes(mapping ? 0 : 1)
+    }
+  )
+
+  it.each(['missing', 'lookup failure'])(
+    'aborts before mutations when critical priority discovery has %s',
+    async mode => {
+      const source = finding({normalizedSeverity: 'CRITICAL'})
+      vi.spyOn(
+        SnowflakeFindings.prototype,
+        'getOpenFindings'
+      ).mockResolvedValue([source])
+      vi.spyOn(
+        Jira.prototype,
+        'getAllManagedIssuesInJiraProject'
+      ).mockResolvedValue([
+        {
+          id: '2',
+          key: 'KAN-2',
+          webUrl: '',
+          fields: {
+            summary: 'Missing finding',
+            labels: ['global-finding-missing']
+          }
+        }
+      ])
+      const close = vi.spyOn(Jira.prototype, 'closeIssue')
+      const create = vi.spyOn(Jira.prototype, 'createSnowflakeIssue')
+      const update = vi.spyOn(Jira.prototype, 'updateSnowflakeIssue')
+      if (mode === 'missing')
+        vi.mocked(
+          Jira.prototype.getSnowflakeProjectPriorities
+        ).mockResolvedValue(['High', 'Medium'])
+      else
+        vi.mocked(
+          Jira.prototype.getSnowflakeProjectPriorities
+        ).mockRejectedValue(new Error('Priority lookup denied'))
+      await expect(
+        new GlobalFindingsJiraSync(jiraConfig(), snowflakeConfig(), true).sync()
+      ).rejects.toThrow(
+        mode === 'missing'
+          ? 'Neither Critical nor Highest'
+          : 'Priority lookup denied'
+      )
+      expect(close).not.toHaveBeenCalled()
+      expect(create).not.toHaveBeenCalled()
+      expect(update).not.toHaveBeenCalled()
+    }
+  )
+
   it('rejects unsupported system fields while allowing the configured epic parent', () => {
     expect(
       () =>
@@ -251,7 +359,10 @@ describe('Snowflake Jira configuration', () => {
   })
 
   it('refreshes a matched ticket once and never creates a replacement on update failure', async () => {
-    const source = finding({toolName: 'KUBEBENCH'})
+    const source = finding({
+      toolName: 'KUBEBENCH',
+      normalizedSeverity: 'CRITICAL'
+    })
     let issue: SnowflakeIssue = {
       id: '30',
       key: 'SCRUM-30',
@@ -300,26 +411,36 @@ describe('Snowflake Jira configuration', () => {
         }
       })
     const sync = new GlobalFindingsJiraSync(
-      jiraConfig({jiraPriorityMap: '{"HIGH":"Highest"}'}),
+      jiraConfig(),
       snowflakeConfig(),
       false
     )
     await sync.sync()
     expect(update).toHaveBeenCalledTimes(1)
-    expect(issue.fields.priority).toEqual({name: 'Highest'})
+    expect(issue.fields.priority).toEqual({name: 'Critical'})
     const date = issue.fields.duedate
     await sync.sync()
     expect(update).toHaveBeenCalledTimes(1)
+    vi.mocked(Jira.prototype.getSnowflakeProjectPriorities).mockResolvedValue([
+      'Highest',
+      'High',
+      'Medium'
+    ])
+    await sync.sync()
+    expect(issue.fields.priority).toEqual({name: 'Highest'})
+    expect(update).toHaveBeenCalledTimes(2)
+    await sync.sync()
+    expect(update).toHaveBeenCalledTimes(2)
     const remapped = new GlobalFindingsJiraSync(
-      jiraConfig({jiraPriorityMap: '{"HIGH":"High"}'}),
+      jiraConfig({jiraPriorityMap: '{"CRITICAL":"High"}'}),
       snowflakeConfig(),
       false
     )
     await remapped.sync()
     expect(issue.fields.priority).toEqual({name: 'High'})
-    expect(update).toHaveBeenCalledTimes(2)
+    expect(update).toHaveBeenCalledTimes(3)
     await remapped.sync()
-    expect(update).toHaveBeenCalledTimes(2)
+    expect(update).toHaveBeenCalledTimes(3)
     expect(issue.fields.labels).toContain('human-label')
     expect(issue.fields.labels).toContain(findingIdentityLabel(source))
     expect(JSON.stringify(issue.fields.description)).toContain(

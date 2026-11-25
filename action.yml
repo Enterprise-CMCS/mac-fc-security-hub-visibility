@@ -34,7 +34,7 @@ inputs:
   jira-custom-fields:
     description: 'JSON string of Jira custom field keys/values, e.g. { "customfield_14117": "example-value" }'
   jira-priority-map:
-    description: 'Snowflake only: JSON object mapping normalized severities to Jira priority names, e.g. {"CRITICAL":"Highest"}. Unmapped severities retain existing defaults.'
+    description: 'Snowflake only: optional JSON priority overrides, e.g. {"CRITICAL":"Highest"}. Without a CRITICAL override, use project priority Critical if available, otherwise Highest. Other unmapped severities retain existing defaults.'
     required: false
   jira-watchers:
     description: 'Comma separated list of Emails for Atlassion Jira and User EUA IDs for Enterprise Jira '

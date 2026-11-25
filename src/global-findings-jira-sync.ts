@@ -299,6 +299,8 @@ export class GlobalFindingsJiraSync {
   private readonly jiraAddLabels: string[]
   private readonly jiraLabelsConfig: LabelConfig[]
   private readonly priorityMap: Record<string, string>
+  private readonly explicitCriticalPriority: boolean
+  private readonly projectKey: string
   private readonly jiraLinkIdOnCreation?: string
   private readonly jiraLinkTypeOnCreation?: string
   private readonly jiraLinkDirectionOnCreation?: string
@@ -318,6 +320,11 @@ export class GlobalFindingsJiraSync {
     autoClose: boolean
   ) {
     this.priorityMap = parseJiraPriorityMap(jiraConfig.jiraPriorityMap)
+    this.explicitCriticalPriority = Object.prototype.hasOwnProperty.call(
+      this.priorityMap,
+      'CRITICAL'
+    )
+    this.projectKey = jiraConfig.jiraProjectKey
     const jiraHostname = new URL(jiraConfig.jiraBaseURI).hostname.toLowerCase()
     this.jira = new Jira({
       ...jiraConfig,
@@ -576,6 +583,26 @@ h2. Acceptance criteria
       true
     )
     const findings = await this.snowflake.getOpenFindings()
+    // Resolve before any mutations, including closures. Never retry creation to
+    // discover whether a different priority might work.
+    if (
+      findings.some(finding => finding.normalizedSeverity === 'CRITICAL') &&
+      !this.explicitCriticalPriority
+    ) {
+      const priorities = await this.jira.getSnowflakeProjectPriorities()
+      const selected = ['Critical', 'Highest']
+        .map(name =>
+          priorities.find(
+            priority => priority.toLowerCase() === name.toLowerCase()
+          )
+        )
+        .find(Boolean)
+      if (!selected)
+        throw new Error(
+          `Neither Critical nor Highest is available in Jira project ${this.projectKey}. Available priorities: ${priorities.join(', ') || '(none)'}. Configure jira-priority-map with an available CRITICAL priority.`
+        )
+      this.priorityMap.CRITICAL = selected
+    }
     const activeIdentityLabels = new Set(findings.map(findingIdentityLabel))
     const issuesByIdentity = new Map<string, Issue[]>()
     for (const issue of jiraIssues) {
